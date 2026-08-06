@@ -59,6 +59,32 @@ app.put("/api/save", requireUser, async (req, res) => {
     ON CONFLICT (google_sub) DO UPDATE SET email=EXCLUDED.email, state=EXCLUDED.state, updated_at=NOW()`, [req.user.sub, req.user.email, state]);
   res.json({ ok: true });
 });
+app.get("/api/friends/:code", requireUser, async (req, res) => {
+  const code = String(req.params.code || "").toUpperCase();
+  const result = await pool.query(`SELECT state FROM game_saves
+    WHERE UPPER(state->'account'->>'code') = $1 LIMIT 1`, [code]);
+  const state = result.rows[0]?.state;
+  if (!state) return res.status(404).json({ error: "friend not found" });
+  res.json({ friend: {
+    code, name: state.player?.name || "เพื่อน",
+    petName: state.pet?.name || "Mori", petForm: state.pet?.form || "seed"
+  }});
+});
+app.put("/api/rooms/:code/presence", requireUser, async (req, res) => {
+  const code = String(req.params.code || "").toUpperCase();
+  if (!/^[A-Z0-9]{4,10}$/.test(code)) return res.status(400).json({ error: "invalid room" });
+  const profile = req.body?.profile || {};
+  await pool.query(`INSERT INTO room_presence (room_code, google_sub, profile, seen_at)
+    VALUES ($1,$2,$3,NOW()) ON CONFLICT (room_code,google_sub)
+    DO UPDATE SET profile=EXCLUDED.profile, seen_at=NOW()`, [code, req.user.sub, profile]);
+  await pool.query("DELETE FROM room_presence WHERE seen_at < NOW() - INTERVAL '2 minutes'");
+  const members = await pool.query("SELECT profile FROM room_presence WHERE room_code=$1 ORDER BY seen_at DESC LIMIT 5", [code]);
+  res.json({ members: members.rows.map(r => r.profile) });
+});
+app.delete("/api/rooms/:code/presence", requireUser, async (req, res) => {
+  await pool.query("DELETE FROM room_presence WHERE room_code=$1 AND google_sub=$2", [String(req.params.code || "").toUpperCase(), req.user.sub]);
+  res.json({ ok: true });
+});
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 await pool.query(`CREATE TABLE IF NOT EXISTS game_saves (
@@ -66,5 +92,12 @@ await pool.query(`CREATE TABLE IF NOT EXISTS game_saves (
   email TEXT NOT NULL,
   state JSONB NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS room_presence (
+  room_code TEXT NOT NULL,
+  google_sub TEXT NOT NULL,
+  profile JSONB NOT NULL,
+  seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (room_code, google_sub)
 )`);
 app.listen(port, "0.0.0.0", () => console.log(`SAMATI listening on ${port}`));
