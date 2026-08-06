@@ -82,7 +82,7 @@ body{
 }
 .breath-ring.on{box-shadow:0 0 0 2px var(--brass), 0 0 18px 2px rgba(217,164,65,.55), inset 0 0 0 1px rgba(243,215,141,.5)}
 .screen{
-  position:relative;width:100%;aspect-ratio:160/144;overflow:hidden;border-radius:9px;
+  position:relative;width:100%;aspect-ratio:192/144;overflow:hidden;border-radius:9px;
   background:var(--lcd);
   box-shadow:inset 0 0 24px rgba(27,36,22,.35);
 }
@@ -105,6 +105,10 @@ body{
   justify-content:space-between;align-items:center;z-index:4;
   background:linear-gradient(180deg,rgba(27,36,22,.62),transparent);color:var(--cream);font-size:11px}
 #focusHud b{font-family:var(--mono);font-size:15px;letter-spacing:.06em}
+#fhHome{display:none;border:0;border-radius:8px;padding:4px 9px;font-family:var(--ui);font-size:10.5px;
+  font-weight:700;background:linear-gradient(180deg,#f0a89a,#d9584a);color:#2a1010;cursor:pointer;
+  box-shadow:0 2px 0 #9c3b30}
+#fhHome:active{transform:translateY(2px);box-shadow:none}
 /* ---------- panels (on-screen menus) ---------- */
 .panel{
   position:absolute;inset:0;z-index:10;display:none;flex-direction:column;
@@ -137,7 +141,10 @@ body{
   background:#0f0c22;border-radius:9px;padding:6px 8px;min-width:96px;
   box-shadow:inset 0 0 0 1px rgba(217,164,65,.35), inset 0 2px 6px rgba(0,0,0,.6);
 }
-.plate .nm{font-size:12px;font-weight:700;color:var(--brass-l);line-height:1.2;
+.plate .pn{font-size:13.5px;font-weight:800;color:#fff3d8;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:112px;
+  text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.plate .nm{font-size:11.5px;font-weight:700;color:var(--brass-l);line-height:1.2;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:104px}
 .plate .sp{font-size:10px;opacity:.62;font-family:var(--mono);letter-spacing:.04em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:104px}
@@ -168,7 +175,9 @@ body{
 .key.hero:active{box-shadow:0 0 0 var(--brass-d),0 2px 6px rgba(0,0,0,.4)}
 .key .badge{position:absolute}
 /* ---------- creator ---------- */
-.previewWrap{display:flex;justify-content:center;padding:4px 0 10px}
+.previewWrap{display:flex;justify-content:center;padding:6px 0 8px;position:sticky;top:-10px;z-index:3;
+  background:linear-gradient(180deg,#22301c 60%,rgba(34,48,28,.92) 85%,rgba(34,48,28,0));
+  margin:-10px -10px 2px;border-bottom:1px solid rgba(183,207,139,.18)}
 #pv{width:112px;height:112px;image-rendering:pixelated;
   background:linear-gradient(180deg,#9fbf7a,#7d9c5f);border-radius:10px;
   box-shadow:inset 0 0 0 2px rgba(27,36,22,.4)}
@@ -256,16 +265,15 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
   18%{opacity:1;transform:translate(-50%,-55%) scale(1)}
   100%{opacity:0;transform:translate(-50%,-160%) scale(1)}}
 /* ---------- แถบวาง/จัดบ้าน ---------- */
-#placeBar,#editBar{position:absolute;left:0;right:0;bottom:0;z-index:8;display:none;
+#placeBar{position:absolute;left:0;right:0;bottom:0;z-index:8;display:none;
   align-items:center;gap:7px;padding:6px 8px;font-size:11.5px;
   background:linear-gradient(0deg,rgba(15,12,34,.95),rgba(15,12,34,.7));color:var(--cream)}
-#placeBar span,#editBar span{flex:1}
-#placeBar .btn,#editBar .btn{flex:0 0 auto;padding:6px 11px;font-size:12px}
+#placeBar span{flex:1}
+#placeBar .btn{flex:0 0 auto;padding:6px 11px;font-size:12px}
 #placeName{font-weight:700;color:var(--brass-l)}
 /* ---------- ร้านค้า ---------- */
 .cell .p{font-size:10px;color:var(--brass-l);font-family:var(--mono);margin-top:2px}
 .cell.poor{opacity:.5}
-.cell.drag{cursor:grab;touch-action:none}
 .sellrow{display:flex;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px dashed rgba(183,207,139,.2)}
 .sellrow .se{font-size:18px}
 .sellrow .sn{flex:1;font-size:12px}
@@ -286,11 +294,34 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 .water{position:relative;height:22px;border-radius:8px;margin-bottom:8px;overflow:hidden;
   background:linear-gradient(180deg,#2f5d6b,#1d3a45)}
 .water span{position:absolute;top:2px;transform:translateX(-50%);font-size:14px;transition:left .12s linear}
+/* ---------- เดินทาง ---------- */
+.travel{display:block;width:100%;text-align:left;background:#2a3623;border:2px solid transparent;
+  border-radius:10px;padding:9px 11px;margin-bottom:7px;color:var(--cream);font-family:var(--ui);cursor:pointer}
+.travel b{display:block;font-size:13.5px;color:var(--brass-l)}
+.travel span{font-size:10.5px;opacity:.8;line-height:1.4}
+.travel.risky{border-color:rgba(217,88,74,.6)}
+.hint.warn{color:#f0b0a0}
+/* ---------- ปุ่มทิศทางจัดบ้าน ---------- */
+#editPad{display:none;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 2px 2px}
+#editPad button{border:0;border-radius:11px;padding:9px 2px;cursor:pointer;font-family:var(--ui);
+  font-size:13px;font-weight:700;color:#2a2113;touch-action:none;
+  background:linear-gradient(180deg,#f7f1e0,#ddd2b6 60%,#b9ad90);box-shadow:0 4px 0 #6f6752}
+#editPad button:active{transform:translateY(4px);box-shadow:none}
+#editPad .wide{grid-column:span 2}
+#editPad .go{background:linear-gradient(180deg,var(--brass-l),var(--brass) 55%,#b8862d);box-shadow:0 4px 0 var(--brass-d)}
+/* ---------- ป้ายชื่อบนจอ ---------- */
+.tag{position:absolute;transform:translate(-50%,-100%);z-index:5;pointer-events:none;
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:9px;white-space:nowrap;
+  transition:opacity .3s}
+#tagPly{background:rgba(217,164,65,.92);color:#2a2113;box-shadow:0 1px 0 rgba(0,0,0,.4)}
+#tagPet{background:rgba(15,12,34,.72);color:#f2ead6;font-size:9px}
+/* ---------- HP ---------- */
+.f-hp{background:linear-gradient(90deg,#8fd08a,#5fa85a)}
+.f-hp.low{background:linear-gradient(90deg,#f0a07a,#d9584a)}
+.bar .num{font-family:var(--mono);font-size:9px;opacity:.75;min-width:38px;text-align:right}
+.bars .bar{grid-template-columns:16px 1fr auto}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media (max-height:660px){
-  .key{padding:7px 3px 6px}.key .g{font-size:15px}.key .t{font-size:9.5px}
-  .lamps{padding-bottom:5px}.lens{width:22px;height:22px}
-}
+
 </style>
 </head>
 <body>
@@ -304,20 +335,18 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
   <div class="screen-frame">
     <div class="breath-ring" id="ring"></div>
     <div class="screen" id="screen">
-      <canvas id="cv" width="160" height="144"></canvas>
+      <canvas id="cv" width="192" height="144"></canvas>
       <div class="scan"></div>
       <div id="bubble"></div>
+      <div class="tag" id="tagPly"></div>
+      <div class="tag" id="tagPet"></div>
       <div id="floats"></div>
-      <div id="placeBar">
-        <span>วาง <b id="placeName"></b> — ลากไปตำแหน่งที่ต้องการ</span>
-        <button class="btn" id="placeOk">วางตรงนี้</button>
-        <button class="btn ghost" id="placeCancel">ยกเลิก</button>
+      <div id="placeBar"><span id="placeMsg"></span></div>
+      <div id="focusHud">
+        <span id="fhLeft">โฟกัส</span><b id="fhTime">00:00</b>
+        <span id="fhDrop">0</span>
+        <button id="fhHome">พากลับบ้าน</button>
       </div>
-      <div id="editBar">
-        <span>ลากเพื่อย้าย · กดค้างที่ของเพื่อเก็บกลับกระเป๋า</span>
-        <button class="btn" id="editDone">เสร็จแล้ว</button>
-      </div>
-      <div id="focusHud"><span id="fhLeft">โฟกัส</span><b id="fhTime">00:00</b><span id="fhDrop">0 ชิ้น</span></div>
 
       <!-- ======= PANELS ======= -->
       <div class="panel" id="p-creator">
@@ -353,7 +382,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <input class="field" id="inPlayer" maxlength="12" placeholder="เช่น มานี">
           <div class="sec">ชื่อเล่นของสัตว์เลี้ยง</div>
           <input class="field" id="inPet" maxlength="12" placeholder="Mori">
-          <p class="hint" style="margin-top:10px">สายพันธุ์ Mori เติบโตด้วยเวลาโฟกัสของคุณ ทุกนาทีที่คุณตั้งใจทำงาน มันจะได้รับพลังและเปลี่ยนร่างไปตามวิธีที่คุณเลี้ยงดู</p>
+          <p class="hint" style="margin-top:10px">สายพันธุ์ Mori เติบโตด้วยเวลาโฟกัสของคุณ ทุกนาทีที่ตั้งใจทำงาน มันจะได้รับพลังและเปลี่ยนร่างไปตามวิธีที่คุณเลี้ยงดู</p>
         </div>
         <div class="pf">
           <button class="btn ghost" id="btnBackCreator">ย้อนกลับ</button>
@@ -367,10 +396,11 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div class="row" style="margin-bottom:8px">
             <button class="opt on" data-tab="food">อาหาร</button>
             <button class="opt" data-tab="mat">วัสดุ</button>
+            <button class="opt" data-tab="use">ไอเท็ม</button>
             <button class="opt" data-tab="furni">ของแต่งบ้าน</button>
           </div>
           <div class="grid" id="bagGrid"></div>
-          <p class="hint" style="margin-top:10px">อาหารและวัสดุได้จากก้อนเมฆระหว่างโฟกัสและจากการตกปลา · ของแต่งบ้านให้ลากหรือแตะเพื่อวางในห้อง</p>
+          <p class="hint" style="margin-top:10px">อาหารและวัสดุได้จากก้อนเมฆระหว่างโฟกัสและจากการตกปลา · ของแต่งบ้านและของสวนให้เลือกแล้วเลื่อนวางด้วยปุ่มทิศทาง</p>
         </div>
       </div>
 
@@ -380,22 +410,30 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
       </div>
 
       <div class="panel" id="p-focus">
-        <div class="pt">FocusTime<button class="x" data-close>✕</button></div>
+        <div class="pt">FocusTime<span id="focusWhere" style="margin-left:auto;font-size:11px;opacity:.75"></span><button class="x" data-close>✕</button></div>
         <div class="pb">
           <div class="sec">ระยะเวลา</div><div class="opts" id="o-dur"></div>
           <div class="sec">ระดับความยาก</div><div class="opts" id="o-diff"></div>
-          <div class="kv"><span>ค่าประสบการณ์ที่จะได้</span><b id="fPreviewXp">—</b></div>
-          <div class="kv"><span>อาหารที่จะร่วงลงมา</span><b id="fPreviewDrop">—</b></div>
-          <p class="hint" style="margin-top:10px">ระหว่างโฟกัส Mori จะนั่งสมาธิ ก้อนเมฆจะป๊อบขึ้นและปล่อยของลงมาแบบเรียลไทม์ ของจะเข้ากระเป๋าเองเมื่อตกถึงพื้น (แตะเพื่อเก็บก่อนได้) ยิ่งสัตว์เลี้ยงสนิทและอารมณ์ดี ของยิ่งร่วงถี่และหายากขึ้น ถ้าออกจากแอปนานเกิน 10 วินาที สมาธิจะขาดและได้รางวัลเพียงบางส่วน</p>
+          <div class="kv"><span>รางวัลเมื่อครบรอบ</span><b id="fPreviewXp">—</b></div>
+          <div class="kv"><span>ของที่จะร่วงลงมา</span><b id="fPreviewDrop">—</b></div>
+          <div id="focusNote"></div>
+          <p class="hint" style="margin-top:10px">ก้อนเมฆจะป๊อบขึ้นและปล่อยของลงมาแบบเรียลไทม์ ของจะเข้ากระเป๋าเองเมื่อตกถึงพื้น · ออกจากแอปนานเกิน 10 วินาที สมาธิจะขาด</p>
         </div>
         <div class="pf"><button class="btn" id="btnFocusGo">เริ่มโฟกัส</button></div>
+      </div>
+
+      <div class="panel" id="p-travel">
+        <div class="pt">ออกไปสำรวจ<button class="x" data-close>✕</button></div>
+        <div class="pb" id="travelBody"></div>
       </div>
 
       <div class="panel" id="p-shop">
         <div class="pt">ร้านค้า<span id="shopCoins" style="margin-left:auto;font-family:var(--mono);color:var(--brass-l)"></span><button class="x" data-close>✕</button></div>
         <div class="pb">
           <div class="row" style="margin-bottom:8px">
-            <button class="opt on" data-shoptab="buy">ซื้อของแต่งบ้าน</button>
+            <button class="opt on" data-shoptab="home">ของแต่งบ้าน</button>
+            <button class="opt" data-shoptab="garden">ต้นไม้ & สวน</button>
+            <button class="opt" data-shoptab="item">ไอเท็ม</button>
             <button class="opt" data-shoptab="sell">ขายของ</button>
           </div>
           <div id="shopBody"></div>
@@ -430,7 +468,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <input type="file" id="fileIn" accept=".json,.txt" style="display:none">
           <div class="sec">เพื่อน</div>
           <div class="row"><button class="opt lock" disabled>ห้องเล่นออนไลน์ · เร็วๆ นี้</button></div>
-          <p class="hint">โครงสร้างเกมเตรียมช่องต่อกับเซิร์ฟเวอร์ไว้แล้ว (SamatiNet) สำหรับโหมดโฟกัสพร้อมเพื่อนและแลกอาหาร</p>
+          <p class="hint">โครงสร้างเกมเตรียมช่องต่อกับเซิร์ฟเวอร์ไว้แล้ว (SamatiNet) สำหรับโหมดโฟกัสพร้อมเพื่อนและแลกไอเท็ม</p>
           <div class="sec">อื่นๆ</div>
           <div class="row">
             <button class="btn ghost" id="btnSound">เสียง: เปิด</button>
@@ -453,11 +491,13 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 
   <div class="hud">
     <div class="plate">
+      <div class="pn" id="hPlayer">ผู้ฝึก</div>
       <div class="nm" id="hPetName">Mori</div>
       <div class="sp" id="hSpecies">Mori Seed</div>
       <div class="lv" id="hLv">Lv.1</div>
     </div>
     <div class="bars">
+      <div class="bar"><span class="ic">❤️</span><div class="track"><div class="fill f-hp" id="bHp"></div></div><span class="num" id="hpTxt">0/0</span></div>
       <div class="bar"><span class="ic">🍚</span><div class="track"><div class="fill f-hun" id="bHun"></div></div></div>
       <div class="bar"><span class="ic">🙂</span><div class="track"><div class="fill f-moo" id="bMoo"></div></div></div>
       <div class="bar"><span class="ic">💞</span><div class="track"><div class="fill f-bon" id="bBon"></div></div></div>
@@ -470,8 +510,18 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
     <button class="mv" id="mvSit">นั่งลง</button>
     <button class="mv" id="mvR">เดิน ▶</button>
   </div>
+  <div id="editPad">
+    <button id="padL">◀</button>
+    <button id="padU">▲</button>
+    <button id="padD">▼</button>
+    <button id="padR">▶</button>
+    <button class="go wide" id="padOk">วางตรงนี้</button>
+    <button id="padNext">ถัดไป</button>
+    <button id="padTake">เก็บ</button>
+    <button class="wide" id="padExit" style="grid-column:span 4">ออกจากโหมดจัดบ้าน</button>
+  </div>
 
-  <div class="envbar"><span id="envW">☀️</span><span id="envT">--:--</span><span id="envC">🪙 0</span></div>
+  <div class="envbar"><span id="envW">☀️</span><span id="envT">--:--</span><span id="envA">บ้าน</span><span id="envC">🪙 0</span></div>
 
   <div class="pad">
     <button class="key" data-act="feed"><span class="g">🍎</span><span class="t">ให้อาหาร</span></button>
@@ -486,9 +536,10 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 </div>
 
 <script>
+
 "use strict";
 /* =====================================================================
-   0. UTIL
+   0. UTIL · STORAGE · SOUND
 ===================================================================== */
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
@@ -498,16 +549,14 @@ const ri  = (a,b) => Math.floor(rnd(a,b+1));
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const now = () => Date.now();
 
-/* ---- storage (localStorage on the web, artifact API when available) ---- */
 const mem = {};
 const Store = {
   async get(k){ try{ if(window.storage){ const r = await window.storage.get(k); return r ? r.value : null; } const v=localStorage.getItem(k); if(v!==null) return v; }catch(e){} return mem[k] ?? null; },
   async set(k,v){ mem[k]=v; try{ if(window.storage) await window.storage.set(k,v); else localStorage.setItem(k,v); }catch(e){} },
   async del(k){ delete mem[k]; try{ if(window.storage) await window.storage.delete(k); else localStorage.removeItem(k); }catch(e){} }
 };
-const SAVE_KEY = "samati:save:v1";
+const SAVE_KEY = "samati:save:v2";
 
-/* ---- tiny sound ---- */
 let AC=null, sndOn=true;
 function beep(f=440,d=.07,type="square",g=.05){
   if(!sndOn) return;
@@ -530,9 +579,8 @@ const sfx = {
 };
 
 /* =====================================================================
-   1. DATA — species forms, evolution tree, items
+   1. DATA — สายพันธุ์ Mori · ไอเท็ม · เฟอร์นิเจอร์
 ===================================================================== */
-/* palette keys: m main, d dark, l light, a accent */
 const F = (o) => o;
 const FORMS = {
   seed: F({name:"Mori Seed", th:"เมล็ดโมริ", stage:0, w:6,h:6, pal:{m:"#8a9a4e",d:"#5c6a2c",l:"#c3d18a",a:"#e6d5a2"},
@@ -644,7 +692,7 @@ const FORMS = {
 const STAGE_TH = ["Seed","Egg","Sprout","Child","Teen","Adult","Elder","Ancient"];
 const STAGE_LABEL = ["เมล็ด","ไข่","ต้นอ่อน","เด็ก","วัยรุ่น","โตเต็มวัย","ผู้เฒ่า","โบราณ"];
 
-/* evolution tree: care = 'focus' | 'play' | 'feed' */
+/* วิวัฒนาการ — บางสายต้องใช้หินจากพื้นที่สำรวจ */
 const TREE = {
   seed:[{to:"egg",lv:3}],
   egg:[{to:"sprout",lv:6}],
@@ -652,9 +700,12 @@ const TREE = {
   zen:[{to:"medi",lv:18,care:"focus"},{to:"luna",lv:18,care:"play"}],
   spark:[{to:"bolt",lv:18,care:"play"},{to:"comet",lv:18,care:"focus"}],
   chub:[{to:"puddi",lv:18,care:"feed"},{to:"bloom",lv:18,care:"focus"}],
-  medi:[{to:"sage",lv:28,bond:35}], luna:[{to:"noctur",lv:28,bond:35}],
-  bolt:[{to:"thunder",lv:28,bond:35}], comet:[{to:"astro",lv:28,bond:35}],
-  puddi:[{to:"feast",lv:28,bond:35}], bloom:[{to:"flora",lv:28,bond:35}],
+  medi:[{to:"sage",lv:28,bond:35}],
+  luna:[{to:"noctur",lv:28,bond:35,item:"stoneSoul"}],
+  bolt:[{to:"thunder",lv:28,bond:35,item:"stoneBolt"}],
+  comet:[{to:"astro",lv:28,bond:35}],
+  puddi:[{to:"feast",lv:28,bond:35}],
+  bloom:[{to:"flora",lv:28,bond:35,item:"stoneSpore"}],
   sage:[{to:"zenith",lv:40,bond:60}], noctur:[{to:"zenith",lv:40,bond:60}],
   thunder:[{to:"auror",lv:40,bond:60}], astro:[{to:"auror",lv:40,bond:60}],
   feast:[{to:"verdan",lv:40,bond:60}], flora:[{to:"verdan",lv:40,bond:60}],
@@ -672,7 +723,7 @@ const DEX_ROWS = [
   ["nirva","cosmo","gaia","samati"]
 ];
 
-/* items — price = ราคาขายที่ร้าน */
+/* ---------- ไอเท็ม (price = ราคาขาย, buy = ราคาซื้อ) ---------- */
 const ITEMS = {
   berry:{n:"เบอร์รีป่า",e:"🍓",type:"food",hun:12,moo:4,rare:1,price:3},
   rice:{n:"ข้าวปั้นสมาธิ",e:"🍙",type:"food",hun:22,moo:6,rare:2,price:6},
@@ -683,9 +734,12 @@ const ITEMS = {
   stone:{n:"หินสมาธิ",e:"🪨",type:"mat",rare:2,price:5},
   dew:{n:"หยดน้ำค้าง",e:"💧",type:"mat",rare:3,price:11},
   shard:{n:"เศษแสง",e:"✨",type:"mat",rare:4,price:20},
-  crystal:{n:"คริสตัลสมาธิ",e:"🔮",type:"mat",rare:5,price:45}
+  crystal:{n:"คริสตัลสมาธิ",e:"🔮",type:"mat",rare:5,price:45},
+  stoneSoul:{n:"หินวิญญาณ",e:"💠",type:"mat",rare:5,price:70},
+  stoneBolt:{n:"หินสายฟ้า",e:"⚡",type:"mat",rare:5,price:70},
+  stoneSpore:{n:"หินสปอร์",e:"🍄",type:"mat",rare:5,price:70},
+  medkit:{n:"ยาฟื้นฟูสมุนไพร",e:"💊",type:"use",rare:3,price:80,buy:260,d:"ใช้ตอนสัตว์เลี้ยงบาดเจ็บ ลดเวลาโฟกัสฟื้นฟูเหลือครึ่ง"}
 };
-/* ระดับความหายากของของที่ร่วงจากเมฆ */
 const TIERS = {
   1:["berry","berry","rice"],
   2:["rice","tea","stone","cake"],
@@ -693,29 +747,39 @@ const TIERS = {
   4:["star","shard","crystal"],
   5:["crystal","crystal","shard"]
 };
-const DIFF = { easy:{n:"ง่าย",mult:1,rate:8}, mid:{n:"กลาง",mult:1.35,rate:6}, hard:{n:"ยาก",mult:1.8,rate:4.5} };
+const DIFF = { easy:{n:"ง่าย",mult:1,rate:11}, mid:{n:"กลาง",mult:1.3,rate:8.5}, hard:{n:"ยาก",mult:1.6,rate:6.5} };
 const DURS = [5,10,15,25,45];
 
-/* เฟอร์นิเจอร์ในร้านค้า — kind:floor วางบนพื้น, kind:wall แขวนผนัง */
+/* ---------- เฟอร์นิเจอร์ + ของแต่งสวน ---------- */
 const FURNI = {
-  rug:         {n:"พรมกลม",        e:"🟤", price:40,  kind:"floor", flat:true,  d:"วางทับพื้น ตัวละครเดินผ่านได้"},
-  cushion:     {n:"เบาะนั่ง",       e:"🛋️", price:30,  kind:"floor", d:"ที่นั่งเล็กๆ ข้างสัตว์เลี้ยง"},
-  plant:       {n:"ต้นไม้กระถาง",   e:"🪴", price:55,  kind:"floor", d:"เขียวขึ้นทั้งห้อง"},
-  table:       {n:"โต๊ะเตี้ย",      e:"🪵", price:65,  kind:"floor", d:"โต๊ะไม้ตัวเตี้ย"},
-  lamp:        {n:"โคมไฟตั้งพื้น",  e:"💡", price:70,  kind:"floor", d:"เรืองแสงเองตอนกลางคืน"},
-  incense:     {n:"กระถางธูป",      e:"🕯️", price:90,  kind:"floor", d:"มีควันลอยแบบเรียลไทม์"},
-  lotus:       {n:"อ่างบัว",        e:"🪷", price:120, kind:"floor", d:"ดอกบัวขยับตามลม"},
-  shelf:       {n:"ชั้นหนังสือ",    e:"📚", price:110, kind:"floor", d:"ชั้นไม้เต็มไปด้วยหนังสือ"},
-  crystalStand:{n:"แท่นคริสตัล",    e:"🔮", price:180, kind:"floor", d:"เรืองแสงเป็นจังหวะหายใจ"},
-  painting:    {n:"ภาพวาดภูเขา",    e:"🖼️", price:60,  kind:"wall",  d:"แขวนบนผนัง"},
-  clock:       {n:"นาฬิกาไม้",      e:"🕰️", price:75,  kind:"wall",  d:"เดินตามเวลาจริง"},
-  lantern:     {n:"โคมกระดาษ",      e:"🏮", price:85,  kind:"wall",  d:"ติดไฟเองตอนค่ำ"},
-  banner:      {n:"ผ้าแขวนสมาธิ",   e:"🎏", price:95,  kind:"wall",  d:"ผ้าทอลายลมหายใจ"}
+  rug:         {n:"พรมกลม",        e:"🟤", price:40,  kind:"floor", flat:true, zone:"home"},
+  cushion:     {n:"เบาะนั่ง",       e:"🛋️", price:30,  kind:"floor", zone:"home"},
+  plant:       {n:"ต้นไม้กระถาง",   e:"🪴", price:55,  kind:"floor", zone:"home"},
+  table:       {n:"โต๊ะเตี้ย",      e:"🪵", price:65,  kind:"floor", zone:"home"},
+  lamp:        {n:"โคมไฟตั้งพื้น",  e:"💡", price:70,  kind:"floor", zone:"home"},
+  incense:     {n:"กระถางธูป",      e:"🕯️", price:90,  kind:"floor", zone:"home"},
+  lotus:       {n:"อ่างบัว",        e:"🪷", price:120, kind:"floor", zone:"home"},
+  shelf:       {n:"ชั้นหนังสือ",    e:"📚", price:110, kind:"floor", zone:"home"},
+  crystalStand:{n:"แท่นคริสตัล",    e:"🔮", price:180, kind:"floor", zone:"home"},
+  painting:    {n:"ภาพวาดภูเขา",    e:"🖼️", price:60,  kind:"wall",  zone:"home"},
+  clock:       {n:"นาฬิกาไม้",      e:"🕰️", price:75,  kind:"wall",  zone:"home"},
+  lantern:     {n:"โคมกระดาษ",      e:"🏮", price:85,  kind:"wall",  zone:"home"},
+  banner:      {n:"ผ้าแขวนสมาธิ",   e:"🎏", price:95,  kind:"wall",  zone:"home"},
+  /* สวนริมหน้าผา */
+  flowerBed:   {n:"แปลงดอกไม้",     e:"🌷", price:45,  kind:"floor", zone:"garden"},
+  sunflower:   {n:"ทานตะวัน",       e:"🌻", price:60,  kind:"floor", zone:"garden"},
+  lavender:    {n:"พุ่มลาเวนเดอร์", e:"💜", price:80,  kind:"floor", zone:"garden"},
+  rosebush:    {n:"พุ่มกุหลาบ",     e:"🌹", price:95,  kind:"floor", zone:"garden"},
+  bonsai:      {n:"บอนไซ",          e:"🎍", price:140, kind:"floor", zone:"garden"},
+  gardenBench: {n:"ม้านั่งสวน",     e:"🪑", price:110, kind:"floor", zone:"garden"},
+  gardenLamp:  {n:"โคมสวน",         e:"🏮", price:90,  kind:"floor", zone:"garden"},
+  fountain:    {n:"น้ำพุเล็ก",      e:"⛲", price:220, kind:"floor", zone:"garden"},
+  umbrella:    {n:"ร่มใหญ่กันฝน",   e:"⛱️", price:850, kind:"floor", zone:"garden"}
 };
 function itemDef(k){ return ITEMS[k] || (FURNI[k] ? Object.assign({type:"furni"}, FURNI[k]) : null); }
 function sellPrice(k){ const d=itemDef(k); if(!d) return 0; return d.type==="furni" ? Math.max(1,Math.round(d.price*0.5)) : d.price; }
 
-/* character creator options */
+/* ---------- ตัวเลือกสร้างตัวละคร ---------- */
 const SKINS  = ["#f3d2b3","#e8b98d","#cf9c6b","#a9744a","#7d5433","#5b3b23"];
 const SHIRTS = ["#7e8fa3","#8a9a7e","#a88b7a","#8c7f9e","#c4b79a","#6f7b86","#9c6f6f","#5f6b5c"];
 const PANTS  = ["#4a4f5c","#5e5546","#3f4a3d","#6a6a6a","#4a3f4f","#2f3540"];
@@ -736,28 +800,32 @@ let G = null;
 const DEFAULT_LOOK = { gender:"n", skin:"#e8b98d", hair:"short", haircol:"#2b2118",
                        shirt:"#7e8fa3", pants:"#4a4f5c", hat:"none", glass:"none", scarf:"none" };
 const Input = { left:false, right:false, lastAt:0 };
-let dirty=false;
-let saveTimer=null;
-function markDirty(){ dirty=true; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ if(dirty){ dirty=false; save(); } }, 2500); }
+let dirty=false, saveTimer=null;
+function markDirty(){ dirty=true; clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ if(dirty){ dirty=false; save(); } }, 2500); }
 function newGame(){
   return {
-    v:1, created:now(), lastTick:now(),
+    v:2, created:now(), lastTick:now(),
+    area:"home",
     player:{ name:"ผู้ฝึก", gender:"n", skin:SKINS[1], hair:"short", haircol:HAIRCOL[0],
              shirt:SHIRTS[0], pants:PANTS[0], hat:"none", glass:"none", scarf:"none" },
-    pet:{ name:"Mori", form:"seed", xp:0, lv:1, hun:70, moo:70, bon:10,
+    pet:{ name:"Mori", form:"seed", xp:0, lv:1, hun:70, moo:70, bon:10, hp:43,
+          injured:false, medUsed:false,
           care:{focus:0,play:0,feed:0}, seen:{seed:1} },
     coins: 120,
-    house: [],
+    place: { home:[], garden:[] },
     bag:{ berry:2, rice:1, rug:1, cushion:1 },
-    stats:{ focusMin:0, sessions:0, breaks:0, wins:0, plays:0, feeds:0, fishBest:0 }
+    stats:{ focusMin:0, sessions:0, breaks:0, wins:0, plays:0, feeds:0, fishBest:0,
+            dayKey:"", playsToday:0, ko:0 }
   };
 }
 function xpNeed(lv){ return 40 + lv*18; }
 function addXp(n){
+  if(!n) return;
   G.pet.xp += n;
   let up=false;
   while(G.pet.xp >= xpNeed(G.pet.lv)){ G.pet.xp -= xpNeed(G.pet.lv); G.pet.lv++; up=true; }
-  if(up){ sfx.ok(); toast("เลเวลอัป! Lv."+G.pet.lv); }
+  if(up){ sfx.ok(); toast("เลเวลอัป! Lv."+G.pet.lv); G.pet.hp = Math.min(maxHp(), G.pet.hp+6); }
   checkEvolve();
   refreshHud();
 }
@@ -773,30 +841,38 @@ function isBalanced(){
 }
 function checkEvolve(){
   const opts = TREE[G.pet.form]||[];
-  const ok = opts.filter(o => G.pet.lv>=o.lv && G.pet.bon>=(o.bond||0) && (!o.balanced || isBalanced()));
+  const ok = opts.filter(o => G.pet.lv>=o.lv && G.pet.bon>=(o.bond||0)
+             && (!o.balanced || isBalanced()) && (!o.item || (G.bag[o.item]||0)>0));
   if(!ok.length) return;
   const dom = dominantCare();
   ok.sort((a,b)=>{
-    const sa=(a.balanced?1000:0)+(a.care? (a.care===dom?200:G.pet.care[a.care]):50);
-    const sb=(b.balanced?1000:0)+(b.care? (b.care===dom?200:G.pet.care[b.care]):50);
+    const sa=(a.balanced?1000:0)+(a.item?300:0)+(a.care? (a.care===dom?200:G.pet.care[a.care]):50);
+    const sb=(b.balanced?1000:0)+(b.item?300:0)+(b.care? (b.care===dom?200:G.pet.care[b.care]):50);
     return sb-sa;
   });
-  evolveTo(ok[0].to);
+  evolveTo(ok[0]);
 }
-function evolveTo(key){
+function evolveTo(o){
+  const key = typeof o==="string" ? o : o.to;
+  if(typeof o!=="string" && o.item){
+    G.bag[o.item]--; if(!G.bag[o.item]) delete G.bag[o.item];
+    toast("ใช้ "+itemDef(o.item).n+" ในการวิวัฒนาการ");
+  }
   G.pet.form = key;
   G.pet.seen[key]=1;
+  G.pet.hp = maxHp();
   Pet.state="happy"; Pet.stateT=2.5;
   showEvo(key);
   save();
 }
+function addItem(k,n){ G.bag[k]=(G.bag[k]||0)+(n||1); }
 
 /* =====================================================================
-   3. PIXEL DRAWING TOOLKIT
+   3. PIXEL TOOLKIT
 ===================================================================== */
 const cv = $("#cv"), g = cv.getContext("2d");
 g.imageSmoothingEnabled = false;
-const W=160, H=144, FLOOR=112;
+const W=192, H=144, FLOOR=112;
 
 function rect(c,x,y,w,h,col){ c.fillStyle=col; c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)); }
 function px(c,x,y,col){ rect(c,x,y,1,1,col); }
@@ -822,8 +898,187 @@ function star(c,cx,cy,r,col){
   if(r>1){ px(c,cx-1,cy-1,col);px(c,cx+1,cy-1,col);px(c,cx-1,cy+1,col);px(c,cx+1,cy+1,col); }
 }
 
-/* ---------- PET SPRITE ---------- */
-/* drawn with feet at (0,0) — caller translates */
+/* ---------- ท้องฟ้าในกรอบหน้าต่าง ---------- */
+function drawSky(c,wx,wy,ww,wh,t){
+  c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip();
+  const bands = {
+    dawn: ["#f4b077","#f7d9a4","#cfe2e8"],
+    day:  ["#8fc9e8","#b3ddef","#d6eef6"],
+    afternoon:["#7cc0e6","#a8daf0","#dcefe0"],
+    dusk: ["#e08a63","#c97d8e","#6e6a99"],
+    night:["#1a2040","#232a4d","#313860"]
+  }[Env.phase] || ["#8fc9e8","#b3ddef","#d6eef6"];
+  for(let i=0;i<wh;i++){
+    const k=i/wh;
+    rect(c,wx,wy+i,ww,1, k<0.4?bands[0] : k<0.75?bands[1] : bands[2]);
+  }
+  /* เนินเขาไกลๆ */
+  ellHalf(c,wx+12,wy+wh-6,14,7,"rgba(96,132,96,.55)",true);
+  ellHalf(c,wx+34,wy+wh-5,16,8,"rgba(78,116,84,.6)",true);
+  rect(c,wx,wy+wh-5,ww,5,"rgba(72,110,78,.65)");
+  if(Env.phase==="night"){
+    for(let i=0;i<16;i++){
+      const sx=wx+2+((i*17)%(ww-4)), sy=wy+2+((i*11)%(wh-12));
+      if((i+Math.floor(t*0.7))%4) px(c,sx,sy,"#e8e6d0");
+    }
+    if(!isWet()){ const mx=wx+ww-13,my=wy+9; ell(c,mx,my,4,4,"#eae7c4"); ell(c,mx-3,my-2,4,4,bands[0]); }
+  } else if(!isWet()){
+    const k = clamp((Env.hour-5.5)/13.5,0,1);
+    const sx = wx+5+k*(ww-10), sy = wy+wh-9-Math.sin(k*Math.PI)*(wh-16);
+    ell(c,sx,sy,5,5, Env.phase==="day"||Env.phase==="afternoon"?"rgba(250,240,180,.35)":"rgba(246,180,110,.35)");
+    ell(c,sx,sy,3,3, Env.phase==="day"||Env.phase==="afternoon"?"#f9f0b4":"#f6b46a");
+  }
+  if(Env.weather!=="clear"){
+    const col = isWet() ? "#79839c" : "#eef4f6";
+    for(let i=0;i<3;i++){
+      const cx = wx + ((t*(3+i*2)+i*23) % (ww+22)) - 11, cy = wy+5+i*8;
+      ell(c,cx,cy,6,2,col); ell(c,cx+4,cy+1,4,2,col); ell(c,cx-4,cy+1,4,2,col);
+    }
+  }
+  if(isWet()){
+    rect(c,wx,wy,ww,wh,"rgba(40,52,74,.30)");
+    const n = Env.weather==="storm" ? 24 : 15, spd = Env.weather==="storm" ? 110 : 70;
+    for(let i=0;i<n;i++){
+      const sx = wx + ((i*29)%ww);
+      const sy = wy + (((t*spd + i*13) % (wh+6)) - 3);
+      if(sy>=wy && sy<wy+wh-2) rect(c,sx,sy,1,3,"rgba(206,228,244,.75)");
+    }
+  }
+  if(stormFlash(t)) rect(c,wx,wy,ww,wh,"rgba(255,255,255,.8)");
+  c.restore();
+}
+
+/* ---------- เฟอร์นิเจอร์ ---------- */
+const GARDEN_DRAW = {
+  flowerBed(c,x,y,t){
+    ell(c,x,y-1,9,3,"#7a5a3a"); ell(c,x,y-2,8,2,"#8d6a45");
+    for(let i=0;i<5;i++){ const fx=x-6+i*3, s=Math.round(Math.sin(t*1.3+i));
+      rect(c,fx,y-7,1,5,"#5f8f42"); px(c,fx+s,y-8,["#e8788f","#f0d24a","#c98ae0","#f28d5a","#8fd0e8"][i]); }
+  },
+  sunflower(c,x,y,t){
+    const s=Math.round(Math.sin(t*1.1));
+    rect(c,x,y-13,1,13,"#4d7a34"); ell(c,x-3,y-8,2,1,"#5f8f42"); ell(c,x+3,y-10,2,1,"#5f8f42");
+    ell(c,x+s,y-16,4,4,"#f0c93c"); ell(c,x+s,y-16,2,2,"#8a5f2c");
+  },
+  lavender(c,x,y,t){
+    ell(c,x,y-1,6,2,"#6f8f52");
+    for(let i=0;i<4;i++){ const fx=x-4+i*3, s=Math.round(Math.sin(t*1.4+i)*0.6);
+      rect(c,fx,y-9,1,8,"#6f9c56"); rect(c,fx+s,y-13,1,4,"#a887d8"); px(c,fx+s,y-14,"#c7a8ee"); }
+  },
+  rosebush(c,x,y,t){
+    ell(c,x,y-4,7,5,"#3f6b3a"); ell(c,x,y-6,5,4,"#4d7a44");
+    [[-3,-7],[2,-9],[4,-5],[-5,-4]].forEach((p,i)=>{ const s=Math.round(Math.sin(t+i)*0.5);
+      ell(c,x+p[0]+s,y+p[1],1,1,"#d9546a"); px(c,x+p[0]+s,y+p[1]-1,"#f08a9c"); });
+  },
+  bonsai(c,x,y,t){
+    ell(c,x,y-1,7,2,"#8a6a4e"); rect(c,x-6,y-4,12,3,"#a8784e"); rect(c,x-6,y-4,12,1,"#c9975e");
+    rect(c,x,y-11,2,7,"#7a5a3a"); rect(c,x-4,y-11,5,1,"#7a5a3a");
+    ell(c,x-5,y-13,5,3,"#4d7a3f"); ell(c,x+3,y-15,5,3,"#5f8f4a"); ell(c,x,y-17,4,2,"#6f9c56");
+  },
+  gardenBench(c,x,y,t){
+    rect(c,x-9,y-6,18,2,"#b08a5a"); rect(c,x-9,y-6,18,1,"#c9a06e");
+    rect(c,x-9,y-11,18,2,"#b08a5a");
+    rect(c,x-8,y-4,2,4,"#8a6a44"); rect(c,x+6,y-4,2,4,"#8a6a44");
+    rect(c,x-8,y-11,1,6,"#8a6a44"); rect(c,x+7,y-11,1,6,"#8a6a44");
+  },
+  gardenLamp(c,x,y,t){
+    rect(c,x,y-13,1,13,"#5a5140"); ell(c,x,y-16,4,4,"#c9483c"); ell(c,x,y-16,3,3,"#e8756a");
+    if(nightNow()||isWet()) ell(c,x,y-16,9,9,"rgba(232,117,106,.14)");
+  },
+  fountain(c,x,y,t){
+    ell(c,x,y-1,11,4,"#9aa8b0"); ell(c,x,y-2,9,3,"#6fa8c4"); ell(c,x,y-2,6,2,"#8fcbe0");
+    rect(c,x,y-9,1,7,"#9aa8b0"); ell(c,x,y-10,3,1,"#b6c2c8");
+    for(let i=0;i<4;i++){ const a=t*2+i*1.57;
+      px(c,x+Math.round(Math.cos(a)*4),y-8+Math.round(Math.abs(Math.sin(a))*4),"#cfeaf6"); }
+  },
+  umbrella(c,x,y,t){
+    ell(c,x,y-1,14,4,"rgba(40,34,26,.20)");
+    rect(c,x,y-26,1,26,"#8a6a4e"); rect(c,x,y-26,1,26,"#8a6a4e"); px(c,x,y-27,"#c9b48a");
+    ellHalf(c,x,y-26,18,11,"#a83f36",true);
+    ellHalf(c,x,y-27,18,11,"#c9483c",true);
+    ellHalf(c,x,y-28,14,8,"#e8756a",true);
+    for(let i=-18;i<=18;i+=6) rect(c,x+i,y-27,1,3,"#8f342c");
+    for(let i=-15;i<=15;i+=6) ellHalf(c,x+i,y-16,3,2,"#c9483c",false);
+    rect(c,x-18,y-27,37,1,"#f0938a");
+    if(isWet()) for(let i=0;i<5;i++){ const dx=-15+i*7;
+      if(Math.sin(t*4+i)>0) rect(c,x+dx,y-14+((t*40+i*9)%12),1,3,"rgba(206,228,244,.6)"); }
+  }
+};
+function drawFurni(c,id,x,y,t){
+  if(GARDEN_DRAW[id]){ GARDEN_DRAW[id](c,x,y,t); return; }
+  const lit = nightNow() || isWet();
+  switch(id){
+    case "rug":
+      ell(c,x,y,13,4,"#b87f92"); ell(c,x,y-1,13,4,"#c98a9c");
+      ell(c,x,y-1,9,3,"#dda1b0"); ell(c,x,y-1,4,1,"#f0c6d0"); break;
+    case "cushion":
+      ell(c,x,y,6,2,"rgba(40,34,26,.18)");
+      ell(c,x,y-1,6,2,"#7f93a8"); ell(c,x,y-2,5,2,"#94a8bd"); px(c,x,y-3,"#c3d3e0"); break;
+    case "plant":
+      rect(c,x-3,y-6,6,6,"#a8704a"); rect(c,x-3,y-6,6,1,"#c98a5e"); rect(c,x-3,y-6,1,6,"#8a5a38");
+      ell(c,x,y-9,4,3,"#5f8f42"); ell(c,x-3,y-11,3,2,"#6f9c46"); ell(c,x+3,y-10,3,2,"#79ab52");
+      rect(c,x,y-12,1,3,"#4d7a34"); break;
+    case "table":
+      rect(c,x-10,y-6,20,3,"#a8784e"); rect(c,x-10,y-6,20,1,"#c9975e");
+      rect(c,x-8,y-3,2,3,"#8a6038"); rect(c,x+6,y-3,2,3,"#8a6038");
+      ell(c,x,y,10,2,"rgba(40,34,26,.16)"); break;
+    case "lamp":
+      rect(c,x-1,y-15,2,15,"#6b6048"); rect(c,x-3,y-1,6,1,"#5a5140");
+      ell(c,x,y-19,5,4,"#e8d089"); ell(c,x,y-19,4,3,"#f8f0c4");
+      if(lit) ell(c,x,y-16,13,9,"rgba(240,224,160,.14)"); break;
+    case "incense": {
+      rect(c,x-3,y-3,6,3,"#8a6a4e"); rect(c,x-3,y-3,6,1,"#a8845c"); rect(c,x,y-9,1,6,"#c9b48a");
+      px(c,x,y-10,"#e06a4a");
+      const s=Math.sin(t*1.4);
+      px(c,x+Math.round(s),y-12,"rgba(240,240,220,.65)");
+      px(c,x+Math.round(s*2),y-15,"rgba(240,240,220,.45)");
+      px(c,x-Math.round(s*2),y-18,"rgba(240,240,220,.28)"); break; }
+    case "lotus": {
+      ell(c,x,y-1,7,3,"#8a9a7e"); ell(c,x,y-2,6,2,"#6f93a8");
+      ell(c,x-3,y-3,2,1,"#6f9c46"); ell(c,x+3,y-3,2,1,"#6f9c46");
+      const b=Math.round(Math.sin(t*1.1));
+      ell(c,x,y-5+b,1,2,"#e79ab4"); px(c,x,y-7+b,"#f6c6d8"); break; }
+    case "shelf":
+      rect(c,x-9,y-20,18,20,"#a8784e"); rect(c,x-9,y-20,18,1,"#c9975e");
+      rect(c,x-8,y-19,16,6,"#7d5636"); rect(c,x-8,y-11,16,6,"#7d5636");
+      ["#c46f5a","#6f9c46","#e8c352","#6f7ba8","#c9a85e"].forEach((cc,i)=>rect(c,x-7+i*3,y-18,2,5,cc));
+      ["#8fb8c9","#d9584a","#a8935c","#79ab52"].forEach((cc,i)=>rect(c,x-6+i*3,y-10,2,5,cc)); break;
+    case "crystalStand": {
+      rect(c,x-4,y-3,8,3,"#8a7a5e"); rect(c,x-4,y-3,8,1,"#a89a7e");
+      const gl=0.5+Math.sin(t*1.8)*0.5;
+      ell(c,x,y-9,5,8,"rgba(159,215,232,"+(0.10+gl*0.13).toFixed(2)+")");
+      ell(c,x,y-8,3,5,"#9fd7e8"); ell(c,x,y-9,1,3,"#e6f6fb"); break; }
+    case "painting":
+      rect(c,x-11,y-8,22,16,"#e8dcb8"); rect(c,x-11,y-8,22,1,"#f6ecd0");
+      rect(c,x-9,y-6,18,12,"#8fb8c9");
+      ell(c,x+4,y-2,4,4,"#f0d68a"); rect(c,x-9,y+1,18,5,"#6f9c46");
+      ell(c,x-4,y,5,3,"#7d9c56"); break;
+    case "clock": {
+      ell(c,x,y,6,6,"#a8784e"); ell(c,x,y,5,5,"#f7f2df");
+      const d=new Date(), ha=((d.getHours()%12)+d.getMinutes()/60)/12*6.283-1.571, ma=d.getMinutes()/60*6.283-1.571;
+      px(c,x+Math.round(Math.cos(ha)*2),y+Math.round(Math.sin(ha)*2),"#25301c");
+      px(c,x+Math.round(Math.cos(ma)*3),y+Math.round(Math.sin(ma)*3),"#25301c");
+      rect(c,x,y,1,1,"#25301c"); break; }
+    case "lantern":
+      rect(c,x,y-9,1,5,"#6b6048"); ell(c,x,y,5,5,"#c9483c"); ell(c,x,y,4,4,"#e8756a");
+      rect(c,x-2,y,5,1,"#a83f36");
+      if(lit) ell(c,x,y,10,10,"rgba(232,117,106,.13)"); break;
+    case "banner":
+      rect(c,x-5,y-7,10,15,"#e8dcb8"); rect(c,x-5,y-7,10,1,"#a8935c");
+      rect(c,x-2,y-4,4,1,"#5f93bd"); rect(c,x-3,y-1,6,1,"#5f93bd"); rect(c,x-2,y+2,4,1,"#5f93bd"); break;
+  }
+}
+function furniBox(id){
+  const w = {rug:13,cushion:6,plant:5,table:10,lamp:5,incense:4,lotus:7,shelf:9,crystalStand:5,
+             painting:11,clock:6,lantern:5,banner:5,flowerBed:9,sunflower:5,lavender:5,rosebush:7,
+             bonsai:7,gardenBench:9,gardenLamp:4,fountain:11,umbrella:15}[id]||6;
+  const top = {rug:4,cushion:4,plant:13,table:7,lamp:23,incense:19,lotus:8,shelf:21,crystalStand:14,
+               painting:9,clock:7,lantern:10,banner:8,flowerBed:9,sunflower:20,lavender:15,rosebush:11,
+               bonsai:18,gardenBench:12,gardenLamp:20,fountain:11,umbrella:33}[id]||8;
+  const bot = {painting:8,clock:7,lantern:6,banner:8}[id] || 1;
+  return {w, top, bot};
+}
+
 function drawPet(c, key, o){
   o = o||{};
   const f = FORMS[key]; if(!f) return;
@@ -840,6 +1095,7 @@ function drawPet(c, key, o){
   else if(state==="focus"){ const p=t*1.3; bob=Math.round(Math.sin(p)*1.2); sq=Math.sin(p)*0.6; }
   else if(state==="sleep"){ sq=1+Math.sin(t*1.5)*0.25; bob=1; }
   else if(state==="sad"){ bob=1; sq=0.8; }
+  else if(state==="ko"){ sq=Math.max(1.4,f.h*0.5); bob=2; }
 
   const hasHead = f.stage>=4;            /* teen+ get a separate head silhouette */
   const hasFeet = f.stage>=2;
@@ -881,8 +1137,9 @@ function drawPet(c, key, o){
     let l=0,r=0;
     if(state==="walk"){ l=Math.sin(t*8)>0?-1:0; r=Math.sin(t*8)>0?0:-1; }
     const lx=Math.round(bw*0.42);
-    rect(c,-lx-1,-legLen+l,2,legLen,P.d); rect(c,lx,-legLen+r,2,legLen,P.d);
-    ell(c,-lx,-1+l,2,1,P.d); ell(c,lx+1,-1+r,2,1,P.d);
+    const top = bodyCy + bh - 2;
+    const leg=(x,lift)=>{ const fy=lift, h=Math.max(2,fy-top); rect(c,x,top,2,h,P.d); ell(c,x+1,fy-1,2,1,P.d); };
+    leg(-lx-1,l); leg(lx,r);
   }
 
   /* ---- body: light base, main shifted down => top rim light ---- */
@@ -966,7 +1223,12 @@ function drawPet(c, key, o){
   const blink = (Math.sin(t*0.9)>0.985) || state==="sleep";
   if(f.eye!=="none"){
     const closed = state==="focus" || f.eye==="closed" || blink;
-    if(closed){ rect(c,fcx-eyX-1,eyY,3,1,INK); rect(c,fcx+eyX-1,eyY,3,1,INK); }
+    if(state==="ko"){
+      px(c,fcx-eyX-1,eyY-1,INK);px(c,fcx-eyX+1,eyY-1,INK);px(c,fcx-eyX,eyY,INK);px(c,fcx-eyX-1,eyY+1,INK);px(c,fcx-eyX+1,eyY+1,INK);
+      px(c,fcx+eyX-1,eyY-1,INK);px(c,fcx+eyX+1,eyY-1,INK);px(c,fcx+eyX,eyY,INK);px(c,fcx+eyX-1,eyY+1,INK);px(c,fcx+eyX+1,eyY+1,INK);
+      if(!sil){ rect(c,fcx-fw,fcy-Math.round(fh*0.6),fw*2,2,"#f2ead6"); rect(c,fcx-1,fcy-Math.round(fh*0.6),2,2,"#e0847a"); }
+    }
+    else if(closed){ rect(c,fcx-eyX-1,eyY,3,1,INK); rect(c,fcx+eyX-1,eyY,3,1,INK); }
     else if(f.eye==="star"){ star(c,fcx-eyX,eyY,1,INK); star(c,fcx+eyX,eyY,1,INK); }
     else if(f.eye==="oval"){ ell(c,fcx-eyX,eyY,1,2,INK); ell(c,fcx+eyX,eyY,1,2,INK);
       if(!sil){px(c,fcx-eyX,eyY-1,"#f7f5e6");px(c,fcx+eyX,eyY-1,"#f7f5e6");} }
@@ -1068,27 +1330,31 @@ function drawPlayer(c, P, o){
 }
 
 /* =====================================================================
-   4. ENVIRONMENT · ROOM · FURNITURE · SCENE
+   4. เวลา · สภาพอากาศ · ตัวละครในฉาก
 ===================================================================== */
-const Pet = { x:104, y:0, tx:104, dir:-1, state:"idle", stateT:0, moveCd:2 };
-const Ply = { x:56, y:0, tx:56, dir:1, state:"idle", moveCd:3, sitting:false };
+const Pet = { x:128, y:0, tx:128, dir:-1, state:"idle", stateT:0, moveCd:2 };
+const Ply = { x:64, y:0, tx:64, dir:1, state:"idle", moveCd:3, sitting:false };
 let clouds=[], drops=[], parts=[];
 let T0 = performance.now(), lastFrame = performance.now();
 
-/* ---------- เวลา + สภาพอากาศ ---------- */
 function hash01(n){ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }
-const WEATHER_TH = {clear:"แจ่มใส",cloudy:"มีเมฆ",rain:"ฝนตก",storm:"ฝนฟ้าคะนอง"};
-const WEATHER_EMO= {clear:"☀️",cloudy:"⛅",rain:"🌧️",storm:"⛈️"};
-const PHASE_TH   = {dawn:"รุ่งอรุณ",day:"กลางวัน",dusk:"พลบค่ำ",night:"กลางคืน"};
+const WEATHER_TH  = {clear:"แดดใส",cloudy:"มีเมฆ",rain:"ฝนตก",storm:"ฝนฟ้าคะนอง"};
+const WEATHER_EMO = {clear:"☀️",cloudy:"⛅",rain:"🌧️",storm:"⛈️"};
+const PHASE_TH    = {dawn:"เช้าตรู่",day:"สาย",afternoon:"บ่าย",dusk:"พลบค่ำ",night:"กลางคืน"};
 const Env = { hour:12, phase:"day", weather:"clear", hhmm:"--:--" };
 function updateEnv(){
   const d=new Date();
   Env.hour = d.getHours()+d.getMinutes()/60;
   Env.hhmm = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
-  Env.phase = Env.hour<5.5 ? "night" : Env.hour<7.5 ? "dawn" : Env.hour<16.5 ? "day" : Env.hour<19 ? "dusk" : "night";
-  const block = Math.floor(d.getTime()/(2*3600*1000));
+  const h=Env.hour;
+  Env.phase = h<5.5 ? "night" : h<7.5 ? "dawn" : h<12 ? "day" : h<16.5 ? "afternoon" : h<19.5 ? "dusk" : "night";
+  /* อากาศเปลี่ยนทุก 3 ชั่วโมง · ฝนมักตกช่วงบ่ายถึงค่ำ */
+  const block = Math.floor(d.getTime()/(3*3600*1000));
   const r = hash01(block);
-  Env.weather = r<0.50 ? "clear" : r<0.76 ? "cloudy" : r<0.93 ? "rain" : "storm";
+  const rainBias = (h>=13 && h<=20) ? 0.14 : (h>=1 && h<=5) ? 0.05 : 0;
+  Env.weather = r < 0.52-rainBias ? "clear"
+              : r < 0.76-rainBias*0.5 ? "cloudy"
+              : r < 0.94 ? "rain" : "storm";
   const w=$("#envW"), tEl=$("#envT");
   if(w) w.textContent = WEATHER_EMO[Env.weather]+" "+WEATHER_TH[Env.weather];
   if(tEl) tEl.textContent = Env.hhmm+" · "+PHASE_TH[Env.phase];
@@ -1100,139 +1366,240 @@ function nightNow(){ return Env.phase==="night"; }
 function isWet(){ return Env.weather==="rain" || Env.weather==="storm"; }
 function stormFlash(t){ return Env.weather==="storm" && (Math.sin(t*0.73)>0.994 || Math.sin(t*1.19+2)>0.996); }
 
-/* ---------- ท้องฟ้าในกรอบหน้าต่าง ---------- */
-function drawSky(c,wx,wy,ww,wh,t){
-  c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip();
-  const bands = {
-    dawn: ["#f4b077","#f7d9a4","#cfe2e8"],
-    day:  ["#8fc9e8","#b3ddef","#d6eef6"],
-    dusk: ["#e08a63","#c97d8e","#6e6a99"],
-    night:["#1a2040","#232a4d","#313860"]
-  }[Env.phase];
-  for(let i=0;i<wh;i++){
-    const k=i/wh;
-    rect(c,wx,wy+i,ww,1, k<0.4?bands[0] : k<0.75?bands[1] : bands[2]);
-  }
-  if(Env.phase==="night"){
-    for(let i=0;i<16;i++){
-      const sx=wx+2+((i*17)%(ww-4)), sy=wy+2+((i*11)%(wh-8));
-      if((i+Math.floor(t*0.7))%4) px(c,sx,sy,"#e8e6d0");
-    }
-    if(!isWet()){ const mx=wx+ww-13,my=wy+9; ell(c,mx,my,4,4,"#eae7c4"); ell(c,mx-3,my-2,4,4,bands[0]); }
-  } else if(!isWet()){
-    const k = clamp((Env.hour-5.5)/13.5,0,1);
-    const sx = wx+5+k*(ww-10), sy = wy+wh-7-Math.sin(k*Math.PI)*(wh-14);
-    ell(c,sx,sy,5,5, Env.phase==="day"?"rgba(250,240,180,.35)":"rgba(246,180,110,.35)");
-    ell(c,sx,sy,3,3, Env.phase==="day"?"#f9f0b4":"#f6b46a");
-  }
-  /* เมฆลอย */
-  if(Env.weather!=="clear"){
-    const col = isWet() ? "#79839c" : "#eef4f6";
-    for(let i=0;i<3;i++){
-      const cx = wx + ((t*(3+i*2)+i*23) % (ww+22)) - 11, cy = wy+5+i*8;
-      ell(c,cx,cy,6,2,col); ell(c,cx+4,cy+1,4,2,col); ell(c,cx-4,cy+1,4,2,col);
-    }
-  }
-  /* ฝน */
-  if(isWet()){
-    rect(c,wx,wy,ww,wh,"rgba(40,52,74,.30)");
-    const n = Env.weather==="storm" ? 24 : 15, spd = Env.weather==="storm" ? 110 : 70;
-    for(let i=0;i<n;i++){
-      const sx = wx + ((i*29)%ww);
-      const sy = wy + (((t*spd + i*13) % (wh+6)) - 3);
-      if(sy>=wy && sy<wy+wh-2) rect(c,sx,sy,1,3,"rgba(206,228,244,.75)");
-    }
-  }
-  if(stormFlash(t)) rect(c,wx,wy,ww,wh,"rgba(255,255,255,.8)");
-  c.restore();
+/* ---------- พื้นที่ทั้งหมดของเกาะลอยฟ้า ---------- */
+const AREAS = {
+  home:   { n:"บ้าน",           kind:"home"   },
+  garden: { n:"สวนริมหน้าผา",   kind:"garden" },
+  preta:  { n:"ป่าเปรต",        kind:"wild", danger:1, stone:"stoneSoul",  lvReq:8  },
+  thunder:{ n:"ทุ่งฟ้าคำราม",   kind:"wild", danger:2, stone:"stoneBolt",  lvReq:16 },
+  mush:   { n:"ดงเห็ดดิบ",      kind:"wild", danger:3, stone:"stoneSpore", lvReq:24 }
+};
+function area(){ return (G && G.area && AREAS[G.area]) ? G.area : "home"; }
+function areaKind(){ return AREAS[area()].kind; }
+let Fade = { a:0, dir:0, to:null };
+function goArea(key){
+  if(Fade.dir) return;
+  Fade.dir=1; Fade.to=key; sfx.tap();
+}
+function applyArea(key){
+  const from = G.area;
+  G.area = key;
+  Ply.sitting=false;
+  if(key==="garden"){ Ply.x=W-26; }
+  else if(from==="garden"){ Ply.x=26; }
+  else if(AREAS[key].kind==="wild"){ Ply.x=26; }
+  else { Ply.x=W-26; }
+  Pet.x = Ply.x + (Ply.x<W/2?18:-18); Pet.tx=Pet.x;
+  Place.mode="none"; Place.id=null; Place.sel=-1;
+  const el=$("#envA"); if(el) el.textContent = AREAS[key].n;
+  save();
 }
 
-/* ---------- เฟอร์นิเจอร์ ---------- */
-function drawFurni(c,id,x,y,t){
-  const lit = nightNow() || isWet();
-  switch(id){
-    case "rug":
-      ell(c,x,y,13,4,"#c98a9c"); ell(c,x,y,9,3,"#dda1b0"); ell(c,x,y,4,1,"#f0c6d0"); break;
-    case "cushion":
-      ell(c,x,y-1,6,2,"#7f93a8"); ell(c,x,y-2,5,2,"#94a8bd"); px(c,x,y-3,"#c3d3e0"); break;
-    case "plant":
-      rect(c,x-3,y-6,6,6,"#a8704a"); rect(c,x-3,y-6,6,1,"#c98a5e");
-      ell(c,x,y-9,4,3,"#5f8f42"); ell(c,x-3,y-11,3,2,"#6f9c46"); ell(c,x+3,y-10,3,2,"#79ab52");
-      rect(c,x,y-12,1,3,"#4d7a34"); break;
-    case "table":
-      rect(c,x-10,y-6,20,3,"#a8784e"); rect(c,x-10,y-6,20,1,"#c9975e");
-      rect(c,x-8,y-3,2,3,"#8a6038"); rect(c,x+6,y-3,2,3,"#8a6038"); break;
-    case "lamp":
-      rect(c,x-1,y-15,2,15,"#6b6048"); rect(c,x-3,y-1,6,1,"#5a5140");
-      ell(c,x,y-19,5,4,"#e8d089"); ell(c,x,y-19,4,3,"#f8f0c4");
-      if(lit) ell(c,x,y-16,13,9,"rgba(240,224,160,.13)"); break;
-    case "incense": {
-      rect(c,x-3,y-3,6,3,"#8a6a4e"); rect(c,x-3,y-3,6,1,"#a8845c"); rect(c,x,y-9,1,6,"#c9b48a");
-      px(c,x,y-10,"#e06a4a");
-      const s=Math.sin(t*1.4);
-      px(c,x+Math.round(s),y-12,"rgba(240,240,220,.65)");
-      px(c,x+Math.round(s*2),y-15,"rgba(240,240,220,.45)");
-      px(c,x-Math.round(s*2),y-18,"rgba(240,240,220,.28)"); break; }
-    case "lotus": {
-      ell(c,x,y-1,7,3,"#8a9a7e"); ell(c,x,y-2,6,2,"#6f93a8");
-      ell(c,x-3,y-3,2,1,"#6f9c46"); ell(c,x+3,y-3,2,1,"#6f9c46");
-      const b=Math.round(Math.sin(t*1.1));
-      ell(c,x,y-5+b,1,2,"#e79ab4"); px(c,x,y-7+b,"#f6c6d8"); break; }
-    case "shelf":
-      rect(c,x-9,y-20,18,20,"#a8784e"); rect(c,x-8,y-19,16,6,"#7d5636"); rect(c,x-8,y-11,16,6,"#7d5636");
-      ["#c46f5a","#6f9c46","#e8c352","#6f7ba8","#c9a85e"].forEach((cc,i)=>rect(c,x-7+i*3,y-18,2,5,cc));
-      ["#8fb8c9","#d9584a","#a8935c","#79ab52"].forEach((cc,i)=>rect(c,x-6+i*3,y-10,2,5,cc)); break;
-    case "crystalStand": {
-      rect(c,x-4,y-3,8,3,"#8a7a5e"); rect(c,x-4,y-3,8,1,"#a89a7e");
-      const gl=0.5+Math.sin(t*1.8)*0.5;
-      ell(c,x,y-9,5,8,"rgba(159,215,232,"+(0.10+gl*0.13).toFixed(2)+")");
-      ell(c,x,y-8,3,5,"#9fd7e8"); ell(c,x,y-9,1,3,"#e6f6fb"); break; }
-    case "painting":
-      rect(c,x-11,y-8,22,16,"#e8dcb8"); rect(c,x-9,y-6,18,12,"#8fb8c9");
-      ell(c,x+4,y-2,4,4,"#f0d68a"); rect(c,x-9,y+1,18,5,"#6f9c46");
-      ell(c,x-4,y,5,3,"#7d9c56"); break;
-    case "clock": {
-      ell(c,x,y,6,6,"#a8784e"); ell(c,x,y,5,5,"#f7f2df");
-      const d=new Date(), ha=((d.getHours()%12)+d.getMinutes()/60)/12*6.283-1.571, ma=d.getMinutes()/60*6.283-1.571;
-      px(c,x+Math.round(Math.cos(ha)*2),y+Math.round(Math.sin(ha)*2),"#25301c");
-      px(c,x+Math.round(Math.cos(ma)*3),y+Math.round(Math.sin(ma)*3),"#25301c");
-      rect(c,x,y,1,1,"#25301c"); break; }
-    case "lantern":
-      rect(c,x,y-9,1,5,"#6b6048"); ell(c,x,y,5,5,"#c9483c"); ell(c,x,y,4,4,"#e8756a");
-      rect(c,x-2,y,5,1,"#a83f36");
-      if(lit) ell(c,x,y,10,10,"rgba(232,117,106,.13)"); break;
-    case "banner":
-      rect(c,x-5,y-7,10,15,"#e8dcb8"); rect(c,x-5,y-7,10,1,"#a8935c");
-      rect(c,x-2,y-4,4,1,"#5f93bd"); rect(c,x-3,y-1,6,1,"#5f93bd"); rect(c,x-2,y+2,4,1,"#5f93bd"); break;
+/* ---------- แสง/เงาช่วยให้ภาพดูมีมิติ ---------- */
+function ao(c,x,y,w,col){ rect(c,x,y,w,1,col||"rgba(40,34,26,.18)"); }
+function shaft(c,x0,y0,w,h,col){                     /* ลำแสงจากหน้าต่าง */
+  for(let i=0;i<h;i++){
+    const off = Math.round(i*0.55);
+    rect(c, x0+off, y0+i, w, 1, col);
   }
 }
-function furniBox(id){
-  const w = {rug:13,cushion:6,plant:5,table:10,lamp:5,incense:4,lotus:7,shelf:9,crystalStand:5,painting:11,clock:6,lantern:5,banner:5}[id]||6;
-  const top = {rug:4,cushion:4,plant:13,table:7,lamp:23,incense:19,lotus:8,shelf:21,crystalStand:14,painting:9,clock:7,lantern:10,banner:8}[id]||8;
-  const bot = {painting:8,clock:7,lantern:6,banner:8}[id] || 1;
-  return {w, top, bot};
-}
 
-/* ---------- ห้อง ---------- */
-function drawRoom(c,t){
-  rect(c,0,0,W,FLOOR,"#93aa6d");
-  for(let x=0;x<W;x+=8) rect(c,x,0,1,FLOOR,"#8ba165");
-  rect(c,0,FLOOR-16,W,3,"#7d9159");
+/* ---------- ห้องในบ้าน ---------- */
+function drawHome(c,t){
+  const sunny = !isWet() && Env.phase!=="night";
+  /* ผนัง 3 โทน + แผงไม้ */
+  rect(c,0,0,W,FLOOR,"#96ad70");
+  for(let x=0;x<W;x+=8){ rect(c,x,0,1,FLOOR,"#879d62"); rect(c,x+1,0,1,FLOOR,"#9db474"); }
+  rect(c,0,0,W,10,"rgba(255,255,255,.06)");
+  rect(c,0,FLOOR-20,W,4,"rgba(40,34,26,.10)");
+  /* บัวผนัง */
+  rect(c,0,FLOOR-16,W,3,"#7d9159"); rect(c,0,FLOOR-16,W,1,"#a2b87e");
   /* หน้าต่าง */
-  const wx=16, wy=18, ww=44, wh=38;
-  rect(c,wx-3,wy-3,ww+6,wh+6,"#6b6048");
+  const wx=20, wy=18, ww=46, wh=38;
+  rect(c,wx-4,wy-4,ww+8,wh+8,"#5a5140");
+  rect(c,wx-3,wy-3,ww+6,wh+6,"#77694e"); rect(c,wx-3,wy-3,ww+6,1,"#8f7d5c");
   drawSky(c,wx,wy,ww,wh,t);
-  rect(c,wx+ww/2-1,wy,2,wh,"#6b6048"); rect(c,wx,wy+wh/2-1,ww,2,"#6b6048");
-  rect(c,wx-4,wy+wh+2,ww+8,2,"#5a5140");
-  /* พื้น */
+  rect(c,wx+ww/2-1,wy,2,wh,"#77694e"); rect(c,wx,wy+wh/2-1,ww,2,"#77694e");
+  rect(c,wx-5,wy+wh+2,ww+10,3,"#8f7d5c"); rect(c,wx-5,wy+wh+2,ww+10,1,"#a8916c");
+  ao(c,wx-5,wy+wh+5,ww+10,"rgba(40,34,26,.20)");
+  /* พื้นไม้ */
   rect(c,0,FLOOR-13,W,13+(H-FLOOR),"#a8845c");
-  rect(c,0,FLOOR-13,W,2,"#c49a6c");
-  for(let x=-20;x<W;x+=22)
-    for(let y=FLOOR-11;y<H;y+=7)
-      rect(c,x+((y-FLOOR)%14?11:0),y,20,1,"#997754");
-  /* เสื่อสมาธิ + ชามอาหาร (ของติดบ้าน) */
-  ell(c,104,FLOOR+8,24,7,"#c98a9c"); ell(c,104,FLOOR+8,18,5,"#dda1b0");
-  ellHalf(c,140,FLOOR+6,7,4,"#8a6a4e",false); rect(c,133,FLOOR+2,15,1,"#a8845c");
+  rect(c,0,FLOOR-13,W,2,"#c9a06e");
+  for(let y=FLOOR-11;y<H;y+=7){
+    rect(c,0,y,W,1,"#96724f");
+    for(let x=((y-FLOOR)%14?11:0)-22;x<W;x+=22) rect(c,x,y-6,1,6,"#9c7853");
+  }
+  rect(c,0,FLOOR-13,W,3,"rgba(40,34,26,.12)");
+  /* ลำแสงจากหน้าต่าง */
+  if(sunny){
+    const warm = Env.phase==="dawn"||Env.phase==="dusk" ? "rgba(255,206,140,.13)" : "rgba(255,246,196,.11)";
+    shaft(c, wx+2, wy+wh+5, ww-4, FLOOR+22-(wy+wh+5), warm);
+  }
+  /* เสื่อสมาธิ + ชามอาหาร */
+  ell(c,128,FLOOR+9,25,7,"#b87f92"); ell(c,128,FLOOR+8,24,7,"#c98a9c");
+  ell(c,128,FLOOR+8,18,5,"#dda1b0"); ell(c,128,FLOOR+7,9,3,"#eab8c4");
+  ellHalf(c,170,FLOOR+6,7,4,"#8a6a4e",false); rect(c,163,FLOOR+2,15,1,"#a8845c");
+  ell(c,170,FLOOR+7,7,2,"rgba(40,34,26,.18)");
+}
+
+/* ---------- เอฟเฟกต์กลางแจ้งร่วม ---------- */
+function outdoorRain(c,t){
+  if(!isWet()) return;
+  const n = Env.weather==="storm" ? 40 : 24, spd = Env.weather==="storm" ? 150 : 100;
+  for(let i=0;i<n;i++){
+    const sx = ((i*37)%W) + Math.round(Math.sin(t+i)*2);
+    const sy = ((t*spd + i*29) % (H+8)) - 8;
+    rect(c,sx,sy,1,4,"rgba(206,228,244,.5)");
+  }
+  if(Math.sin(t*3)>0.7) for(let i=0;i<6;i++) px(c,(i*41+Math.floor(t*17))%W, H-4-((i*3)%4), "rgba(220,240,255,.5)");
+}
+function skyBands(c,h,bands){
+  for(let i=0;i<h;i++) rect(c,0,i,W,1, i<h*0.34?bands[0] : i<h*0.68?bands[1] : bands[2]);
+}
+function sunMoon(c,t){
+  if(isWet()) return;
+  if(Env.phase==="night"){
+    const mx=W-34,my=22; ell(c,mx,my,5,5,"#eae7c4"); ell(c,mx-4,my-2,5,5,"rgba(0,0,0,0)");
+    ell(c,mx,my,6,6,"rgba(240,238,200,.12)"); ell(c,mx,my,4,4,"#eae7c4"); ell(c,mx-3,my-2,4,4,"#1a2040");
+  } else {
+    const k=clamp((Env.hour-5.5)/13.5,0,1);
+    const sx=16+k*(W-32), sy=FLOOR-24-Math.sin(k*Math.PI)*54;
+    ell(c,sx,sy,8,8, Env.phase==="dawn"||Env.phase==="dusk"?"rgba(246,180,110,.22)":"rgba(250,240,180,.22)");
+    ell(c,sx,sy,5,5, Env.phase==="dawn"||Env.phase==="dusk"?"#f6b46a":"#f9f0b4");
+  }
+}
+
+/* ---------- สวนริมหน้าผา (เกาะลอยฟ้า) ---------- */
+const CLIFF_X = 20;
+function drawGarden(c,t){
+  const wet=isWet();
+  const sky = { dawn:["#f4b077","#f7d9a4","#ecdfc2"], day:["#7cc0e8","#a8daf0","#d2ecdd"],
+                afternoon:["#6fb8e4","#9fd4ee","#cfe8d6"], dusk:["#e08a63","#c97d8e","#8d84a8"],
+                night:["#141a38","#1d2446","#2c3358"] }[Env.phase] || ["#7cc0e8","#a8daf0","#d2ecdd"];
+  skyBands(c,H,sky);
+  if(Env.phase==="night") for(let i=0;i<26;i++){ const sx=(i*41)%W, sy=(i*23)%70;
+    if((i+Math.floor(t*0.6))%4) px(c,sx,sy,"#e8e6d0"); }
+  sunMoon(c,t);
+  /* เกาะลอยฟ้าไกลๆ */
+  for(let i=0;i<3;i++){
+    const bx=34+i*66, by=52+((i*13)%14), s=10+i*3;
+    ellHalf(c,bx,by,s,Math.round(s*0.5),"rgba(110,150,120,.42)",true);
+    ell(c,bx,by,s-1,3,"rgba(90,120,96,.42)");
+    for(let k2=0;k2<3;k2++) rect(c,bx-4+k2*4,by+3,1,3+k2%2*3,"rgba(90,110,96,.35)");
+  }
+  /* เมฆลอย 2 ชั้น */
+  for(let i=0;i<4;i++){
+    const cx=((t*(1.6+i*0.6)+i*53)%(W+44))-22, cy=16+i*9;
+    const col = wet? "rgba(120,132,152,.6)" : "rgba(255,255,255,.62)";
+    ell(c,cx,cy,9,3,col); ell(c,cx+6,cy+1,6,2,col); ell(c,cx-6,cy+1,6,2,col);
+  }
+  /* พื้นหญ้า (เริ่มจากขอบหน้าผา) */
+  const gx = CLIFF_X;
+  rect(c,gx,FLOOR-9,W-gx,H-FLOOR+9,"#79a852");
+  rect(c,gx,FLOOR-9,W-gx,2,"#95c168");
+  rect(c,gx,FLOOR-4,W-gx,1,"rgba(60,90,50,.18)");
+  for(let x=gx;x<W;x+=3){
+    const hh=1+((x*7)%3), s=Math.round(Math.sin(t*1.6+x*0.4));
+    rect(c,x+s,FLOOR-9-hh,1,hh,(x%2)?"#8cb85e":"#6f9c48");
+  }
+  /* หน้าผา: ชั้นดิน หิน และรากไม้ */
+  rect(c,gx-4,FLOOR-7,5,H-FLOOR+7,"#8a6a44");
+  rect(c,gx-4,FLOOR-7,5,2,"#a8814e");
+  for(let y=FLOOR-3;y<H;y+=4){
+    const w=Math.max(0,7-(y-(FLOOR-3))*0.55);
+    rect(c,gx-4,y,w,3,"#6f5335");
+    px(c,gx-5,y+1,"#5a422a");
+  }
+  for(let i=0;i<4;i++) px(c,gx-3+(i%2),FLOOR+4+i*5,"#4d7a34");
+  rect(c,gx-2,FLOOR+2,1,7,"#5f8f42"); rect(c,gx-1,FLOOR+9,1,5,"#4d7a34");
+  /* เมฆใต้เกาะ */
+  for(let i=0;i<3;i++){
+    const cx=((t*2.4+i*31)%(gx+26))-16, cy=FLOOR+8+i*9;
+    ell(c,cx,cy,7,2,"rgba(255,255,255,.5)"); ell(c,cx+4,cy+1,4,2,"rgba(255,255,255,.4)");
+  }
+  /* รั้วไม้ */
+  for(let x=gx+6;x<W-4;x+=11){ rect(c,x,FLOOR-17,2,9,"#a8834e"); rect(c,x,FLOOR-17,1,9,"#c49a63"); }
+  rect(c,gx+6,FLOOR-15,W-gx-10,1,"#a8834e"); rect(c,gx+6,FLOOR-11,W-gx-10,1,"#a8834e");
+  outdoorRain(c,t);
+}
+
+/* ---------- พื้นที่สำรวจ ---------- */
+function drawWild(c,t,key){
+  if(key==="preta"){
+    skyBands(c,H,["#232f2b","#2c3a34","#3a4a3f"]);
+    /* ต้นไม้ 3 ชั้น */
+    for(let i=0;i<10;i++){ const bx=(i*23+7)%W, bh=44+((i*17)%20);
+      rect(c,bx,FLOOR-bh,3,bh,"#1b2622"); ell(c,bx+1,FLOOR-bh,9,5,"#17211d"); }
+    for(let i=0;i<7;i++){ const bx=(i*31+15)%W, bh=56+((i*13)%26);
+      rect(c,bx,FLOOR-bh,4,bh,"#22302a"); rect(c,bx,FLOOR-bh,1,bh,"#2e4038");
+      ell(c,bx+2,FLOOR-bh,12,7,"#1d2a25"); ell(c,bx+2,FLOOR-bh-2,8,4,"#243329"); }
+    /* วิญญาณลอย */
+    for(let i=0;i<5;i++){ const fx=((t*8+i*47)%(W+30))-15, fy=54+((i*19)%34);
+      ell(c,fx,fy,6,3,"rgba(180,220,200,.11)"); ell(c,fx,fy,2,2,"rgba(200,240,220,.35)"); }
+    for(let i=0;i<12;i++){ const sx=(i*37+13)%W, sy=48+((i*23)%54);
+      if(Math.sin(t*2+i)>0.3) px(c,sx,sy,"rgba(190,240,210,.75)"); }
+    rect(c,0,FLOOR-7,W,H-FLOOR+7,"#39483c"); rect(c,0,FLOOR-7,W,2,"#4a5c4c");
+    for(let x=0;x<W;x+=7){ px(c,x,FLOOR-8,"#4d6050"); rect(c,x+2,FLOOR-3,3,1,"#2f3c33"); }
+    rect(c,0,FLOOR-16,W,16,"rgba(180,220,200,.05)");
+  } else if(key==="thunder"){
+    skyBands(c,H,["#2f3358","#3d4269","#575d80"]);
+    /* เมฆพายุซ้อนชั้น */
+    for(let i=0;i<5;i++){ const cx=((t*4+i*47)%(W+50))-25, cy=12+i*8;
+      ell(c,cx,cy,16,5,"rgba(58,62,94,.92)"); ell(c,cx+10,cy+2,10,4,"rgba(70,74,108,.92)");
+      ell(c,cx-10,cy+2,10,4,"rgba(70,74,108,.92)"); }
+    /* ภูเขาไกล */
+    for(let i=0;i<4;i++){ const bx=20+i*54; ellHalf(c,bx,FLOOR-14,26,20,"rgba(48,52,78,.9)",true); }
+    ellHalf(c,W-20,FLOOR-14,30,24,"rgba(42,46,70,.9)",true);
+    /* สายฟ้า */
+    if(stormFlash(t) || Math.sin(t*0.9)>0.985){
+      const lx=30+((Math.floor(t*2)*53)%(W-60));
+      let cxp=lx;
+      for(let y=14;y<FLOOR-16;y+=4){ cxp += (Math.random()<0.5?-2:2);
+        rect(c,cxp,y,1,4,"rgba(255,250,200,.95)"); px(c,cxp+1,y+1,"rgba(255,255,255,.6)"); }
+    }
+    rect(c,0,FLOOR-8,W,H-FLOOR+8,"#5a6046"); rect(c,0,FLOOR-8,W,2,"#6e7352");
+    for(let x=0;x<W;x+=3){
+      const hh=4+((x*5)%7), s=Math.round(Math.sin(t*3.2+x*0.35)*1.4);
+      rect(c,x+s,FLOOR-8-hh,1,hh,(x%2)?"#7f8657":"#68703f");
+    }
+    outdoorRain(c,t);
+  } else {
+    skyBands(c,H,["#2e2440","#3c2f4c","#4a3a58"]);
+    for(let i=0;i<20;i++){ const sx=(i*31+7)%W, sy=(i*17)%68;
+      if(Math.sin(t*1.4+i)>0.1) px(c,sx,sy,"rgba(230,190,240,.6)"); }
+    /* เห็ดชั้นไกล */
+    for(let i=0;i<8;i++){ const bx=(i*25+5)%W, bh=18+((i*7)%12);
+      rect(c,bx,FLOOR-bh,2,bh,"rgba(200,190,180,.35)");
+      ellHalf(c,bx,FLOOR-bh,7,4,"rgba(150,110,150,.55)",true); }
+    /* เห็ดชั้นใกล้ */
+    for(let i=0;i<6;i++){
+      const bx=(i*33+14)%W, bh=30+((i*11)%22), col=["#c96f8f","#7fa8d0","#d8b25a"][i%3];
+      rect(c,bx,FLOOR-bh,3,bh,"#e6ddc8"); rect(c,bx,FLOOR-bh,1,bh,"#f6efe0");
+      ellHalf(c,bx+1,FLOOR-bh,11,8,col,true);
+      ellHalf(c,bx+1,FLOOR-bh,11,3,"rgba(255,255,255,.22)",true);
+      px(c,bx-3,FLOOR-bh-3,"#f6ecd8"); px(c,bx+6,FLOOR-bh-4,"#f6ecd8"); px(c,bx+2,FLOOR-bh-6,"#f6ecd8");
+    }
+    rect(c,0,FLOOR-7,W,H-FLOOR+7,"#4a3a55"); rect(c,0,FLOOR-7,W,2,"#5c4a68");
+    for(let x=0;x<W;x+=5){ ell(c,x,FLOOR-6,2,1,"#5f4d6b"); }
+    for(let i=0;i<8;i++){ const sx=(i*29+9)%W; ell(c,sx,H-6,4,2,"#3f3149"); }
+  }
+}
+
+function drawAreaScene(c,t){
+  const k=area();
+  if(k==="home") drawHome(c,t);
+  else if(k==="garden") drawGarden(c,t);
+  else drawWild(c,t,k);
+  /* ป้ายบอกทางที่ขอบจอ */
+  if(!FS.on){
+    const ar = AREAS[k];
+    if(k==="home"){ edgeArrow(c,-1,t,"#f0d68a"); edgeArrow(c,1,t,"#f0d68a"); }
+    else edgeArrow(c, k==="garden"?1:-1, t, "#f0d68a");
+  }
+}
+function edgeArrow(c,dir,t,col){
+  const x = dir<0 ? 5 : W-6, b=Math.round(Math.sin(t*3)*1);
+  for(let i=0;i<4;i++) rect(c, x + dir*(i)+b*dir, FLOOR-22+i, 1, 8-i*2, col);
 }
 
 /* ---------- อนุภาค + ข้อความลอย ---------- */
@@ -1253,100 +1620,229 @@ function floatText(x,y,txt,cls){
   setTimeout(()=>el.remove(),1300);
 }
 
-/* ---------- FocusTime: เมฆ + ของหล่น (เรียลไทม์) ---------- */
-const FS = { on:false, endAt:0, total:0, diff:"mid", collected:0, coins:0, awayAt:0, spawnCd:1.2 };
+/* ---------- NPC คุณหมอโอตะ ---------- */
+const Doc = { on:false, x:-20, tx:0, phase:0, timer:0 };
+function callDoctor(){
+  Doc.on=true; Doc.x=W+16; Doc.tx=Pet.x+22; Doc.phase=0; Doc.timer=0;
+}
+function updateDoctor(dt){
+  if(!Doc.on) return;
+  if(Doc.phase===0){
+    const d=Doc.tx-Doc.x;
+    if(Math.abs(d)>1.5) Doc.x += (d>0?1:-1)*26*dt;
+    else { Doc.phase=1; Doc.timer=7.5;
+      say("คุณหมอโอตะ: พักก่อนนะ ร่างกายไม่ใช่เครื่องจักร\nโฟกัสฟื้นฟู 1 ชม. แล้วค่อยไปต่อ", 7000); }
+  } else if(Doc.phase===1){
+    Doc.timer-=dt; if(Doc.timer<=0){ Doc.phase=2; }
+  } else {
+    Doc.x += 26*dt;
+    if(Doc.x>W+20) Doc.on=false;
+  }
+}
+function drawDoctor(c,t){
+  if(!Doc.on) return;
+  const walking = Doc.phase!==1;
+  c.save(); c.translate(Math.round(Doc.x), FLOOR+8); c.scale(Doc.phase===2?1:-1,1);
+  const bob = walking ? (Math.abs(Math.sin(t*8))>0.55?-1:0) : (Math.sin(t*2)>0.6?-1:0);
+  const hipY=-7+bob;
+  ell(c,0,1,5,2,"rgba(40,52,32,.26)");
+  drawLeg(c,-3,hipY, walking&&Math.sin(t*8)>0.35?-1:0, "#4a5260");
+  drawLeg(c, 1,hipY, walking&&Math.sin(t*8)<-0.35?-1:0, "#4a5260");
+  const bt=hipY-9;
+  rect(c,-4,bt,8,10,"#eef2f4"); rect(c,-4,bt,8,1,"#ffffff");
+  rect(c,-1,bt+3,1,5,"#d6dde2"); px(c,2,bt+3,"#5f93bd");
+  rect(c,-6,bt+1,2,6,"#eef2f4"); rect(c,4,bt+1,2,6,"#eef2f4");
+  px(c,-6,bt+7,"#e8b98d"); px(c,5,bt+7,"#e8b98d");
+  const hy=bt-8;
+  rect(c,-1,hy+8,2,2,"#e8b98d"); ell(c,0,hy+4,4,4,"#e8b98d");
+  ellHalf(c,0,hy+3,4,4,"#3a3a44",true); rect(c,-4,hy+3,8,1,"#3a3a44");
+  ell(c,-2,hy+4,1,1,"#25301c"); ell(c,2,hy+4,1,1,"#25301c");
+  rect(c,-3,hy+3,3,2,"rgba(200,230,240,.55)"); rect(c,1,hy+3,3,2,"rgba(200,230,240,.55)"); px(c,0,hy+4,"#6a6a72");
+  c.restore();
+}
+
+/* ---------- มอนสเตอร์ระหว่างสำรวจ ---------- */
+let mobs=[];
+function spawnMob(){
+  const k=area(), A=AREAS[k];
+  const fromLeft = Math.random()<0.5;
+  mobs.push({ x: fromLeft?-10:W+10, dir: fromLeft?1:-1, kind:k, t:0, hit:false, life:0 });
+}
+function drawMob(c,m,t){
+  const x=Math.round(m.x), y=FLOOR+4-Math.round(Math.sin(t*4)*2);
+  if(m.kind==="preta"){
+    ell(c,x,y-8,6,7,"rgba(206,238,220,.85)");
+    for(let i=0;i<3;i++) ell(c,x-3+i*3,y-1+Math.round(Math.sin(t*6+i)),2,2,"rgba(206,238,220,.7)");
+    px(c,x-2,y-9,"#2a3a32"); px(c,x+2,y-9,"#2a3a32");
+    rect(c,x-1,y-6,3,1,"#2a3a32");
+  } else if(m.kind==="thunder"){
+    ell(c,x,y-8,7,5,"#5a5f86"); ell(c,x,y-9,5,3,"#7a80ad");
+    rect(c,x-8,y-9,4,1,"#414665"); rect(c,x+5,y-9,4,1,"#414665");
+    px(c,x-2,y-9,"#f6e08a"); px(c,x+2,y-9,"#f6e08a");
+    if(Math.sin(t*12)>0) star(c,x,y-14,1,"#f6e08a");
+  } else {
+    ell(c,x,y-6,6,5,"#8a6f9c"); ellHalf(c,x,y-9,7,5,"#c96f8f",true);
+    px(c,x-3,y-11,"#f6ecd8"); px(c,x+3,y-12,"#f6ecd8");
+    px(c,x-2,y-6,"#2a2030"); px(c,x+2,y-6,"#2a2030");
+  }
+}
+
+/* ---------- FocusTime · เมฆ · ของหล่น · การต่อสู้ ---------- */
+const FS = { on:false, mode:"home", endAt:0, total:0, diff:"mid", collected:0, coins:0,
+             awayAt:0, spawnCd:1.2, dropped:0, maxDrops:99, pouch:{}, xpAcc:0, xpTick:0, encCd:0 };
+function maxHp(){ return 40 + Math.min(120, G.pet.lv*3); }
+function petCond(){ return (G.pet.hun*0.3 + G.pet.moo*0.3 + G.pet.bon*0.4)/100; }   /* 0..1 */
+
 function dropInterval(){
-  const base = DIFF[FS.diff].rate;
-  const care = (G.pet.bon*0.55 + G.pet.moo*0.45)/100;      /* สนิท+อารมณ์ดี = ถี่ขึ้น */
-  return base * (1 - 0.38*care) * rnd(0.8,1.2);
+  const base = DIFF[FS.diff].rate * (FS.mode==="wild" ? 0.85 : 1);
+  return base * (1 - 0.30*petCond()) * rnd(0.85,1.2);
 }
 function rollDropKey(){
-  const care = (G.pet.bon*0.5 + G.pet.moo*0.5)/100;
+  const cond = petCond();
   const dw = {easy:0,mid:1,hard:2}[FS.diff];
-  const r = Math.random()*0.80 + care*0.13 + dw*0.055 + (nightNow()?0.03:0) + (isWet()?0.02:0);
-  const tier = r<0.42 ? 1 : r<0.70 ? 2 : r<0.88 ? 3 : r<0.97 ? 4 : 5;
+  const wild = FS.mode==="wild";
+  const r = Math.random()*0.86 + cond*0.10 + dw*0.04 + (wild?0.10:0) + (nightNow()?0.02:0);
+  const tier = r<0.48 ? 1 : r<0.74 ? 2 : r<0.90 ? 3 : r<0.975 ? 4 : 5;
+  if(wild){
+    const A=AREAS[area()];
+    /* หินวิวัฒนาการ: ยิ่งโฟกัสนาน + สภาพสัตว์เลี้ยงดี ยิ่งมีโอกาส */
+    const long = clamp(FS.total/60/45, 0, 1);
+    const chance = 0.05 + long*0.13 + cond*0.07 + dw*0.02;
+    if(Math.random() < chance) return A.stone;
+  }
   let key = pick(TIERS[tier]);
-  if(isWet() && tier>=2 && Math.random()<0.22) key="dew";
-  if(nightNow() && tier>=4 && Math.random()<0.3) key="crystal";
+  if(isWet() && tier>=2 && Math.random()<0.2) key="dew";
+  if(nightNow() && tier>=4 && Math.random()<0.28) key="crystal";
   return key;
 }
 function spawnCloud(){
-  clouds.push({ x:rnd(28,132), y:rnd(20,44), age:0, dropAt:rnd(1.0,1.8), key:rollDropKey(), dropped:false, fade:0 });
+  clouds.push({ x:rnd(30,W-30), y:rnd(20,44), age:0, dropAt:rnd(1.0,1.8),
+                key:rollDropKey(), dropped:false, fade:0, blink:rnd(0,6) });
 }
 function collectDrop(d){
-  addItem(d.key,1);
-  FS.collected++;
   const def = itemDef(d.key);
+  if(FS.mode==="wild"){ FS.pouch[d.key]=(FS.pouch[d.key]||0)+1; }
+  else addItem(d.key,1);
+  FS.collected++;
   floatText(d.x, d.y-10, def.e+" +1", def.rare>=4?"rare":"");
   for(let i=0;i<5;i++) spawnParticle(d.x,d.y,def.rare>=4?"#fff8c0":"#f7f0b0");
   beep(def.rare>=4?980:760,.05,"triangle",.035);
-  updateFocusHud();
-  markDirty();
+  updateFocusHud(); markDirty();
 }
+/* เมฆหน้ายิ้มแบบในภาพตัวอย่าง */
 function drawCloud(c,cl,t){
-  const s = cl.age<0.32 ? Math.max(0.15, cl.age/0.32) : 1;
+  const s = cl.age<0.32 ? Math.max(0.18, cl.age/0.32) : 1;
   const fade = cl.fade>0 ? Math.max(0,1-cl.fade/0.8) : 1;
   const shake = (!cl.dropped && cl.age>cl.dropAt-0.35) ? Math.round(Math.sin(t*38)) : 0;
-  const rx = Math.max(2,Math.round(7*s)), ry = Math.max(1,Math.round(3*s));
-  const A = a => "rgba(247,244,224,"+(a*fade).toFixed(2)+")";
+  const rx = Math.max(2,Math.round(9*s)), ry = Math.max(2,Math.round(5*s));
+  const A = a => "rgba(250,248,236,"+(a*fade).toFixed(2)+")";
   const x = cl.x+shake, y = cl.y+Math.sin(t*2+cl.x)*1.2;
-  ell(c,x,y,rx,ry,A(1)); ell(c,x-rx*0.6,y+1,Math.round(rx*0.6),ry,A(1));
-  ell(c,x+rx*0.6,y+1,Math.round(rx*0.6),ry,A(1)); ell(c,x+1,y-2,Math.round(rx*0.55),Math.max(1,Math.round(ry*0.7)),A(1));
-  ell(c,x,y+ry,rx,1,"rgba(178,190,160,"+(0.45*fade).toFixed(2)+")");
-  if(!cl.dropped && cl.age>cl.dropAt-0.5 && Math.sin(t*22)>0) px(c,x,y+ry+2,A(0.9));
+  /* ตัวเมฆ 3 โทน */
+  ell(c,x,y+1,rx,ry,"rgba(196,205,214,"+(0.85*fade).toFixed(2)+")");
+  ell(c,x,y,rx,ry,A(1));
+  ell(c,x-rx*0.62,y+1,Math.round(rx*0.55),Math.round(ry*0.8),A(1));
+  ell(c,x+rx*0.62,y+1,Math.round(rx*0.55),Math.round(ry*0.8),A(1));
+  ell(c,x+1,y-2,Math.round(rx*0.6),Math.round(ry*0.7),A(1));
+  ell(c,x-2,y-2,Math.round(rx*0.4),Math.round(ry*0.45),"rgba(255,255,255,"+(0.9*fade).toFixed(2)+")");
+  /* หน้ายิ้ม */
+  if(s>0.8){
+    const blink = Math.sin(t*1.1+cl.blink)>0.96;
+    const ink = "rgba(90,96,104,"+(0.9*fade).toFixed(2)+")";
+    if(blink){ rect(c,x-4,y,3,1,ink); rect(c,x+2,y,3,1,ink); }
+    else { ell(c,x-3,y,1,1,ink); ell(c,x+3,y,1,1,ink); }
+    rect(c,x-1,y+3,3,1,ink); px(c,x-2,y+2,ink); px(c,x+2,y+2,ink);
+    px(c,x-5,y+2,"rgba(240,170,170,.5)"); px(c,x+5,y+2,"rgba(240,170,170,.5)");
+  }
+  if(!cl.dropped && cl.age>cl.dropAt-0.5 && Math.sin(t*22)>0) star(c,x,y+ry+3,1,A(0.9));
 }
 const DROP_COL = {berry:"#d9584a",rice:"#f4efd8",tea:"#8fb44e",cake:"#f2c9d8",star:"#f0d24a",
-                  fish:"#8fb8c9",stone:"#8a8f7d",dew:"#8fd0e8",shard:"#f7f0b0",crystal:"#9fd7e8"};
+  fish:"#8fb8c9",stone:"#8a8f7d",dew:"#8fd0e8",shard:"#f7f0b0",crystal:"#9fd7e8",
+  stoneSoul:"#a8e0c8",stoneBolt:"#f0d24a",stoneSpore:"#d9a0e8"};
 function drawDropIcon(c,x,y,key,t){
   const def=itemDef(key), col=DROP_COL[key]||"#f4efd8";
-  ell(c,x,y+1,3,1,"rgba(40,52,32,.22)");
-  ell(c,x,y-1,3,3,col);
-  ell(c,x-1,y-2,1,1,"#fff8e0");
-  if(def.rare>=4 && Math.sin(t*9)>0) star(c,x+4,y-4,1,"#fff8e0");
+  const rare = def.rare>=4;
+  ell(c,x,y+2,3,1,"rgba(40,52,32,.22)");
+  if(rare){                                  /* คริสตัลเจียระไน */
+    const dk = shade(col,-42), lt = shade(col,46);
+    rect(c,x-1,y-5,2,1,lt);
+    rect(c,x-2,y-4,4,1,col); rect(c,x-3,y-3,6,3,col);
+    rect(c,x-2,y,4,2,dk); rect(c,x-1,y+2,2,1,dk);
+    rect(c,x-2,y-3,1,4,lt); px(c,x+2,y-2,dk);
+    if(Math.sin(t*8)>0.2) star(c,x+5,y-5,1,"#fff8e0");
+    if(Math.sin(t*6+2)>0.5) px(c,x-6,y-1,"#fff8e0");
+  } else {
+    ell(c,x,y-1,3,3,shade(col,-30));
+    ell(c,x,y-2,3,3,col);
+    ell(c,x-1,y-3,1,1,"#fff8e0");
+  }
+}
+function shade(hex,amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=clamp(((n>>16)&255)+amt,0,255), g2=clamp(((n>>8)&255)+amt,0,255), b=clamp((n&255)+amt,0,255);
+  return "#"+((1<<24)+(r<<16)+(g2<<8)+b).toString(16).slice(1);
 }
 
 /* ---------- อัปเดตฉาก ---------- */
 function updateScene(dt,t){
-  /* ผู้เล่น: ปุ่มกดมาก่อนเสมอ */
-  if(FS.on){ Ply.state="focus"; Ply.x += (48-Ply.x)*Math.min(1,dt*3); }
+  const k = area(), kind = AREAS[k].kind;
+  /* ผู้เล่น */
+  if(FS.on){ Ply.state="focus"; Ply.x += ((kind==="home"?60:52)-Ply.x)*Math.min(1,dt*3); }
+  else if(Place.mode!=="none"){ Ply.state = Ply.sitting?"sit":"idle"; }
   else if(Input.left || Input.right){
     Ply.dir = Input.right ? 1 : -1;
-    Ply.x = clamp(Ply.x + Ply.dir*30*dt, 12, 150);
-    Ply.state = "walk"; Ply.sitting=false; Input.lastAt = now();
+    Ply.x = Ply.x + Ply.dir*32*dt;
+    Ply.state="walk"; Ply.sitting=false; Input.lastAt=now();
+    if(Ply.x < 13){
+      if(k==="home") goArea("garden");
+      else if(kind==="wild") goArea("home");
+      Ply.x = 13;
+    } else if(Ply.x > W-13){
+      if(k==="home"){ Ply.x=W-14; openTravel(); Input.right=false; }
+      else if(k==="garden") goArea("home");
+      else Ply.x=W-14;
+    }
   }
   else if(Ply.sitting){ Ply.state="sit"; }
   else if(now()-Input.lastAt < 18000){ Ply.state="idle"; }
   else {
     Ply.moveCd -= dt;
-    if(Ply.moveCd<=0){ Ply.moveCd=rnd(4,9); Ply.tx=rnd(20,144); }
+    if(Ply.moveCd<=0){ Ply.moveCd=rnd(4,9); Ply.tx=rnd(24,W-24); }
     const d=Ply.tx-Ply.x;
     if(Math.abs(d)>1.5){ Ply.dir=d>0?1:-1; Ply.x+=Ply.dir*12*dt; Ply.state="walk"; }
     else Ply.state="idle";
   }
+  Ply.x = clamp(Ply.x, 13, W-13);
 
   /* สัตว์เลี้ยง */
-  if(FS.on){ Pet.state="focus"; Pet.x += (104-Pet.x)*Math.min(1,dt*3); }
+  if(G && G.pet.injured && !FS.on){ Pet.state="ko"; Pet.x += (Ply.x+16-Pet.x)*Math.min(1,dt*1.2); }
+  else if(FS.on){ Pet.state = FS.mode==="heal" ? "sleep" : "focus";
+    Pet.x += ((kind==="home"?128:112)-Pet.x)*Math.min(1,dt*3); }
   else if(Pet.stateT>0){ Pet.stateT-=dt; if(Pet.stateT<=0) Pet.state="idle"; }
   else if(G && G.pet.hun<15){ Pet.state="sad"; }
-  else if(nightNow() && G && G.pet.moo<55){ Pet.state="sleep"; }
+  else if(nightNow() && G && G.pet.moo<55 && kind==="home"){ Pet.state="sleep"; }
   else {
     Pet.moveCd-=dt;
-    if(Pet.moveCd<=0){ Pet.moveCd=rnd(2.5,6); Pet.tx=rnd(24,144); }
+    if(Pet.moveCd<=0){ Pet.moveCd=rnd(2.5,6); Pet.tx=clamp(Ply.x+rnd(-46,46),20,W-20); }
     const d=Pet.tx-Pet.x;
     if(Math.abs(d)>1.5){ Pet.dir=d>0?1:-1; Pet.x+=Pet.dir*14*dt; Pet.state="walk"; }
     else Pet.state="idle";
   }
+  Pet.x = clamp(Pet.x, 16, W-16);
+
+  updateDoctor(dt);
 
   /* เมฆและของหล่น */
-  if(FS.on){
+  if(FS.on && FS.mode!=="heal"){
     FS.spawnCd -= dt;
-    if(FS.spawnCd<=0 && clouds.length<4){ FS.spawnCd = dropInterval(); spawnCloud(); }
+    if(FS.spawnCd<=0 && clouds.length<3 && FS.dropped<FS.maxDrops){
+      FS.spawnCd = dropInterval(); spawnCloud(); FS.dropped++;
+    }
     for(const cl of clouds){
       cl.age += dt;
-      cl.x = clamp(cl.x + Math.sin(cl.age*0.7+cl.y)*4*dt, 16, 144);
+      cl.x = clamp(cl.x + Math.sin(cl.age*0.7+cl.y)*4*dt, 18, W-18);
       if(!cl.dropped && cl.age>=cl.dropAt){
         cl.dropped = true;
-        drops.push({x:cl.x, y:cl.y+4, vx:rnd(-9,9), vy:8, key:cl.key, done:false});
+        drops.push({x:cl.x, y:cl.y+5, vx:rnd(-7,7), vy:8, key:cl.key, done:false});
         sfx.drop();
       }
       if(cl.dropped) cl.fade += dt;
@@ -1360,72 +1856,167 @@ function updateScene(dt,t){
     drops = drops.filter(d=>!d.done);
   } else if(clouds.length || drops.length){ clouds=[]; drops=[]; }
 
+  /* ค่าประสบการณ์แบบเรียลไทม์ */
+  if(FS.on){
+    FS.xpTick -= dt;
+    if(FS.xpTick<=0){
+      FS.xpTick = 10;
+      const per = focusXpPerMin()/6;                 /* ต่อ 10 วินาที */
+      FS.xpAcc += per;
+      const give = Math.floor(FS.xpAcc);
+      if(give>0){
+        FS.xpAcc -= give;
+        addXp(give);
+        floatText(Pet.x, FLOOR-34, "✦ +"+give);
+      }
+    }
+  }
+
+  /* การต่อสู้ระหว่างสำรวจ */
+  if(FS.on && FS.mode==="wild"){
+    FS.encCd -= dt;
+    if(FS.encCd<=0 && mobs.length===0){
+      FS.encCd = rnd(26,46) / (1 + AREAS[area()].danger*0.15);
+      spawnMob();
+    }
+    for(const m of mobs){
+      m.t+=dt;
+      if(!m.hit){
+        const d = Pet.x - m.x;
+        if(Math.abs(d)>10) m.x += (d>0?1:-1)*22*dt;
+        else { m.hit=true; hitPet(m); }
+      } else { m.life+=dt; m.x -= m.dir*30*dt; }
+    }
+    mobs = mobs.filter(m=>m.life<1.6);
+  } else if(mobs.length) mobs=[];
+
   updateParts(dt);
+
+  /* เปลี่ยนพื้นที่แบบเฟด */
+  if(Fade.dir>0){ Fade.a=Math.min(1,Fade.a+dt*4); if(Fade.a>=1){ applyArea(Fade.to); Fade.dir=-1; } }
+  else if(Fade.dir<0){ Fade.a=Math.max(0,Fade.a-dt*3); if(Fade.a<=0) Fade.dir=0; }
+}
+
+function hitPet(m){
+  const A=AREAS[area()];
+  const base = 5 + A.danger*4;
+  const soak = clamp(G.pet.lv*0.012, 0, 0.45);
+  const dmg = Math.max(2, Math.round(base*(1-soak)*rnd(0.8,1.25)));
+  G.pet.hp = clamp(G.pet.hp - dmg, 0, maxHp());
+  Pet.state="sad"; Pet.stateT=1.6;
+  for(let i=0;i<8;i++) spawnParticle(Pet.x+rnd(-5,5), FLOOR-14, "#e0604f");
+  floatText(Pet.x, FLOOR-30, "-"+dmg+" HP", "dmg");
+  sfx.bad(); Shake.t=0.35;
+  refreshHud();
+  if(G.pet.hp<=0){ knockOut(); }
+  else if(G.pet.hp <= maxHp()*0.3){
+    toast("⚠️ "+G.pet.name+" เลือดน้อยแล้ว · กด “พากลับบ้าน”");
+    $("#fhHome").style.display="inline-block";
+  }
+}
+function knockOut(){
+  G.pet.hp = 1;
+  G.pet.injured = true;
+  G.pet.recoverMin = 60;
+  G.pet.medUsed = false;
+  FS.pouch = {};
+  endFocus("ko");
+  goArea("home");
+  setTimeout(()=>{ callDoctor(); }, 900);
+  toast("😵 " + G.pet.name + " สลบ! ถูกส่งกลับบ้านและไม่ได้ไอเท็มใดๆ");
 }
 
 /* ---------- เรนเดอร์ ---------- */
-const TINT = { dawn:"rgba(255,168,104,.11)", day:null, dusk:"rgba(255,120,80,.15)", night:"rgba(26,36,84,.30)" };
+const TINT = { dawn:"rgba(255,168,104,.12)", day:null, afternoon:"rgba(255,226,150,.06)",
+               dusk:"rgba(255,120,80,.16)", night:"rgba(26,36,84,.32)" };
+const Shake = { t:0 };
+function placedList(){
+  if(!G || !G.place) return [];
+  return G.place[area()] || [];
+}
 function render(){
   const tms = performance.now();
   const dt = Math.min(0.05, (tms-lastFrame)/1000); lastFrame = tms;
   const t = (tms-T0)/1000;
   if(G) updateScene(dt,t);
 
+  g.setTransform(1,0,0,1,0,0);
   g.clearRect(0,0,W,H);
-  drawRoom(g,t);
+  if(Shake.t>0){ Shake.t-=dt; g.setTransform(1,0,0,1, Math.round(rnd(-1.5,1.5)), Math.round(rnd(-1,1))); }
 
-  const house = (G && G.house) ? G.house : [];
-  /* ผนัง -> พรม -> ของตั้งพื้น (เรียงตามระยะ) พร้อมตัวละคร */
-  const skip = (Place.id && Place.fromHouse>=0) ? Place.fromHouse : -1;
-  house.forEach((h,i)=>{ if(i!==skip && FURNI[h.id] && FURNI[h.id].kind==="wall") drawFurni(g,h.id,h.x,h.y,t); });
-  house.forEach((h,i)=>{ if(i!==skip && FURNI[h.id] && FURNI[h.id].flat) drawFurni(g,h.id,h.x,h.y,t); });
+  drawAreaScene(g,t);
+
+  const list = placedList();
+  const skip = (Place.mode==="edit" && Place.sel>=0) ? Place.sel : -1;
+  list.forEach((h,i)=>{ if(i!==skip && FURNI[h.id] && FURNI[h.id].kind==="wall") drawFurni(g,h.id,h.x,h.y,t); });
+  list.forEach((h,i)=>{ if(i!==skip && FURNI[h.id] && FURNI[h.id].flat) drawFurni(g,h.id,h.x,h.y,t); });
 
   if(FS.on){
-    const r = 14+Math.sin(t*1.2)*3;
-    ell(g,104,FLOOR+7,Math.round(r),Math.round(r*0.3),"rgba(247,240,180,.30)");
+    const r = 15+Math.sin(t*1.2)*3;
+    ell(g,Pet.x,FLOOR+7,Math.round(r),Math.round(r*0.3),"rgba(247,240,180,.28)");
   }
 
   const layer = [];
-  house.forEach((h,i)=>{ if(i!==skip && FURNI[h.id] && FURNI[h.id].kind==="floor" && !FURNI[h.id].flat)
+  list.forEach((h,i)=>{ if(i!==skip && FURNI[h.id] && FURNI[h.id].kind==="floor" && !FURNI[h.id].flat)
        layer.push({y:h.y, f:()=>drawFurni(g,h.id,h.x,h.y,t)}); });
   layer.push({y:FLOOR+8, f:()=>{ g.save(); g.translate(Math.round(Ply.x),FLOOR+8); g.scale(Ply.dir,1);
     drawPlayer(g, G?G.player:DEFAULT_LOOK, {t,state:Ply.state}); g.restore(); }});
   layer.push({y:FLOOR+9, f:()=>{ g.save(); g.translate(Math.round(Pet.x),FLOOR+9); g.scale(Pet.dir,1);
     drawPet(g, G?G.pet.form:"seed", {t,state:Pet.state}); g.restore(); }});
+  mobs.forEach(m=>layer.push({y:FLOOR+7, f:()=>drawMob(g,m,t)}));
+  if(Doc.on) layer.push({y:FLOOR+8.5, f:()=>drawDoctor(g,t)});
   layer.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
 
   for(const cl of clouds) drawCloud(g,cl,t);
   for(const d of drops) drawDropIcon(g,d.x,d.y,d.key,t);
   drawParts(g);
 
-  /* แสงตามช่วงเวลา + ฟ้าแลบ */
   const tint = TINT[Env.phase];
   if(tint){ g.fillStyle=tint; g.fillRect(0,0,W,H); }
-  if(isWet()){ g.fillStyle="rgba(72,92,124,.12)"; g.fillRect(0,0,W,H); }
+  if(isWet()){ g.fillStyle="rgba(72,92,124,.13)"; g.fillRect(0,0,W,H); }
   if(stormFlash(t)){ g.fillStyle="rgba(255,255,255,.22)"; g.fillRect(0,0,W,H); }
 
-  /* โหมดจัดบ้าน: กรอบของที่วางไว้ + เงาของที่กำลังลาก */
-  if(Place.edit){
-    g.strokeStyle="rgba(217,164,65,.85)"; g.lineWidth=1;
-    house.forEach((h,i)=>{ if(i===skip) return; const b=furniBox(h.id);
+  /* โหมดจัดบ้าน */
+  if(Place.mode!=="none"){
+    g.strokeStyle="rgba(217,164,65,.7)"; g.lineWidth=1;
+    list.forEach((h,i)=>{ if(i===skip) return; const b=furniBox(h.id);
       g.strokeRect(h.x-b.w-0.5, h.y-b.top-0.5, b.w*2+1, b.top+b.bot+1); });
-  }
-  if(Place.id){
-    g.globalAlpha=0.6; drawFurni(g,Place.id,Place.x,Place.y,t); g.globalAlpha=1;
-    g.strokeStyle="rgba(247,240,180,.9)";
-    const b=furniBox(Place.id);
-    g.strokeRect(Place.x-b.w-0.5, Place.y-b.top-0.5, b.w*2+1, b.top+b.bot+1);
+    const gid = Place.id;
+    if(gid){
+      g.globalAlpha=0.7; drawFurni(g,gid,Place.x,Place.y,t); g.globalAlpha=1;
+      const b=furniBox(gid);
+      g.strokeStyle="rgba(247,240,180,.95)";
+      g.strokeRect(Place.x-b.w-0.5, Place.y-b.top-0.5, b.w*2+1, b.top+b.bot+1);
+    }
   }
 
-  positionBubble();
+  if(Fade.a>0){ g.fillStyle="rgba(10,8,20,"+Fade.a.toFixed(2)+")"; g.fillRect(0,0,W,H); }
+  g.setTransform(1,0,0,1,0,0);
+
+  positionBubble(); positionTags();
   requestAnimationFrame(render);
 }
+/* ป้ายชื่อผู้เล่นและสัตว์เลี้ยงบนจอ */
+function positionTags(){
+  const p=$("#tagPly"), q=$("#tagPet");
+  if(!p||!G) return;
+  p.textContent = G.player.name;
+  p.style.left = clamp(Ply.x/W*100, 8, 92)+"%";
+  p.style.top  = ((FLOOR+8-34)/H*100)+"%";
+  q.textContent = G.pet.name;
+  q.style.left = clamp(Pet.x/W*100, 8, 92)+"%";
+  const petH = (FORMS[G.pet.form].h*2)+16;
+  q.style.top  = clamp((FLOOR+9-petH)/H*100, 4, 70)+"%";
+  const hide = Fade.a>0.2;
+  p.style.opacity = hide?0:1; q.style.opacity = hide?0:1;
+}
+
 /* =====================================================================
    5. UI GLUE
 ===================================================================== */
 function toast(msg){
   const el=$("#toast"); el.textContent=msg; el.classList.add("on");
-  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("on"),1900);
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("on"),2200);
 }
 function openPanel(id){
   $$(".panel").forEach(p=>p.classList.remove("on"));
@@ -1434,7 +2025,6 @@ function openPanel(id){
 function closePanels(){ openPanel(null); }
 $$("[data-close]").forEach(b=>b.addEventListener("click",()=>{ sfx.tap(); closePanels(); }));
 
-/* speech bubble */
 let bubbleUntil=0;
 function say(txt,dur){
   const b=$("#bubble"); b.textContent=txt; b.classList.add("show");
@@ -1444,54 +2034,55 @@ function positionBubble(){
   const b=$("#bubble");
   if(now()>bubbleUntil){ b.classList.remove("show"); return; }
   const f=FORMS[G?G.pet.form:"seed"];
-  const px_ = (Pet.x/W)*100, py_ = ((FLOOR+9 - (f.h*2+14))/H)*100;
-  b.style.left = clamp(px_,18,82)+"%";
-  b.style.top  = clamp(py_,12,70)+"%";
+  const x = (Pet.x/W)*100, y = ((FLOOR+9 - (f.h*2+26))/H)*100;
+  b.style.left = clamp(x,20,80)+"%";
+  b.style.top  = clamp(y,8,64)+"%";
 }
 function petTalk(){
   const f=FORMS[G.pet.form];
-  const line = Math.random()<0.55 ? pick(f.says) : pick(f.emo);
-  say(line);
+  say(Math.random()<0.55 ? pick(f.says) : pick(f.emo));
 }
-setInterval(()=>{ if(G && !FS.on && Math.random()<0.4 && Pet.state!=="sleep") petTalk(); }, 9000);
+setInterval(()=>{ if(G && !FS.on && !G.pet.injured && Math.random()<0.35 && Pet.state!=="sleep") petTalk(); }, 11000);
 
-/* HUD */
 function refreshHud(){
   if(!G) return;
   const f=FORMS[G.pet.form];
-  $("#hPetName").textContent = G.pet.name;
+  $("#hPlayer").textContent = G.player.name;
+  $("#hPetName").textContent = G.pet.name + (G.pet.injured?" 🤕":"");
   $("#hSpecies").textContent = f.name+" · "+STAGE_LABEL[f.stage];
   $("#hLv").textContent = "Lv."+G.pet.lv+"  ✦"+Math.floor(G.pet.xp)+"/"+xpNeed(G.pet.lv);
   $("#bHun").style.width = clamp(G.pet.hun,0,100)+"%";
   $("#bMoo").style.width = clamp(G.pet.moo,0,100)+"%";
   $("#bBon").style.width = clamp(G.pet.bon,0,100)+"%";
   $("#bXp").style.width  = (G.pet.xp/xpNeed(G.pet.lv)*100)+"%";
+  const hpPct = clamp(G.pet.hp/maxHp()*100,0,100);
+  $("#bHp").style.width = hpPct+"%";
+  $("#bHp").classList.toggle("low", hpPct<30);
+  $("#hpTxt").textContent = Math.max(0,Math.round(G.pet.hp))+"/"+maxHp();
   const cEl=$("#envC"); if(cEl) cEl.textContent = "🪙 "+G.coins;
+  const aEl=$("#envA"); if(aEl) aEl.textContent = AREAS[area()].n;
 }
-
-/* ---- decay tick ---- */
 function tickDecay(){
   if(!G) return;
   const dtMin = (now()-G.lastTick)/60000;
   if(dtMin<=0) return;
   G.lastTick = now();
-  const hungerRate = 1/3.2;   // per minute
-  const moodRate   = 1/4.5;
-  G.pet.hun = clamp(G.pet.hun - dtMin*hungerRate, 0, 100);
+  G.pet.hun = clamp(G.pet.hun - dtMin/3.2, 0, 100);
   const starving = G.pet.hun<20 ? 2 : 1;
-  G.pet.moo = clamp(G.pet.moo - dtMin*moodRate*starving, 0, 100);
+  G.pet.moo = clamp(G.pet.moo - dtMin/4.5*starving, 0, 100);
   if(G.pet.hun<=0) G.pet.bon = clamp(G.pet.bon - dtMin*0.1, 0, 100);
+  if(!G.pet.injured && !FS.on) G.pet.hp = clamp(G.pet.hp + dtMin*0.8, 0, maxHp());
   refreshHud();
 }
 setInterval(tickDecay, 5000);
 
 /* =====================================================================
-   6. ACTIONS: feed / play / focus / bag / dex / menu
+   6. ปุ่มควบคุม
 ===================================================================== */
 $$(".key").forEach(k=>k.addEventListener("click",()=>{
   sfx.tap();
   const a=k.dataset.act;
-  if(FS.on && a!=="focus"){ toast("กำลังโฟกัสอยู่ — จบรอบก่อนนะ"); return; }
+  if(FS.on && a!=="focus" && a!=="menu"){ toast("กำลังโฟกัสอยู่ — จบรอบก่อนนะ"); return; }
   if(a==="feed"){ openBag(true); }
   if(a==="bag"){ openBag(false); }
   if(a==="play"){ openPlay(); }
@@ -1501,8 +2092,6 @@ $$(".key").forEach(k=>k.addEventListener("click",()=>{
   if(a==="shop"){ openShop(); }
   if(a==="house"){ toggleEdit(); }
 }));
-
-/* ---------- ปุ่มเดิน / นั่ง ---------- */
 function holdBtn(el, on, off){
   el.addEventListener("pointerdown", e=>{ e.preventDefault(); el.classList.add("hold"); on(); });
   ["pointerup","pointercancel","pointerleave"].forEach(ev=>
@@ -1518,14 +2107,34 @@ $("#mvSit").addEventListener("click", ()=>{
 });
 document.addEventListener("keydown", e=>{
   if(e.target && e.target.tagName==="INPUT") return;
-  if(e.key==="ArrowLeft"){ Input.left=true; Input.lastAt=now(); }
-  if(e.key==="ArrowRight"){ Input.right=true; Input.lastAt=now(); }
-  if(e.key===" "){ $("#mvSit").click(); e.preventDefault(); }
+  if(e.key==="ArrowLeft"){ if(Place.mode!=="none") nudge(-2,0); else { Input.left=true; Input.lastAt=now(); } }
+  if(e.key==="ArrowRight"){ if(Place.mode!=="none") nudge(2,0); else { Input.right=true; Input.lastAt=now(); } }
+  if(e.key==="ArrowUp" && Place.mode!=="none") nudge(0,-2);
+  if(e.key==="ArrowDown" && Place.mode!=="none") nudge(0,2);
+  if(e.key===" "){ if(Place.mode!=="none") commitPlace(); else $("#mvSit").click(); e.preventDefault(); }
 });
 document.addEventListener("keyup", e=>{
   if(e.key==="ArrowLeft") Input.left=false;
   if(e.key==="ArrowRight") Input.right=false;
 });
+
+/* ---------- ให้อาหาร ---------- */
+function feed(k){
+  const it=ITEMS[k];
+  if(!G.bag[k]) return;
+  if(G.pet.hun>=98){ toast(G.pet.name+" อิ่มมากแล้ว"); return; }
+  G.bag[k]--; if(!G.bag[k]) delete G.bag[k];
+  G.pet.hun = clamp(G.pet.hun+it.hun,0,100);
+  G.pet.moo = clamp(G.pet.moo+it.moo,0,100);
+  G.pet.bon = clamp(G.pet.bon+0.6,0,100);
+  G.pet.care.feed += 0.8;
+  G.stats.feeds++;
+  addXp(2);
+  Pet.state="eat"; Pet.stateT=2.2;
+  for(let i=0;i<6;i++) spawnParticle(Pet.x+rnd(-4,4), FLOOR-6, "#f0d68a");
+  sfx.eat(); say(pick(["อร่อย!","ขอบใจนะ","นั่นแหละที่รอ"]),2000);
+  closePanels(); refreshHud(); save();
+}
 
 /* ---------- BAG ---------- */
 let bagTab="food", bagFeedMode=false;
@@ -1550,7 +2159,8 @@ function renderBag(){
     const d=document.createElement("div");
     d.className="hint"; d.style.gridColumn="1/-1";
     d.textContent = bagTab==="food" ? "ยังไม่มีอาหาร เริ่มโฟกัสแล้วก้อนเมฆจะปล่อยอาหารลงมาเอง"
-                  : bagTab==="mat"  ? "ยังไม่มีวัสดุ ของหายากอย่างคริสตัลสมาธิจะร่วงในโหมดยากและตอนกลางคืน"
+                  : bagTab==="mat"  ? "ยังไม่มีวัสดุ ของหายากอย่างคริสตัลสมาธิและหินวิวัฒนาการได้จากโหมดยากและพื้นที่สำรวจ"
+                  : bagTab==="use"  ? "ยังไม่มีไอเท็ม · ยาฟื้นฟูซื้อได้ที่ร้านค้า"
                   : "ยังไม่มีของแต่งบ้าน ซื้อได้ที่ปุ่มร้านค้า";
     grid.appendChild(d); return;
   }
@@ -1564,33 +2174,39 @@ function renderBag(){
       c.classList.add("drag");
       c.addEventListener("pointerdown",e=>{ e.preventDefault(); startPlacing(k,e); });
     }
-    else c.onclick=()=>{ sfx.tap(); toast(it.n+" · ขายได้ 🪙"+sellPrice(k)+" ที่ร้านค้า"); };
+    else c.onclick=()=>{ sfx.tap(); toast(it.d ? it.n+" · "+it.d : it.n+" · ขายได้ 🪙"+sellPrice(k)+" ที่ร้านค้า"); };
     grid.appendChild(c);
   });
 }
 
-function feed(k){
-  const it=ITEMS[k];
-  if(!G.bag[k]){ return; }
-  if(G.pet.hun>=98){ toast(G.pet.name+" อิ่มมากแล้ว"); return; }
-  G.bag[k]--; if(!G.bag[k]) delete G.bag[k];
-  G.pet.hun = clamp(G.pet.hun+it.hun,0,100);
-  G.pet.moo = clamp(G.pet.moo+it.moo,0,100);
-  G.pet.bon = clamp(G.pet.bon+1,0,100);
-  G.pet.care.feed += 1;
-  G.stats.feeds++;
-  addXp(4);
-  Pet.state="eat"; Pet.stateT=2.2;
-  for(let i=0;i<6;i++) spawnParticle(Pet.x+rnd(-4,4), FLOOR-6, "#f0d68a");
-  sfx.eat(); say(pick(["อร่อย!","ขอบใจนะ","นั่นแหละที่รอ"]),2000);
-  closePanels(); renderBag(); refreshHud(); save();
-}
-
 /* ---------- PLAY ---------- */
+function todayKey(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function playsToday(){
+  if(G.stats.dayKey!==todayKey()){ G.stats.dayKey=todayKey(); G.stats.playsToday=0; }
+  return G.stats.playsToday||0;
+}
+function playFactor(){ const p=playsToday(); return p<6 ? 1 : p<10 ? 0.5 : 0.25; }
+function canPlay(){
+  if(G.pet.injured) return "บาดเจ็บ";
+  if(G.pet.hun<50) return "หิว";
+  if(G.pet.moo<50) return "อารมณ์ไม่ดี";
+  return null;
+}
 function openPlay(){
-  $("#playTitle").firstChild.textContent="เล่นด้วยกัน";
+  const block = canPlay();
+  if(block){
+    $("#playBody").innerHTML = `
+      <div class="big">ยังเล่นด้วยกันไม่ได้</div>
+      <p class="hint" style="margin-top:6px">
+        ${block==="บาดเจ็บ" ? G.pet.name+" บาดเจ็บอยู่ ต้องโฟกัสฟื้นฟูให้หายก่อน"
+          : "ต้องมีทั้งความหิวและอารมณ์ตั้งแต่ 50% ขึ้นไป · ตอนนี้ 🍚 "+Math.round(G.pet.hun)+"% · 🙂 "+Math.round(G.pet.moo)+"%"}
+      </p>
+      <p class="hint" style="margin-top:6px">ให้อาหารเพื่อเพิ่มความหิว และลูบหัวหรือโฟกัสให้ครบรอบเพื่อเพิ่มอารมณ์</p>`;
+    openPanel("#p-play"); return;
+  }
+  const left = Math.max(0, 6-playsToday());
   $("#playBody").innerHTML = `
-    <p class="hint" style="margin-bottom:8px">เล่นแล้วความสนิทและอารมณ์เพิ่ม แต่ ${G.pet.name} จะหิวขึ้น</p>
+    <p class="hint" style="margin-bottom:8px">เล่นแล้วความสนิทและอารมณ์เพิ่ม แต่ ${G.pet.name} จะหิวขึ้น · รางวัลเต็มวันนี้เหลือ ${left} ครั้ง</p>
     <div class="grid">
       <button class="cell" id="mgOX"><div class="e">⭕</div><div class="n">OX</div></button>
       <button class="cell" id="mgFish"><div class="e">🎣</div><div class="n">ตกปลา</div></button>
@@ -1602,13 +2218,14 @@ function openPlay(){
   openPanel("#p-play");
 }
 function playResult(win, label, bonusXp){
-  G.stats.plays++;
-  const bond = win?3:1, moo = win?14:6, xp = (win?20:8)+(bonusXp||0);
+  const f = playFactor();
+  G.stats.plays++; G.stats.playsToday = playsToday()+1;
+  const bond = Math.max(0.5,(win?2:1)*f), moo = (win?10:4)*f, xp = Math.round(((win?8:3)+(bonusXp||0))*f);
   if(win) G.stats.wins++;
   G.pet.bon = clamp(G.pet.bon+bond,0,100);
   G.pet.moo = clamp(G.pet.moo+moo,0,100);
   G.pet.hun = clamp(G.pet.hun-8,0,100);
-  G.pet.care.play += win?2:1;
+  G.pet.care.play += (win?1.4:0.7)*f;
   addXp(xp);
   Pet.state="happy"; Pet.stateT=2.4;
   for(let i=0;i<8;i++) spawnParticle(Pet.x+rnd(-6,6), FLOOR-10, win?"#f0d68a":"#cfe6ef");
@@ -1618,14 +2235,15 @@ function playResult(win, label, bonusXp){
   const body=$("#playBody");
   const d=document.createElement("div");
   d.innerHTML=`<div class="big">${win?"ชนะ!":"แพ้"} · ${label}</div>
-    <div class="mid">ความสนิท +${bond} · อารมณ์ +${moo} · ✦ +${xp} · ความหิว −8</div>`;
+    <div class="mid">ความสนิท +${bond.toFixed(1)} · อารมณ์ +${Math.round(moo)} · ✦ +${xp} · ความหิว −8${f<1?" (ลดรางวัลเพราะเล่นเยอะแล้ววันนี้)":""}</div>`;
   body.appendChild(d);
-  const f=document.createElement("div"); f.className="row"; f.style.marginTop="10px";
+  const fr=document.createElement("div"); fr.className="row"; fr.style.marginTop="10px";
   const b1=document.createElement("button"); b1.className="btn"; b1.textContent="เล่นอีก"; b1.onclick=()=>{sfx.tap();openPlay()};
   const b2=document.createElement("button"); b2.className="btn ghost"; b2.textContent="พอแล้ว"; b2.onclick=()=>{sfx.tap();closePanels()};
-  f.appendChild(b1); f.appendChild(b2); body.appendChild(f);
+  fr.appendChild(b1); fr.appendChild(b2); body.appendChild(fr);
   body.scrollTop = body.scrollHeight;
 }
+
 /* --- OX --- */
 function gameOX(){
   const body=$("#playBody");
@@ -1640,13 +2258,11 @@ function gameOX(){
     if(over||bd[i]) return; sfx.tap(); bd[i]="⭕"; paint();
     let w=winner(bd);
     if(!w){
-      /* pet AI: win > block > center > random */
       const empt=bd.map((v,j)=>v?null:j).filter(v=>v!==null);
       let mv=null;
       for(const j of empt){ const c=[...bd]; c[j]="❌"; if(winner(c)==="❌"){mv=j;break;} }
       if(mv===null) for(const j of empt){ const c=[...bd]; c[j]="⭕"; if(winner(c)==="⭕"){mv=j;break;} }
       if(mv===null && bd[4]==="") mv=4;
-      if(mv===null && Math.random()<0.75) mv=pick(empt);
       if(mv===null) mv=pick(empt);
       setTimeout(()=>{ bd[mv]="❌"; paint(); finish(winner(bd)); },320);
     } else finish(w);
@@ -1659,7 +2275,6 @@ function gameOX(){
   }
   paint();
 }
-/* --- Fishing --- */
 /* --- ตกปลา 10 ระดับ --- */
 const FISH_TIER = {1:1,2:1,3:2,4:2,5:2,6:3,7:3,8:4,9:4,10:5};
 function fishLevelUnlocked(l){ return l <= Math.min(10, (G.stats.fishBest||0)+1); }
@@ -1680,8 +2295,8 @@ function gameFish(){
 }
 function gameFishRun(lv){
   const body=$("#playBody");
-  const need = 2 + Math.ceil(lv/2);          /* 3–7 ครั้ง */
-  let hits=0, miss=0, lives=3;
+  const need = 2 + Math.ceil(lv/2);
+  let hits=0, lives=3;
   let pos=0, dir=1, speed=58+lv*15;
   let zoneW = Math.max(7, 30-lv*2.1), zoneL = rnd(8,90-zoneW), zDir=1, zSpeed = lv>=4 ? 8+lv*2.2 : 0;
   let raf=null, over=false, last=performance.now();
@@ -1711,7 +2326,7 @@ function gameFishRun(lv){
     if(inZone){ hits++; sfx.ok(); zoneW=Math.max(5,zoneW*0.88); speed*=1.06;
       if(lv>=7){ zoneL=rnd(4,92-zoneW); } paintZone();
       $("#fMsg").textContent="ติดเบ็ด! ปลาดิ้นแรงขึ้น"; }
-    else { lives--; miss++; sfx.bad(); $("#fMsg").textContent="พลาด! สายหย่อนลง"; }
+    else { lives--; sfx.bad(); $("#fMsg").textContent="พลาด! สายหย่อนลง"; }
     $("#fHit").textContent="🎣 "+hits+"/"+need;
     $("#fLife").textContent="❤️ "+Math.max(0,lives);
     if(hits>=need || lives<=0){
@@ -1724,17 +2339,15 @@ function finishFish(lv, win){
   if(win){
     G.stats.fishBest = Math.max(G.stats.fishBest||0, lv);
     const tier=FISH_TIER[lv];
-    const n = 1 + (lv>=5?1:0) + (lv>=9?1:0);
+    const n = 1 + (lv>=6?1:0);
     const got={};
-    for(let i=0;i<n;i++){ const k = Math.random()<0.45 ? "fish" : pick(TIERS[tier]); addItem(k,1); got[k]=(got[k]||0)+1; }
-    const coins = 4+lv*4; G.coins += coins;
-    const names = Object.keys(got).map(k=>itemDef(k).e+"×"+got[k]).join(" ");
-    toast("ได้ "+names+" · 🪙"+coins);
+    for(let i=0;i<n;i++){ const k = Math.random()<0.5 ? "fish" : pick(TIERS[tier]); addItem(k,1); got[k]=(got[k]||0)+1; }
+    const coins = Math.round((2+lv*2)*playFactor()); G.coins += coins;
+    toast("ได้ "+Object.keys(got).map(k=>itemDef(k).e+"×"+got[k]).join(" ")+" · 🪙"+coins);
   }
-  playResult(win, "ตกปลา ระดับ "+lv, win ? 12+lv*8 : 0);
+  playResult(win, "ตกปลา ระดับ "+lv, win ? 3+lv*2 : 0);
 }
-
-/* --- RPS --- */
+/* --- เป่ายิ้งฉุบ --- */
 function gameRps(){
   const body=$("#playBody");
   let me=0,pet=0,rd=0;
@@ -1747,7 +2360,7 @@ function gameRps(){
     if(rd>=3) return;
     const i=+b.dataset.i, j=ri(0,2);
     $("#rShow").textContent = M[i]+"  vs  "+M[j];
-    const r = (i-j+3)%3;  /* 0 tie, 1 win, 2 lose */
+    const r = (i-j+3)%3;
     if(r===1){me++;sfx.ok()} else if(r===2){pet++;sfx.bad()} else beep(400,.06);
     if(r!==0) rd++;
     $("#rScore").textContent = `คุณ ${me} : ${pet} ${G.pet.name}`;
@@ -1757,39 +2370,115 @@ function gameRps(){
     }
   });
 }
-function addItem(k,n){ G.bag[k]=(G.bag[k]||0)+(n||1); }
 
-/* ---------- FOCUS ---------- */
+/* ---------- ตัวเลือกโฟกัส ---------- */
 let fDur=15, fDiff="mid";
+function focusMode(){
+  if(G.pet.injured) return "heal";
+  return areaKind()==="wild" ? "wild" : areaKind()==="garden" ? "garden" : "home";
+}
+function focusXpPerMin(){
+  const m = FS.mode||focusMode();
+  const mult = DIFF[FS.diff||fDiff].mult;
+  const k = m==="wild" ? 1.35 : m==="heal" ? 0.4 : 1;
+  return 5.5 * mult * k;
+}
+function focusCoinsPerMin(){
+  const m = FS.mode||focusMode();
+  if(m==="heal") return 0;
+  return 0.7 * DIFF[FS.diff||fDiff].mult * (m==="wild"?1.2:1);
+}
+function umbrellaReady(){
+  return (G.place.garden||[]).some(h=>h.id==="umbrella");
+}
 function buildFocusOpts(){
-  const od=$("#o-dur"); od.innerHTML="";
+  const mode = focusMode();
+  const heal = mode==="heal";
+  $("#focusWhere").textContent = heal ? "โหมดฟื้นฟู" : AREAS[area()].n;
+  $("#focusNote").innerHTML = "";
+  const od=$("#o-dur"), df=$("#o-diff");
+  od.innerHTML=""; df.innerHTML="";
+
+  if(heal){
+    const need = G.pet.medUsed ? 30 : 60;
+    fDur = need;
+    const b=document.createElement("button"); b.className="opt on";
+    b.textContent="โฟกัสฟื้นฟู "+need+" นาที"; od.appendChild(b);
+    const d2=document.createElement("button"); d2.className="opt on"; d2.textContent="สงบ"; df.appendChild(d2);
+    fDiff="easy";
+    let note = `<p class="hint">${G.pet.name} บาดเจ็บจนสลบ ต้องโฟกัสฟื้นฟูให้ครบ ${need} นาทีจึงจะกลับมาปกติ ระหว่างนี้เล่นมินิเกมและออกสำรวจไม่ได้</p>`;
+    if(!G.pet.medUsed && (G.bag.medkit||0)>0)
+      note += `<button class="btn" id="useMed" style="margin-top:8px">ใช้ยาฟื้นฟู (เหลือ ${G.bag.medkit}) — ลดเหลือ 30 นาที</button>`;
+    else if(G.pet.medUsed) note += `<p class="hint">ใช้ยาไปแล้วสำหรับการบาดเจ็บครั้งนี้ (1 ครั้งต่อ 1 การบาดเจ็บ)</p>`;
+    $("#focusNote").innerHTML = note;
+    const um=$("#useMed"); if(um) um.onclick=()=>{
+      G.bag.medkit--; if(!G.bag.medkit) delete G.bag.medkit;
+      G.pet.medUsed=true; sfx.ok(); toast("ใช้ยาแล้ว · เวลาฟื้นฟูเหลือ 30 นาที");
+      save(); buildFocusOpts();
+    };
+    $("#fPreviewXp").textContent="✦ "+Math.round(need*focusXpPerMin());
+    $("#fPreviewDrop").textContent="—";
+    $("#btnFocusGo").textContent="เริ่มฟื้นฟู";
+    $("#btnFocusGo").disabled=false;
+    return;
+  }
+
   DURS.forEach(d=>{
     const b=document.createElement("button"); b.className="opt"+(d===fDur?" on":"");
     b.textContent=d+" นาที"; b.onclick=()=>{ sfx.tap(); fDur=d; buildFocusOpts(); };
     od.appendChild(b);
   });
-  const df=$("#o-diff"); df.innerHTML="";
   Object.keys(DIFF).forEach(k=>{
     const b=document.createElement("button"); b.className="opt"+(k===fDiff?" on":"");
     b.textContent=DIFF[k].n; b.onclick=()=>{ sfx.tap(); fDiff=k; buildFocusOpts(); };
     df.appendChild(b);
   });
-  $("#fPreviewXp").textContent = "✦ "+Math.round(fDur*10*DIFF[fDiff].mult);
-  $("#fPreviewDrop").textContent = "~"+Math.max(1,Math.round(fDur*60/DIFF[fDiff].rate))+" ชิ้น";
+  FS.diff=fDiff;
+  const cap = maxDropsFor(mode, fDur);
+  $("#fPreviewXp").textContent = "✦ "+Math.round(fDur*focusXpPerMin())+"  🪙"+Math.round(fDur*focusCoinsPerMin());
+  $("#fPreviewDrop").textContent = "สูงสุด "+cap+" ชิ้น";
+  let ok=true, note="";
+  if(mode==="garden" && isWet() && !umbrellaReady()){
+    ok=false;
+    note = `<p class="hint warn">ฝนกำลังตกในสวน · ต้องซื้อ “ร่มใหญ่กันฝน” จากร้านค้าแล้วนำไปปักในสวนก่อน จึงจะโฟกัสกลางแจ้งได้</p>`;
+  } else if(mode==="garden" && isWet()){
+    note = `<p class="hint">ร่มใหญ่กางอยู่ในสวนแล้ว โฟกัสกลางฝนได้ตามสบาย</p>`;
+  } else if(mode==="wild"){
+    const A=AREAS[area()];
+    const risk = ["ต่ำ","กลาง","สูง"][A.danger-1];
+    note = `<p class="hint">${A.n} · ความอันตราย ${risk} · ของดรอปดีขึ้นและมีโอกาสได้ ${itemDef(A.stone).e} ${itemDef(A.stone).n} สำหรับวิวัฒนาการบางสาย</p>
+      <p class="hint warn">ระหว่างโฟกัสจะมีการโจมตีแบบสุ่ม ถ้า HP หมด ${G.pet.name} จะสลบและถูกส่งกลับบ้าน โดยไม่ได้ไอเท็มเลย · ถ้าเลือดน้อยให้กด “พากลับบ้าน” เพื่อยกเลิกกลางคัน</p>`;
+    if(G.pet.lv < A.lvReq) note += `<p class="hint warn">แนะนำเลเวล ${A.lvReq} ขึ้นไป (ตอนนี้ Lv.${G.pet.lv})</p>`;
+    if(G.pet.hp < maxHp()*0.5) note += `<p class="hint warn">HP ต่ำกว่าครึ่ง ไม่แนะนำให้เข้าโหมดนี้</p>`;
+  }
+  $("#focusNote").innerHTML = note;
+  $("#btnFocusGo").disabled = !ok;
+  $("#btnFocusGo").textContent = mode==="wild" ? "เริ่มสำรวจ + โฟกัส" : "เริ่มโฟกัส";
+}
+function maxDropsFor(mode,min){
+  return mode==="wild" ? Math.ceil(min/3)+1 : Math.ceil(min/4)+1;
 }
 function openFocus(){
-  if(FS.on){ if(confirm("หยุดโฟกัสตอนนี้? จะได้รางวัลเพียงบางส่วน")) endFocus(true); return; }
+  if(FS.on){ openPanel("#p-focus"); buildRunningFocus(); return; }
   buildFocusOpts(); openPanel("#p-focus");
+}
+function buildRunningFocus(){
+  $("#focusNote").innerHTML = `<p class="hint">กำลังโฟกัสอยู่ · ปิดหน้านี้แล้วดูก้อนเมฆบนจอได้เลย</p>`;
 }
 $("#btnFocusGo").onclick=()=>{ sfx.tap(); startFocus(); };
 function startFocus(){
   closePanels();
-  FS.on=true; FS.diff=fDiff; FS.total=fDur*60; FS.endAt=now()+FS.total*1000;
-  FS.collected=0; FS.coins=0; FS.spawnCd=1.2; FS.awayAt=0; clouds=[]; drops=[];
+  const mode = focusMode();
+  FS.on=true; FS.mode=mode; FS.diff=fDiff;
+  FS.total=fDur*60; FS.endAt=now()+FS.total*1000;
+  FS.collected=0; FS.coins=0; FS.spawnCd=1.2; FS.awayAt=0;
+  FS.dropped=0; FS.maxDrops=maxDropsFor(mode,fDur); FS.pouch={};
+  FS.xpAcc=0; FS.xpTick=10; FS.encCd=rnd(18,34);
   $("#focusHud").style.display="flex";
+  $("#fhHome").style.display = mode==="wild" ? "inline-block" : "none";
   $("#ring").classList.add("on");
-  $("#fhLeft").textContent = DIFF[fDiff].n+" · "+fDur+"น.";
-  say(pick(["เริ่มกันเลย","ไปพร้อมกันนะ","หายใจเข้า…"]),2600);
+  $("#fhLeft").textContent = (mode==="heal"?"ฟื้นฟู":AREAS[area()].n)+" · "+fDur+"น.";
+  say(mode==="heal"?"ค่อยๆ หายใจ เดี๋ยวก็ดีขึ้น":pick(["เริ่มกันเลย","ไปพร้อมกันนะ","หายใจเข้า…"]),2600);
   beep(520,.1); setTimeout(()=>beep(660,.14),120);
   updateFocusHud();
 }
@@ -1798,35 +2487,86 @@ function updateFocusHud(){
   const left = Math.max(0, Math.round((FS.endAt-now())/1000));
   const m=String(Math.floor(left/60)).padStart(2,"0"), s=String(left%60).padStart(2,"0");
   $("#fhTime").textContent = m+":"+s;
-  $("#fhDrop").textContent = FS.collected+" ชิ้น";
-  if(left<=0) endFocus(false);
+  $("#fhDrop").textContent = FS.collected+"/"+FS.maxDrops;
+  if(left<=0) endFocus(null);
 }
 setInterval(updateFocusHud, 500);
-function endFocus(early){
+function endFocus(reason){
   if(!FS.on) return;
+  const ko = reason==="ko", early = reason==="early";
   const done = clamp(1-(FS.endAt-now())/(FS.total*1000),0,1);
+  const mode = FS.mode;
   FS.on=false;
   $("#focusHud").style.display="none";
   $("#ring").classList.remove("on");
-  clouds=[]; drops=[];
+  clouds=[]; drops=[]; mobs=[];
   const mins = FS.total/60*done;
-  const mult = DIFF[FS.diff].mult * (early?0.55:1);
-  const xp = Math.round(mins*10*mult);
-  const coins = Math.round(mins*1.3*mult);
-  G.coins += coins;
+  const complete = !ko && !early;
+
+  /* ไอเท็มจากการสำรวจจะได้ก็ต่อเมื่อโฟกัสจนจบ */
+  let gotList=[];
+  if(mode==="wild"){
+    if(complete){
+      for(const k in FS.pouch){ addItem(k,FS.pouch[k]); gotList.push(itemDef(k).e+"×"+FS.pouch[k]); }
+    }
+    FS.pouch={};
+  }
+
   G.stats.focusMin += mins;
-  if(early) G.stats.breaks++; else G.stats.sessions++;
-  G.pet.care.focus += mins/5 * (early?0.5:1);
-  G.pet.bon = clamp(G.pet.bon + (early?1:3),0,100);
-  G.pet.moo = clamp(G.pet.moo + (early?2:8),0,100);
-  Pet.state="happy"; Pet.stateT=2.6;
-  for(let i=0;i<12;i++) spawnParticle(Pet.x+rnd(-8,8), FLOOR-12, "#f7f0b0");
-  addXp(xp);
-  say(early?pick(["ไม่เป็นไร เริ่มใหม่ได้","เอาใหม่นะ"]):pick(["เก่งมาก!","ครบรอบแล้ว!","ขอบคุณที่อยู่ด้วยกัน"]),3200);
-  early?sfx.bad():sfx.evo();
-  toast((early?"สมาธิขาด · ":"โฟกัสครบ · ")+Math.round(mins)+" นาที · ✦"+xp+" · 🪙"+coins+" · ของ "+FS.collected+" ชิ้น");
+  if(complete) G.stats.sessions++; else G.stats.breaks++;
+
+  if(mode==="heal"){
+    if(complete){
+      G.pet.injured=false; G.pet.hp=maxHp(); G.pet.medUsed=false;
+      Pet.state="happy"; Pet.stateT=2.6;
+      say("หายดีแล้ว! ขอบคุณที่อยู่ด้วยกันนะ",3200); sfx.evo();
+      toast("ฟื้นฟูสำเร็จ · "+G.pet.name+" กลับมาแข็งแรงแล้ว");
+    } else {
+      toast("ฟื้นฟูไม่ครบ · ต้องเริ่มใหม่ตั้งแต่ต้น"); sfx.bad();
+    }
+    addXp(Math.round(mins*focusXpPerMin()*0.25));
+    refreshHud(); save(); return;
+  }
+
+  const bonusXp = complete ? Math.round(mins*focusXpPerMin()*0.15) : 0;
+  const coins = ko ? 0 : Math.round(mins*focusCoinsPerMin()*(complete?1:0.5));
+  G.coins += coins;
+  G.pet.care.focus += mins/8 * (complete?1:0.5);
+  G.pet.bon = clamp(G.pet.bon + (complete?2:0.5),0,100);
+  G.pet.moo = clamp(G.pet.moo + (complete?6:1),0,100);
+  if(bonusXp>0) addXp(bonusXp);
+  if(!ko){
+    Pet.state="happy"; Pet.stateT=2.4;
+    for(let i=0;i<10;i++) spawnParticle(Pet.x+rnd(-8,8), FLOOR-12, "#f7f0b0");
+  }
+  say(ko?"…":early?pick(["ไม่เป็นไร เริ่มใหม่ได้","เอาใหม่นะ"]):pick(["เก่งมาก!","ครบรอบแล้ว!","ขอบคุณที่อยู่ด้วยกัน"]),3200);
+  if(!ko) (complete?sfx.evo():sfx.bad());
+  if(!ko) toast((complete?"โฟกัสครบ · ":"สมาธิขาด · ")+Math.round(mins)+" นาที · 🪙"+coins+
+    (mode==="wild" ? (complete?(" · ได้ "+(gotList.join(" ")||"ไม่มีของ")):" · ไอเท็มหายหมด") : " · ของ "+FS.collected+" ชิ้น"));
   refreshHud(); save();
 }
+$("#fhHome").onclick=()=>{ if(!FS.on) return; sfx.tap();
+  toast("พา "+G.pet.name+" กลับบ้าน · ยกเลิกการโฟกัส");
+  endFocus("early"); goArea("home"); };
+
+/* ---------- เดินทางออกสำรวจ ---------- */
+function openTravel(){
+  if(G.pet.injured){ toast(G.pet.name+" บาดเจ็บอยู่ ออกสำรวจไม่ได้"); return; }
+  const b=$("#travelBody"); b.innerHTML="";
+  const hpPct = Math.round(G.pet.hp/maxHp()*100);
+  b.innerHTML = `<p class="hint">พื้นที่นอกบ้านมีของดรอปดีกว่า แต่มีโอกาสถูกโจมตีระหว่างโฟกัส · HP ตอนนี้ ${G.pet.hp}/${maxHp()} (${hpPct}%)</p>`;
+  ["preta","thunder","mush"].forEach(k=>{
+    const A=AREAS[k], st=itemDef(A.stone);
+    const low = G.pet.lv < A.lvReq;
+    const c=document.createElement("button");
+    c.className="travel"+(low?" risky":"");
+    c.innerHTML=`<b>${A.n}</b><span>อันตราย ${"★".repeat(A.danger)} · แนะนำ Lv.${A.lvReq} · ดรอป ${st.e} ${st.n}</span>`;
+    c.onclick=()=>{ sfx.tap(); closePanels(); goArea(k); };
+    b.appendChild(c);
+  });
+  openPanel("#p-travel");
+}
+
 /* leaving the app breaks the session */
 document.addEventListener("visibilitychange",()=>{
   if(!FS.on) return;
@@ -1834,48 +2574,58 @@ document.addEventListener("visibilitychange",()=>{
   else if(FS.awayAt){
     const away=(now()-FS.awayAt)/1000;
     FS.awayAt=0;
-    if(away>10){ toast("ออกจากหน้าจอนานเกินไป"); endFocus(true); }
+    if(away>10){ toast("ออกจากหน้าจอนานเกินไป"); endFocus("early"); }
   }
 });
+
 /* ---------- ร้านค้า ---------- */
-let shopTab="buy";
-function openShop(){
-  shopTab="buy"; renderShop(); openPanel("#p-shop");
-}
+let shopTab="home";
+function openShop(){ shopTab = area()==="garden" ? "garden" : "home"; renderShop(); openPanel("#p-shop"); }
 function renderShop(){
   $("#shopCoins").textContent = "🪙 "+G.coins;
   $$("#p-shop [data-shoptab]").forEach(x=>x.classList.toggle("on", x.dataset.shoptab===shopTab));
   const b=$("#shopBody"); b.innerHTML="";
-  if(shopTab==="buy"){
-    const g2=document.createElement("div"); g2.className="grid";
-    Object.keys(FURNI).forEach(k=>{
-      const f=FURNI[k];
-      const c=document.createElement("button");
-      c.className="cell"+(G.coins<f.price?" poor":"");
-      c.innerHTML=`<div class="e">${f.e}</div><div class="n">${f.n}</div><div class="p">🪙${f.price}</div>`;
-      c.onclick=()=>buyFurni(k);
-      g2.appendChild(c);
-    });
-    b.appendChild(g2);
-    const h=document.createElement("p"); h.className="hint"; h.style.marginTop="10px";
-    h.textContent="ซื้อแล้วของจะเข้ากระเป๋าแท็บ “ของแต่งบ้าน” จากนั้นลากหรือแตะเพื่อวางในห้อง";
-    b.appendChild(h);
-  } else {
+  if(shopTab==="sell"){
     const list=Object.keys(G.bag).filter(k=>G.bag[k]>0 && itemDef(k));
     if(!list.length){ b.innerHTML='<p class="hint">ยังไม่มีของให้ขาย ลองโฟกัสหรือไปตกปลาก่อน</p>'; return; }
     list.sort((a,b2)=>sellPrice(b2)-sellPrice(a));
     list.forEach(k=>{
       const it=itemDef(k), row=document.createElement("div"); row.className="sellrow";
-      row.innerHTML=`<span class="se">${it.e}</span><span class="sn">${it.n}<b>×${G.bag[k]}</b></span>
-        <span class="sp">🪙${sellPrice(k)}</span>`;
-      const b1=document.createElement("button"); b1.className="mini"; b1.textContent="ขาย 1";
-      b1.onclick=()=>sellItem(k,1);
-      const b2b=document.createElement("button"); b2b.className="mini"; b2b.textContent="ขายหมด";
-      b2b.onclick=()=>sellItem(k,G.bag[k]);
-      row.appendChild(b1); row.appendChild(b2b);
-      b.appendChild(row);
+      row.innerHTML=`<span class="se">${it.e}</span><span class="sn">${it.n}<b>×${G.bag[k]}</b></span><span class="sp">🪙${sellPrice(k)}</span>`;
+      const b1=document.createElement("button"); b1.className="mini"; b1.textContent="ขาย 1"; b1.onclick=()=>sellItem(k,1);
+      const b2b=document.createElement("button"); b2b.className="mini"; b2b.textContent="ขายหมด"; b2b.onclick=()=>sellItem(k,G.bag[k]);
+      row.appendChild(b1); row.appendChild(b2b); b.appendChild(row);
     });
+    return;
   }
+  if(shopTab==="item"){
+    const g2=document.createElement("div"); g2.className="grid";
+    Object.keys(ITEMS).filter(k=>ITEMS[k].buy).forEach(k=>{
+      const it=ITEMS[k];
+      const c=document.createElement("button");
+      c.className="cell"+(G.coins<it.buy?" poor":"");
+      c.innerHTML=`<div class="e">${it.e}</div><div class="n">${it.n}</div><div class="p">🪙${it.buy}</div>`;
+      c.onclick=()=>buyGoods(k);
+      g2.appendChild(c);
+    });
+    b.appendChild(g2);
+    b.insertAdjacentHTML("beforeend",'<p class="hint" style="margin-top:10px">ยาฟื้นฟูใช้ได้ 1 ครั้งต่อการบาดเจ็บ 1 ครั้ง ลดเวลาโฟกัสฟื้นฟูจาก 60 นาทีเหลือ 30 นาที</p>');
+    return;
+  }
+  const zone = shopTab;   /* home | garden */
+  const g2=document.createElement("div"); g2.className="grid";
+  Object.keys(FURNI).filter(k=>(FURNI[k].zone||"home")===zone).forEach(k=>{
+    const f=FURNI[k];
+    const c=document.createElement("button");
+    c.className="cell"+(G.coins<f.price?" poor":"");
+    c.innerHTML=`<div class="e">${f.e}</div><div class="n">${f.n}</div><div class="p">🪙${f.price}</div>`;
+    c.onclick=()=>buyFurni(k);
+    g2.appendChild(c);
+  });
+  b.appendChild(g2);
+  b.insertAdjacentHTML("beforeend", zone==="garden"
+    ? '<p class="hint" style="margin-top:10px">ของสวนวางได้เฉพาะฝั่งสวนริมหน้าผา (เดินออกประตูซ้าย) · “ร่มใหญ่กันฝน” จำเป็นถ้าจะโฟกัสกลางแจ้งตอนฝนตก</p>'
+    : '<p class="hint" style="margin-top:10px">ซื้อแล้วของจะเข้ากระเป๋าแท็บ “ของแต่งบ้าน” จากนั้นเลือกเพื่อวาง แล้วเลื่อนด้วยปุ่มทิศทาง</p>');
 }
 $$("#p-shop [data-shoptab]").forEach(b=>b.addEventListener("click",()=>{ sfx.tap(); shopTab=b.dataset.shoptab; renderShop(); }));
 function buyFurni(k){
@@ -1883,6 +2633,13 @@ function buyFurni(k){
   if(G.coins < f.price){ sfx.bad(); toast("เหรียญไม่พอ · ขายของหรือโฟกัสเพิ่ม"); return; }
   G.coins -= f.price; addItem(k,1);
   sfx.ok(); toast("ซื้อ "+f.n+" แล้ว · อยู่ในกระเป๋า");
+  renderShop(); refreshHud(); save();
+}
+function buyGoods(k){
+  const it=ITEMS[k];
+  if(G.coins < it.buy){ sfx.bad(); toast("เหรียญไม่พอ"); return; }
+  G.coins -= it.buy; addItem(k,1);
+  sfx.ok(); toast("ซื้อ "+it.n+" แล้ว");
   renderShop(); refreshHud(); save();
 }
 function sellItem(k,n){
@@ -1894,117 +2651,127 @@ function sellItem(k,n){
   renderShop(); refreshHud(); save();
 }
 
-/* ---------- วาง / ย้าย / เก็บเฟอร์นิเจอร์ ---------- */
-const Place = { id:null, x:80, y:FLOOR+6, edit:false, drag:false, fromHouse:-1, moved:false, lp:null, downX:0, downY:0 };
+/* ---------- วาง / ย้าย / เก็บของตกแต่ง (ใช้ตำแหน่งตัวละคร + ปุ่มทิศทาง) ---------- */
+const Place = { mode:"none", id:null, x:80, y:FLOOR+6, sel:-1, fromBag:false };
+function zoneOfArea(){ return area()==="garden" ? "garden" : area()==="home" ? "home" : null; }
+function snapY(id, y){
+  return FURNI[id].kind==="wall" ? clamp(y, 12, FLOOR-22) : clamp(y, FLOOR-4, H-8);
+}
+function showEditPad(on){
+  $(".moverow").style.display = on ? "none" : "grid";
+  $("#editPad").style.display = on ? "grid" : "none";
+}
+function placeHint(txt){ $("#placeBar").style.display = txt?"flex":"none"; if(txt) $("#placeMsg").innerHTML = txt; }
+function startPlacing(k){
+  const zone = zoneOfArea();
+  if(!zone){ toast("วางของได้เฉพาะในบ้านและสวน"); return; }
+  if((FURNI[k].zone||"home")!==zone){
+    toast(FURNI[k].zone==="garden" ? "ของชิ้นนี้วางได้เฉพาะในสวน" : "ของชิ้นนี้วางได้เฉพาะในบ้าน"); return; }
+  closePanels();
+  Place.mode="ghost"; Place.id=k; Place.fromBag=true; Place.sel=-1;
+  Place.x = clamp(Math.round(Ply.x), 14, W-14);
+  Place.y = snapY(k, FURNI[k].kind==="wall" ? FLOOR-30 : FLOOR+6);
+  showEditPad(true);
+  placeHint("วาง <b>"+FURNI[k].n+"</b> — ใช้ปุ่มทิศทางเลื่อน แล้วกด “วางตรงนี้”");
+  beep(660,.05);
+}
+function commitPlace(){
+  if(Place.mode==="ghost" && Place.id){
+    G.place[zoneOfArea()].push({id:Place.id, x:Math.round(Place.x), y:Math.round(Place.y)});
+    G.bag[Place.id]--; if(!G.bag[Place.id]) delete G.bag[Place.id];
+    sfx.ok(); toast("วาง "+FURNI[Place.id].n+" แล้ว");
+  } else if(Place.mode==="edit" && Place.sel>=0){
+    const list=placedList();
+    list[Place.sel] = {id:Place.id, x:Math.round(Place.x), y:Math.round(Place.y)};
+    sfx.ok();
+  }
+  Place.id=null; Place.sel=-1;
+  save();
+  if(Place.mode==="ghost"){ exitPlace(); } else { selectNearest(); }
+}
+function exitPlace(){
+  Place.mode="none"; Place.id=null; Place.sel=-1;
+  showEditPad(false); placeHint(null);
+  $("#mvSit").textContent = Ply.sitting ? "ลุกขึ้น" : "นั่งลง";
+}
+function selectNearest(){
+  const list=placedList();
+  if(!list.length){ Place.sel=-1; Place.id=null;
+    placeHint("ยังไม่มีของวางในพื้นที่นี้ · ไปที่กระเป๋าแล้วเลือกของแต่งบ้าน"); return; }
+  let best=0, bd=1e9;
+  list.forEach((h,i)=>{ const d=Math.abs(h.x-Ply.x); if(d<bd){bd=d;best=i;} });
+  Place.sel=best; Place.id=list[best].id; Place.x=list[best].x; Place.y=list[best].y;
+  placeHint("เลือก <b>"+FURNI[Place.id].n+"</b> — เลื่อนด้วยปุ่มทิศทาง · “ถัดไป” เพื่อสลับชิ้น");
+}
+function cycleSel(){
+  const list=placedList(); if(!list.length) return;
+  Place.sel = (Place.sel+1)%list.length;
+  Place.id=list[Place.sel].id; Place.x=list[Place.sel].x; Place.y=list[Place.sel].y;
+  placeHint("เลือก <b>"+FURNI[Place.id].n+"</b> — เลื่อนด้วยปุ่มทิศทาง · “ถัดไป” เพื่อสลับชิ้น");
+  beep(600,.04);
+}
+function pickupSel(){
+  if(Place.mode!=="edit" || Place.sel<0) return;
+  const list=placedList(), h=list[Place.sel];
+  addItem(h.id,1); list.splice(Place.sel,1);
+  floatText(h.x,h.y-14,"เก็บ "+FURNI[h.id].e);
+  sfx.eat(); toast("เก็บ "+FURNI[h.id].n+" กลับกระเป๋าแล้ว");
+  save(); selectNearest();
+}
+function toggleEdit(){
+  if(Place.mode!=="none"){ exitPlace(); toast("ออกจากโหมดจัดบ้าน"); return; }
+  if(!zoneOfArea()){ toast("จัดของได้เฉพาะในบ้านและสวน"); return; }
+  Place.mode="edit"; showEditPad(true); selectNearest();
+  toast(area()==="garden" ? "โหมดจัดสวน" : "โหมดจัดบ้าน");
+}
+function nudge(dx,dy){
+  if(!Place.id) return;
+  Place.x = clamp(Place.x+dx, 10, W-10);
+  Place.y = snapY(Place.id, Place.y+dy);
+  beep(720,.02,"triangle",.02);
+}
+(function bindEditPad(){
+  const map = { padL:[-2,0], padR:[2,0], padU:[0,-2], padD:[0,2] };
+  Object.keys(map).forEach(id=>{
+    const el=$("#"+id); let iv=null;
+    const go=()=>nudge(map[id][0],map[id][1]);
+    el.addEventListener("pointerdown",e=>{ e.preventDefault(); go(); iv=setInterval(go,90); });
+    ["pointerup","pointercancel","pointerleave"].forEach(ev=>el.addEventListener(ev,()=>{ clearInterval(iv); }));
+  });
+  $("#padOk").onclick=()=>{ sfx.tap(); commitPlace(); };
+  $("#padNext").onclick=()=>{ sfx.tap(); if(Place.mode==="edit") cycleSel(); else exitPlace(); };
+  $("#padTake").onclick=()=>{ sfx.tap(); if(Place.mode==="edit") pickupSel(); else exitPlace(); };
+  $("#padExit").onclick=()=>{ sfx.tap(); exitPlace(); };
+})();
+
+/* ---------- แตะบนจอ ---------- */
+const scr = $("#screen");
 function toLocal(e){
   const r = cv.getBoundingClientRect();
   return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H };
 }
-function snapY(id, y){
-  return FURNI[id].kind==="wall" ? clamp(y, 12, FLOOR-22) : clamp(y, FLOOR-4, H-8);
-}
-function startPlacing(k, e){
-  closePanels();
-  Place.id=k; Place.fromHouse=-1; Place.drag=true; Place.moved=false;
-  const p = e ? toLocal(e) : {x:80,y:FLOOR+6};
-  Place.x = clamp(p.x,10,W-10); Place.y = snapY(k,p.y);
-  $("#placeBar").style.display="flex";
-  $("#placeName").textContent = FURNI[k].n;
-  beep(660,.05);
-}
-function commitPlace(){
-  if(!Place.id) return;
-  const id=Place.id;
-  if(Place.fromHouse>=0){ G.house[Place.fromHouse] = {id, x:Math.round(Place.x), y:Math.round(Place.y)}; }
-  else { G.house.push({id, x:Math.round(Place.x), y:Math.round(Place.y)}); G.bag[id]--; if(!G.bag[id]) delete G.bag[id]; }
-  Place.id=null; Place.drag=false; Place.fromHouse=-1;
-  $("#placeBar").style.display="none";
-  sfx.ok(); save();
-}
-function cancelPlace(){
-  if(Place.id && Place.fromHouse>=0){ /* คืนของกลับที่เดิม */ }
-  Place.id=null; Place.drag=false; Place.fromHouse=-1;
-  $("#placeBar").style.display="none";
-}
-function pickupHouse(i){
-  const h=G.house[i]; if(!h) return;
-  addItem(h.id,1); G.house.splice(i,1);
-  floatText(h.x,h.y-14,"เก็บ "+FURNI[h.id].e);
-  sfx.eat(); toast("เก็บ "+FURNI[h.id].n+" กลับกระเป๋าแล้ว");
-  save();
-}
-function hitHouse(x,y){
-  for(let i=G.house.length-1;i>=0;i--){
-    const h=G.house[i], b=furniBox(h.id);
-    if(x>=h.x-b.w-2 && x<=h.x+b.w+2 && y>=h.y-b.top-2 && y<=h.y+b.bot+2) return i;
-  }
-  return -1;
-}
-function toggleEdit(){
-  Place.edit=!Place.edit;
-  cancelPlace();
-  $("#editBar").style.display = Place.edit ? "flex" : "none";
-  toast(Place.edit ? "โหมดจัดบ้าน · ลากเพื่อย้าย กดค้างเพื่อเก็บ" : "ออกจากโหมดจัดบ้าน");
-}
-
-/* ---------- อินพุตบนหน้าจอ ---------- */
-const scr = $("#screen");
 scr.addEventListener("pointerdown", e=>{
   if(!G || $$(".panel.on").length) return;
   const p = toLocal(e);
-  Place.downX=p.x; Place.downY=p.y; Place.moved=false;
-
-  if(Place.id){                                   /* กำลังวางของ: แตะเพื่อวาง */
-    Place.x=clamp(p.x,10,W-10); Place.y=snapY(Place.id,p.y);
-    if(!Place.drag) commitPlace();
+  if(Place.mode!=="none"){
+    if(Place.id){ Place.x=clamp(p.x,10,W-10); Place.y=snapY(Place.id,p.y); }
     return;
   }
-  if(Place.edit){
-    const i = hitHouse(p.x,p.y);
-    if(i>=0){
-      const h=G.house[i];
-      Place.lp = setTimeout(()=>{ Place.lp=null; pickupHouse(i); Place.drag=false; Place.id=null; }, 480);
-      Place.id=h.id; Place.fromHouse=i; Place.drag=true;
-      Place.x=h.x; Place.y=h.y;
-      $("#placeBar").style.display="flex"; $("#placeName").textContent=FURNI[h.id].n;
-    }
-    return;
-  }
-  if(FS.on){                                      /* แตะของที่กำลังร่วง = เก็บทันที */
+  if(FS.on){
     for(let i=drops.length-1;i>=0;i--){
       const d=drops[i];
-      if(Math.abs(d.x-p.x)<10 && Math.abs(d.y-p.y)<12){ d.done=true; collectDrop(d); drops.splice(i,1); break; }
+      if(Math.abs(d.x-p.x)<11 && Math.abs(d.y-p.y)<13){ d.done=true; collectDrop(d); drops.splice(i,1); break; }
     }
     return;
   }
-  if(Math.abs(p.x-Pet.x)<14 && p.y>FLOOR-34){     /* ลูบหัวสัตว์เลี้ยง */
+  if(Math.abs(p.x-Pet.x)<15 && p.y>FLOOR-36){
+    if(G.pet.injured){ say("…เจ็บอยู่นะ",2000); return; }
     Pet.state="happy"; Pet.stateT=1.4;
     G.pet.moo=clamp(G.pet.moo+1,0,100);
     for(let i=0;i<4;i++) spawnParticle(Pet.x+rnd(-4,4),FLOOR-14,"#f2a0c0");
     petTalk(); beep(760,.05,"triangle",.03); refreshHud();
   }
 });
-window.addEventListener("pointermove", e=>{
-  if(!Place.id || !Place.drag) return;
-  const p=toLocal(e);
-  if(Math.abs(p.x-Place.downX)>2 || Math.abs(p.y-Place.downY)>2){
-    Place.moved=true;
-    if(Place.lp){ clearTimeout(Place.lp); Place.lp=null; }
-  }
-  Place.x=clamp(p.x,10,W-10); Place.y=snapY(Place.id,p.y);
-});
-window.addEventListener("pointerup", ()=>{
-  if(Place.lp){ clearTimeout(Place.lp); Place.lp=null; }
-  if(Place.id && Place.drag){
-    if(Place.moved) commitPlace();
-    else Place.drag=false;                        /* แตะเฉยๆ: ค้างโหมดวาง รอแตะจุดที่ต้องการ */
-  }
-});
-$("#placeOk").onclick=()=>{ sfx.tap(); commitPlace(); };
-$("#placeCancel").onclick=()=>{ sfx.tap();
-  if(Place.fromHouse<0 && Place.id) {} /* ของยังอยู่ในกระเป๋า */
-  cancelPlace(); };
-$("#editDone").onclick=()=>{ sfx.tap(); toggleEdit(); };
 
 
 /* ---------- DEX ---------- */
@@ -2023,8 +2790,10 @@ function openDex(){
   b.appendChild(head);
   const nx = TREE[G.pet.form]||[];
   const nh=document.createElement("p"); nh.className="hint"; nh.style.margin="2px 0 10px";
-  nh.textContent = nx.length
+  const stoneNeed = nx.filter(o=>o.item).map(o=>itemDef(o.item).e+" "+itemDef(o.item).n).join(" / ");
+  nh.innerHTML = nx.length
     ? "ขั้นถัดไป: ต้องถึง Lv."+nx[0].lv + (nx[0].bond?" และความสนิท "+nx[0].bond:"") + " · เส้นทางขึ้นกับว่าคุณเลี้ยงแบบไหนมากที่สุด"
+      + (stoneNeed ? "<br>บางสายต้องใช้ "+stoneNeed+" ที่ได้จากการโฟกัสในพื้นที่สำรวจ" : "")
     : "ถึงร่างสุดท้ายของสายนี้แล้ว";
   b.appendChild(nh);
 
@@ -2080,7 +2849,8 @@ function openMenu(){
     <div class="kv"><span>ให้อาหาร</span><b>${s.feeds} ครั้ง</b></div>
     <div class="kv"><span>ตกปลาผ่านสูงสุด</span><b>ระดับ ${s.fishBest||0}</b></div>
     <div class="kv"><span>เหรียญ</span><b>🪙 ${G.coins}</b></div>
-    <div class="kv"><span>ของแต่งบ้านที่วางแล้ว</span><b>${G.house.length} ชิ้น</b></div>
+    <div class="kv"><span>ของที่วางแล้ว</span><b>บ้าน ${G.place.home.length} · สวน ${G.place.garden.length}</b></div>
+    <div class="kv"><span>สลบจากการสำรวจ</span><b>${s.ko||0} ครั้ง</b></div>
     <div class="kv"><span>อากาศตอนนี้</span><b>${WEATHER_TH[Env.weather]} · ${PHASE_TH[Env.phase]}</b></div>
     <div class="kv"><span>ร่างที่ปลดล็อก</span><b>${Object.keys(G.pet.seen).length}/${Object.keys(FORMS).length}</b></div>
     <div class="kv"><span>เริ่มเลี้ยงเมื่อ</span><b>${new Date(G.created).toLocaleDateString("th-TH")}</b></div>`;
@@ -2103,8 +2873,7 @@ $("#btnSaveNow").onclick=async()=>{ sfx.tap(); await save(); toast("บันท
 $("#btnCloud").onclick=async()=>{
   sfx.tap();
   if(SamatiCloud.user){
-    await SamatiCloud.signOut();
-    toast("ออกจากบัญชี Google แล้ว");
+    await SamatiCloud.signOut(); toast("ออกจากบัญชี Google แล้ว");
   }else{
     const box=$("#googleSignIn"); box.style.display="block";
     $("#cloudHint").textContent="เลือกบัญชี Google เพื่อเปิดใช้ cloud save";
@@ -2163,12 +2932,11 @@ window.SamatiCloud = {
   async init(){
     try{
       const [cfg,me]=await Promise.all([this.request("/api/config"),this.request("/api/me")]);
-      this.clientId=cfg.googleClientId; this.user=me.user;
-      this.updateUI();
+      this.clientId=cfg.googleClientId; this.user=me.user; this.updateUI();
     }catch(e){ $("#cloudHint").textContent="เล่นและบันทึกในเครื่องได้ · cloud ยังไม่พร้อม"; }
   },
   updateUI(){
-    const b=$("#btnCloud"), h=$("#cloudHint"), box=$("#googleSignIn");
+    const b=$("#btnCloud"),h=$("#cloudHint"),box=$("#googleSignIn");
     if(this.user){ b.textContent="ออกจาก Google"; h.textContent=`☁ บันทึกกับ ${this.user.email} อัตโนมัติ`; box.style.display="none"; }
     else { b.textContent="เชื่อมบัญชี Google"; h.textContent="บันทึกในเครื่องอัตโนมัติ · เชื่อม Google เพื่อเล่นต่อได้ทุกอุปกรณ์"; }
   },
@@ -2182,11 +2950,9 @@ window.SamatiCloud = {
   async signIn(credential){
     try{
       const out=await this.request("/api/auth/google",{method:"POST",body:JSON.stringify({credential})});
-      this.user=out.user; this.updateUI();
-      const remote=await this.pull();
+      this.user=out.user; this.updateUI(); const remote=await this.pull();
       if(remote && (!G || Number(remote.lastTick||0)>Number(G.lastTick||0))){
-        G=migrate(remote); await Store.set(SAVE_KEY,JSON.stringify(G)); refreshHud(); closePanels();
-        toast("โหลดเซฟล่าสุดจาก Google แล้ว");
+        G=migrate(remote); await Store.set(SAVE_KEY,JSON.stringify(G)); refreshHud(); closePanels(); toast("โหลดเซฟล่าสุดจาก Google แล้ว");
       }else if(G){ await this.push(G); toast("เชื่อม Google และบันทึกขึ้น cloud แล้ว"); }
     }catch(e){ toast(e.message||"ล็อกอินไม่สำเร็จ"); }
   },
@@ -2288,19 +3054,30 @@ function migrate(o){
   s.pet.seen=Object.assign({}, o.pet&&o.pet.seen); s.pet.seen[s.pet.form]=1;
   s.bag=Object.assign({}, o.bag||{});
   s.coins = Math.max(0, Math.round(o.coins||0));
-  s.house = Array.isArray(o.house) ? o.house.filter(h=>h&&FURNI[h.id]).map(h=>({id:h.id,x:+h.x||80,y:+h.y||(FLOOR+6)})) : [];
+  const clean = arr => Array.isArray(arr) ? arr.filter(h=>h&&FURNI[h.id])
+      .map(h=>({id:h.id, x:clamp(+h.x||80,10,W-10), y:+h.y||(FLOOR+6)})) : [];
+  s.place = { home: clean((o.place&&o.place.home) || o.house), garden: clean(o.place&&o.place.garden) };
+  s.area = AREAS[o.area] ? o.area : "home";
+  if(AREAS[s.area].kind==="wild") s.area="home";
+  s.pet.hp = clamp(+o.pet?.hp || 0, 0, 999) || (40 + Math.min(120,(s.pet.lv||1)*3));
+  s.pet.injured = !!(o.pet && o.pet.injured);
+  s.pet.medUsed = !!(o.pet && o.pet.medUsed);
   s.stats=Object.assign(base.stats, o.stats||{});
   if(!FORMS[s.pet.form]) s.pet.form="seed";
   return s;
 }
 (async function boot(){
   SamatiCloud.init();
-  const raw = await Store.get(SAVE_KEY);
+  let raw = await Store.get(SAVE_KEY);
+  if(!raw) raw = await Store.get("samati:save:v1");
   if(raw){
     try{ G = migrate(JSON.parse(raw)); }catch(e){ G=null; }
   }
   if(G){
     tickDecay(); refreshHud(); closePanels();
+    $("#envA").textContent = AREAS[area()].n;
+    Ply.x = 64; Pet.x = 110;
+    if(G.pet.injured) setTimeout(()=>toast("🤕 "+G.pet.name+" ยังบาดเจ็บ · ต้องโฟกัสฟื้นฟูให้หายก่อน"),1400);
     setTimeout(()=>say(pick(["กลับมาแล้ว!","คิดถึงนะ","พร้อมโฟกัสหรือยัง"]),3000),700);
   }else{
     buildCreator(); openPanel("#p-creator");
