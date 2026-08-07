@@ -241,14 +241,14 @@ app.delete("/api/rooms/:code/presence", requireUser, async (req, res) => {
 });
 
 const cleanText = (value, max) => String(value || "").replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, max);
-const cleanPlazaProfile = raw => ({
-  code: cleanText(raw?.code, 10).toUpperCase(),
-  name: cleanText(raw?.name, 24) || "ผู้เล่น",
+const cleanPlazaProfile = (raw, trusted = null) => ({
+  code: cleanText(trusted?.account?.code || raw?.code, 10).toUpperCase(),
+  name: cleanText(trusted?.player?.name || raw?.name, 24) || "ผู้เล่น",
   x: clamp(Math.round(num(raw?.x, 50)), 4, 96),
   y: clamp(Math.round(num(raw?.y, 68)), 24, 86),
   dir: num(raw?.dir, 1) < 0 ? -1 : 1,
-  look: raw?.look && typeof raw.look === "object" ? raw.look : {},
-  pet: { name: cleanText(raw?.pet?.name, 24) || "Mori", form: cleanText(raw?.pet?.form, 24) || "seed", lv: clamp(Math.round(num(raw?.pet?.lv, 1)), 1, 100) }
+  look: trusted?.player && typeof trusted.player === "object" ? trusted.player : (raw?.look && typeof raw.look === "object" ? raw.look : {}),
+  pet: { name: cleanText(trusted?.pet?.name || raw?.pet?.name, 24) || "Mori", form: cleanText(trusted?.pet?.form || raw?.pet?.form, 24) || "seed", lv: clamp(Math.round(num(trusted?.pet?.lv ?? raw?.pet?.lv, 1)), 1, 100) }
 });
 async function plazaState(channel, after = 0) {
   await pool.query("DELETE FROM plaza_presence WHERE seen_at < NOW() - INTERVAL '18 seconds'");
@@ -267,7 +267,9 @@ app.get("/api/plaza/channels", requireUser, async (_req, res) => {
   res.json({ channels: Array.from({ length: last }, (_, i) => ({ channel: i + 1, players: map.get(i + 1) || 0, capacity: 30 })) });
 });
 app.post("/api/plaza/join", rateLimit("plaza-join", 12), requireUser, async (req, res) => {
-  const profile = cleanPlazaProfile(req.body?.profile);
+  const trustedSave = await pool.query("SELECT state FROM game_saves WHERE google_sub=$1", [req.user.sub]);
+  if (!trustedSave.rows[0]) return res.status(409).json({ error: "save must exist before joining plaza" });
+  const profile = cleanPlazaProfile(req.body?.profile, trustedSave.rows[0].state);
   const requested = clamp(Math.round(num(req.body?.channel, 0)), 0, 99);
   const db = await pool.connect();
   try {
@@ -290,7 +292,10 @@ app.post("/api/plaza/join", rateLimit("plaza-join", 12), requireUser, async (req
 });
 app.put("/api/plaza/:channel/presence", rateLimit("plaza-presence", 45), requireUser, async (req, res) => {
   const channel = clamp(Math.round(num(req.params.channel, 0)), 1, 99);
-  const profile = cleanPlazaProfile(req.body?.profile);
+  const current = await pool.query("SELECT profile FROM plaza_presence WHERE channel=$1 AND google_sub=$2", [channel, req.user.sub]);
+  if (!current.rows[0]) return res.status(409).json({ error: "join plaza first" });
+  const movement = cleanPlazaProfile(req.body?.profile);
+  const profile = { ...current.rows[0].profile, x: movement.x, y: movement.y, dir: movement.dir };
   const updated = await pool.query(`UPDATE plaza_presence SET profile=$3,seen_at=NOW()
     WHERE channel=$1 AND google_sub=$2 RETURNING google_sub`, [channel, req.user.sub, profile]);
   if (!updated.rowCount) return res.status(409).json({ error: "join plaza first" });
