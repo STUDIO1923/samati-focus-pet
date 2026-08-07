@@ -6078,6 +6078,49 @@ function openFriends(){
   const orb=$("#btnOwnRoom"); if(orb) orb.onclick=()=>{ sfx.tap(); goOwnRoom(); };
   $("#btnInvite").onclick=()=>copyText(inviteLink(),"คัดลอกลิงก์ชวนเพื่อนแล้ว · ส่งให้เพื่อนได้เลย");
 }
+/* Stable mobile friend panel: one delegated handler keeps every control alive
+   even when an old save contains incomplete friend/pet fields. */
+function openFriends(){
+  if(!G)return;
+  const friends=(Array.isArray(G.friends)?G.friends:[]).filter(f=>f&&f.code).map(f=>({
+    ...f,code:String(f.code).toUpperCase(),name:String(f.name||"เพื่อน"),petName:String(f.petName||"Mori"),
+    petForm:FORMS[f.petForm]?f.petForm:"seed",close:clamp(Number(f.close)||0,0,100),sessions:Math.max(0,Number(f.sessions)||0)
+  }));
+  G.friends=friends;
+  const b=$("#friendsBody");
+  openPanel("#p-friends");
+  b.innerHTML=`<p class="hint">โฟกัสพร้อมกันได้สูงสุด 5 คน และต้องอยู่ภายในบ้านเดียวกัน</p>
+    <div class="sec">รหัสบ้านของคุณ</div><div class="codeBox">${G.account.code}</div>
+    <div class="row"><button class="btn ghost" data-fa="copy">คัดลอกรหัสบ้าน</button><button class="btn" data-fa="invite">คัดลอกลิงก์ชวนเพื่อน</button></div>
+    <div class="sec">ค้นหาเพื่อนด้วยชื่อ</div><div class="row"><input class="field" id="inFriendName" style="flex:1;margin:0" maxlength="24" placeholder="ชื่อผู้เล่น อย่างน้อย 2 ตัวอักษร"><button class="btn" data-fa="search" style="flex:0 0 auto">ค้นหา</button></div><div id="friendSearchResults"></div>
+    <div class="sec">วาร์ปไปบ้านเพื่อน</div><div class="row"><input class="field" id="inRoom" style="flex:1;margin:0" maxlength="8" placeholder="รหัสบ้านเพื่อน"><button class="btn" data-fa="warp" style="flex:0 0 auto">วาร์ป</button></div>
+    <p class="hint">ใส่รหัสบ้านเพื่อวาร์ปไปเยี่ยมแบบเรียลไทม์ · บ้านรองรับรวมสูงสุด 5 คน</p>
+    <div class="sec">รายชื่อเพื่อน (${friends.length})</div><div id="stableFriendList"></div>`;
+  const list=$("#stableFriendList");
+  if(!friends.length)list.innerHTML='<p class="hint">ยังไม่มีเพื่อนในรายชื่อ</p>';
+  friends.forEach((f,i)=>{
+    const row=document.createElement("div");row.className="frow";
+    const info=document.createElement("div");info.className="fi";
+    const title=document.createElement("div");title.className="fn";title.textContent=f.name+" · "+f.code;
+    const pet=document.createElement("div");pet.className="fp";pet.textContent="🐾 "+f.petName+" · "+(FORMS[f.petForm]?.name||"Mori")+" · สนิท "+Math.round(f.close)+"%";
+    info.append(title,pet);
+    const home=document.createElement("button");home.className="chk";home.textContent="🏠";home.dataset.fa="home";home.dataset.i=i;
+    const cheer=document.createElement("button");cheer.className="chk";cheer.textContent=f.cheerDay===dayKey()?"💖":"💌";cheer.disabled=f.cheerDay===dayKey();cheer.dataset.fa="cheer";cheer.dataset.i=i;
+    const select=document.createElement("button");select.className="chk"+(party.includes(f.code)?" on":"");select.textContent=party.includes(f.code)?"✓":"+";select.dataset.fa="party";select.dataset.i=i;
+    row.append(info,home,cheer,select);list.appendChild(row);
+  });
+  b.onclick=e=>{
+    const bt=e.target.closest("[data-fa]");if(!bt)return;e.preventDefault();e.stopPropagation();const a=bt.dataset.fa,f=friends[Number(bt.dataset.i)];
+    if(a==="copy")return copyText(G.account.code,"คัดลอกรหัสบ้านแล้ว");
+    if(a==="invite")return copyText(inviteLink(),"คัดลอกลิงก์ชวนเพื่อนแล้ว");
+    if(a==="search")return searchFriendsByName($("#inFriendName").value);
+    if(a==="warp")return visitFriend($("#inRoom").value);
+    if(a==="home"&&f)return visitFriend(f.code);
+    if(a==="cheer"&&f)return sendFriendCheer(f);
+    if(a==="party"&&f){if(party.includes(f.code))party=party.filter(c=>c!==f.code);else if(party.length<4)party.push(f.code);else return toast("โฟกัสพร้อมกันได้สูงสุด 5 คน");sfx.tap();openFriends();}
+  };
+  const nameInput=$("#inFriendName");if(nameInput)nameInput.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();searchFriendsByName(e.target.value);}};
+}
 async function sendFriendCheer(f){
   const today=dayKey();if(f.cheerDay===today){toast("ส่งกำลังใจให้เพื่อนคนนี้แล้ววันนี้");return;}
   if(!SamatiCloud.user){sfx.bad();toast("เชื่อมต่อบัญชี Google เพื่อส่งกำลังใจ");return;}
