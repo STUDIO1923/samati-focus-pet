@@ -383,6 +383,16 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
   justify-content:flex-end;overflow:hidden;background:#0d1230}
 #cover.on{display:flex;animation:cvIn .5s ease}
 @keyframes cvIn{from{opacity:0}to{opacity:1}}
+#cloudLoader{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;
+  background:rgba(10,13,25,.94);color:#f2ead6;font-family:var(--ui)}
+#cloudLoader.on{display:flex}
+.cloudLoadBox{width:min(310px,84vw);padding:24px 20px;text-align:center;border:2px solid var(--brass);
+  border-radius:16px;background:linear-gradient(180deg,#272141,#15122b);box-shadow:0 18px 50px #0009}
+.cloudLoadBox b{display:block;color:var(--brass-l);font-size:16px;margin:10px 0 3px}
+.cloudLoadBox span{font-size:11px;opacity:.76}
+.cloudSpinner{width:36px;height:36px;margin:auto;border:4px solid rgba(243,215,141,.2);
+  border-top-color:var(--brass-l);border-radius:50%;animation:cloudSpin .7s linear infinite}
+@keyframes cloudSpin{to{transform:rotate(360deg)}}
 #coverCv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;z-index:0}
 #cover .veil{position:absolute;inset:0;z-index:1;
   background:radial-gradient(120% 70% at 50% 18%, rgba(10,16,42,0) 30%, rgba(8,12,34,.45) 72%, rgba(6,9,26,.88) 100%)}
@@ -601,6 +611,10 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
   </div>
 </div>
 
+<div id="cloudLoader" role="status" aria-live="polite" aria-label="กำลังโหลดเซฟล่าสุด">
+  <div class="cloudLoadBox"><div class="cloudSpinner"></div><b>กำลังโหลดเซฟล่าสุด</b><span>เชื่อมต่อ SamatiCloud…</span></div>
+</div>
+
 <div id="device">
   <div class="lamps">
     <div class="lens"></div>
@@ -632,7 +646,9 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div class="sec">เพศ</div><div class="opts" id="o-gender"></div>
           <div class="sec">สีผิว</div><div class="opts" id="o-skin"></div>
           <div class="sec">ทรงผม</div><div class="opts" id="o-hair"></div>
+          <div class="sec">แบบชุด</div><div class="opts" id="o-outfit"></div>
           <div class="sec">สีเสื้อ</div><div class="opts" id="o-shirt"></div>
+          <div class="sec">แบบกางเกง</div><div class="opts" id="o-pantstyle"></div>
           <div class="sec">สีกางเกง</div><div class="opts" id="o-pants"></div>
           <div class="sec">หมวก</div><div class="opts" id="o-hat"></div>
           <div class="sec">แว่นตา</div><div class="opts" id="o-glass"></div>
@@ -714,6 +730,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
             <button class="opt" data-shoptab="seed">เมล็ดพันธุ์</button>
             <button class="opt" data-shoptab="fashion">แฟชั่น</button>
             <button class="opt" data-shoptab="item">ไอเท็ม</button>
+            <button class="opt" data-shoptab="vip">💠 VIP</button>
             <button class="opt" data-shoptab="sell">ขายของ</button>
           </div>
           <div id="shopBody"></div>
@@ -936,6 +953,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
       <button id="trayShop">🛒 ร้านค้า</button>
     </div>
     <div class="trayRow" id="trayRow"></div>
+    <div class="trayRow" id="styleRow"></div>
   </div>
 
   <div class="envbar"><span id="envW">☀️</span><span id="envT">--:--</span><span id="envA">บ้าน</span><span id="envC">🪙 0</span><span id="envX" title="ผลึกสมาธิ — สกุลเงินพิเศษ (ยังไม่เปิดใช้ในเบต้า)">💠 0</span></div>
@@ -1343,7 +1361,7 @@ const COSMETICS = {
   a_halo:  {cat:"acc",   v:"halo",  n:"วงแหวนสมาธิ",   e:"😇", price:380},
   a_bow:   {cat:"acc",   v:"bow",   n:"โบว์",          e:"🎀", price:90}
 };
-const COS_CAT = { hair:"ทรงผม", shirt:"เสื้อ", hat:"หมวก", glass:"แว่นตา", scarf:"ผ้าพันคอ", acc:"เครื่องประดับ" };
+const COS_CAT = { hair:"ทรงผม", shirt:"เสื้อ/กระโปรง", pants:"กางเกง", hat:"หมวก", glass:"แว่นตา", scarf:"ผ้าพันคอ", acc:"เครื่องประดับ" };
 const BASE_STYLE = { shirt:["plain"], acc:["none"] };
 
 /* =====================================================================
@@ -1708,7 +1726,11 @@ const GLASS_SHAPES=[["round","แว่นกลม"],["square","แว่นเ
 const SCARF_SHAPES=[["short","ผ้าพันคอสั้น"],["long","ผ้าพันคอยาว"],["cape","ผ้าคลุมไหล่"],["muffler","ผ้าพันคอถัก"]];
 const HAIR_EXTRA=[["pony","ผมหางม้า"],["curly","ผมหยิกฟู"],["twin","ผมมัดสองข้าง"],["spike","ผมสไปก์"],
                   ["wave","ผมลอนยาว"],["afro","ผมแอโฟร"],["braid","ผมเปีย"],["mohawk","ผมโมฮอว์ก"],
-                  ["hime","ผมฮิเมะ"],["side","ผมปัดข้าง"]];
+                  ["hime","ผมฮิเมะ"],["side","ผมปัดข้าง"],
+                  ["lowbun","ผมมวยต่ำ"],["spaceBun","ผมมวยคู่"],["halfUp","ผมรวบครึ่ง"],
+                  ["longStraight","ผมยาวตรง"],["shortCurl","ผมสั้นลอน"],["highTail","ผมหางม้าสูง"],
+                  ["bobBang","ผมบ๊อบหน้าม้า"],["fishtail","ผมเปียก้างปลา"],["messyBun","ผมมวยรุงรัง"],
+                  ["waveShort","ผมลอนสั้น"]];
 const SHIRT_STYLES=[["hoodie","เสื้อฮู้ด"],["stripe","เสื้อลายทาง"],["vest","เสื้อกั๊ก"],["kimono","เสื้อคลุมสมาธิ"],
                     ["overall","เอี๊ยม"],["sailor","ชุดกะลาสี"],["lab","เสื้อกาวน์"],["knit","เสื้อไหมพรม"],
                     ["jersey","เสื้อกีฬา"],["floral","เสื้อลายดอก"]];
@@ -1728,8 +1750,14 @@ const ACC_LIST=[["headphone","หูฟัง"],["wing","ปีกน้อย"]
   ACC_LIST.forEach((a,i)=> add("AC_"+i,"acc",a[0],a[1], 110+i*28, null, "✨"));
   /* เครื่องแต่งกายสไตล์ผู้หญิง */
   const FEM_SHIRT=[["skirt","กระโปรงสั้น",170],["dress","เดรสลำลอง",240],["sailorSkirt","ชุดกะลาสีกระโปรง",280],
-                   ["longDress","เดรสยาว",320],["qipao","ชุดกี่เพ้า",360],["tutu","กระโปรงบัลเลต์",300]];
+                   ["longDress","เดรสยาว",320],["qipao","ชุดกี่เพ้า",360],["tutu","กระโปรงบัลเลต์",300],
+                   ["pleated","กระโปรงจีบ",210],["aline","กระโปรงทรงเอ",230],
+                   ["denimSkirt","กระโปรงยีนส์",190],["layered","กระโปรงหลายชั้น",340]];
   FEM_SHIRT.forEach((f,i)=> add("FS_"+i,"shirt",f[0],f[1],f[2],null,"👗"));
+  const PANTS_STYLES=[["shorts","กางเกงขาสั้น",120],["capri","กางเกงสามส่วน",150],["baggy","กางเกงหลวม",170],
+    ["jeans","กางเกงยีนส์",190],["cargo","กางเกงคาร์โก้",210],["stripePants","กางเกงลายข้าง",160],
+    ["tights","เลกกิ้ง",140],["bell","กางเกงขาบาน",200],["patched","กางเกงปะ",130],["formal","กางเกงสแล็ค",230]];
+  PANTS_STYLES.forEach((f,i)=> add("PT_"+i,"pants",f[0],f[1],f[2],null,"👖"));
   const FEM_ACC=[["ribbon","โบว์ใหญ่",140],["necklace","สร้อยคอ",190],["handbag","กระเป๋าถือ",220],
                  ["earringLong","ต่างหูระย้า",160],["hairpin","ปิ่นปักผม",130],["choker","โชกเกอร์",150]];
   FEM_ACC.forEach((f,i)=> add("FA_"+i,"acc",f[0],f[1],f[2],null,"🎀"));
@@ -1744,7 +1772,14 @@ function cosOf(field,v){
 const SKINS  = ["#f3d2b3","#e8b98d","#cf9c6b","#a9744a","#7d5433","#5b3b23"];
 const SHIRTS = ["#7e8fa3","#8a9a7e","#a88b7a","#8c7f9e","#c4b79a","#6f7b86","#9c6f6f","#5f6b5c"];
 const PANTS  = ["#4a4f5c","#5e5546","#3f4a3d","#6a6a6a","#4a3f4f","#2f3540"];
-const HAIRS  = { m:["short","buzz","messy","spike"], f:["long","bun","bob","twin","hime","wave"], n:["short","bun","messy","pony"] };
+const HAIRS  = {
+  m:["short","buzz","messy","spike","side","curly"],
+  f:["long","bun","bob","twin","hime","wave","pony","braid","lowbun","halfUp"],
+  n:["short","bun","messy","pony","bob","wave"] };
+const BASE_SHIRT = ["plain","skirt","dress"];         /* แบบชุดพื้นฐานตอนสร้างตัว */
+const BASE_PANTS = ["long","shorts","capri"];         /* แบบกางเกงพื้นฐาน */
+const SHIRT_TH_BASE = {plain:"กางเกง/เรียบ", skirt:"กระโปรงสั้น", dress:"เดรส"};
+const PANTS_TH_BASE = {long:"ขายาว", shorts:"ขาสั้น", capri:"สามส่วน"};
 const HAIRCOL= ["#2b2118","#4a3423","#6f4b2a","#a8813f","#8c8c8c","#3d2b4a"];
 const HATS   = ["none","cap","beanie","straw"];
 const GLASSES= ["none","round","square","shades"];
@@ -1770,7 +1805,7 @@ function newGame(){
     area:"home",
     player:{ name:"ผู้ฝึก", gender:"n", skin:SKINS[1], hair:"short", haircol:HAIRCOL[0],
              shirt:SHIRTS[0], pants:PANTS[0], hat:"none", glass:"none", scarf:"none",
-             shirtStyle:"plain", acc:"none" },
+             shirtStyle:"plain", pantsStyle:"long", acc:"none" },
     account:{ type:"guest", email:"", code:"", linked:false },
     friends: [],
     pet:{ name:"Mori", form:"seed", xp:0, lv:1, hun:70, moo:70, bon:10, hp:43, st:{str:5,vit:5,agi:5,int:5,luk:5},
@@ -2436,6 +2471,28 @@ function drawHead(c,P,headY,t,state){
     for(let i=-4;i<=4;i+=2) px(c,i,headY+4,HC); }
   else if(HAIR==="side"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
     rect(c,-5,headY+4,3,4,HC); px(c,-2,headY+3,shade(HC,30)); }
+  else if(HAIR==="lowbun"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+    ell(c,0,headY+11,3,2,HC); px(c,0,headY+13,HC); }
+  else if(HAIR==="spaceBun"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+    ell(c,-5,headY,2,2,HC); ell(c,5,headY,2,2,HC); }
+  else if(HAIR==="halfUp"){ ell(c,0,headY+4,5,5,HC); ell(c,0,headY+6,5,4,SK);
+    ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,2,6,HC); rect(c,3,headY+3,2,6,HC);
+    ell(c,0,headY,2,2,HC); }
+  else if(HAIR==="longStraight"){ ell(c,0,headY+4,5,5,HC); ell(c,0,headY+6,5,4,SK);
+    ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-6,headY+3,2,12,HC); rect(c,4,headY+3,2,12,HC); }
+  else if(HAIR==="shortCurl"){ ellHalf(c,0,headY+2,5,4,HC,true); rect(c,-5,headY+2,11,2,HC);
+    [[-5,3],[-2,1],[2,1],[5,3]].forEach(q=>ell(c,q[0],headY+q[1],2,2,HC)); }
+  else if(HAIR==="highTail"){ ellHalf(c,0,headY+3,4,4,HC,true); rect(c,-4,headY+3,9,1,HC);
+    ell(c,3,headY-2,2,2,HC); ell(c,6,headY+2,2,5,HC); ell(c,7,headY+7,1,3,HC); }
+  else if(HAIR==="bobBang"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+6,4,3,SK);
+    rect(c,-5,headY+3,1,5,HC); rect(c,4,headY+3,1,5,HC); rect(c,-4,headY+2,9,2,HC); }
+  else if(HAIR==="fishtail"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+    for(let i=0;i<5;i++) ell(c,-6+((i%2)?1:0),headY+7+i*2,2,1,HC); }
+  else if(HAIR==="messyBun"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+    ell(c,0,headY-1,3,2,HC); px(c,-4,headY-1,HC); px(c,4,headY,HC); px(c,2,headY-3,HC); }
+  else if(HAIR==="waveShort"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+5,4,3,SK);
+    rect(c,-5,headY+3,1,6,HC); rect(c,4,headY+3,1,6,HC);
+    px(c,-6,headY+8,HC); px(c,5,headY+8,HC); }
   else if(HAIR==="spike"){ ellHalf(c,0,headY+3,4,3,HC,true); rect(c,-4,headY+3,9,1,HC);
     for(let i=0;i<5;i++){ const sx=-4+i*2; rect(c,sx,headY-1-((i%2)?1:0),1,3,HC); } }
   else if(HAIR==="bob"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+5,4,3,SK); rect(c,-5,headY+3,1,4,HC); rect(c,4,headY+3,1,4,HC); }
@@ -2495,7 +2552,7 @@ function drawHead(c,P,headY,t,state){
     px(c,4,headY+6,"#f0d24a"); px(c,4,headY+7,"#f6e8b0"); }
   else if(ACC==="choker"){ rect(c,-3,headY+8,7,1,"#3a2b3a"); px(c,0,headY+9,"#f0d24a"); }
 }
-const SKIRT_KINDS={skirt:1,dress:1,sailorSkirt:1,longDress:1,qipao:1,tutu:1};
+const SKIRT_KINDS={skirt:1,dress:1,sailorSkirt:1,longDress:1,qipao:1,tutu:1,pleated:1,aline:1,denimSkirt:1,layered:1};
 function drawSkirt(c,bodyTop,kind,SH,t,sitting){
   if(!SKIRT_KINDS[kind]) return;
   const col = kind==="sailorSkirt" ? "#3f4a68" : kind==="tutu" ? "#f0a8c8" : shade(SH,-18);
@@ -2511,6 +2568,29 @@ function drawSkirt(c,bodyTop,kind,SH,t,sitting){
   if(kind==="sailorSkirt") for(let i=-5;i<=5;i+=3) rect(c,i,y+1,1,len-2,shade(col,-24));
   if(kind==="qipao"){ rect(c,-1,y,2,len,shade(col,30)); px(c,0,y+2,"#f0d24a"); }
   if(kind==="tutu") for(let i=-6;i<=6;i+=3) px(c,i,y+len-1,"#fdd8e8");
+  if(kind==="pleated") for(let i=-6;i<=6;i+=2) rect(c,i,y+1,1,len-1,shade(col,-26));
+  if(kind==="denimSkirt"){ rect(c,-5,y,10,1,shade(col,34));
+    for(let i=-4;i<=4;i+=8) px(c,i,y+2,"#f0d24a"); }
+  if(kind==="layered"){ rect(c,-6,y+Math.round(len*0.5),12,1,shade(col,30));
+    rect(c,-7,y+len-1,14,1,shade(col,20)); }
+}
+function pantsDeco(c,hipY,style,PA,SK,lL,lR){
+  if(!style || style==="long") return;
+  const legs=[[-3,lL],[1,lR]];
+  const cut=(y0,h,col)=>legs.forEach(([x,l])=>rect(c,x,y0+l,2,h,col));
+  if(style==="shorts")      cut(hipY+4, Math.max(1,-(hipY+4)), SK);
+  else if(style==="capri")  cut(hipY+6, Math.max(1,-(hipY+6)), SK);
+  else if(style==="tights") cut(hipY, -hipY, shade(PA,-30));
+  else if(style==="baggy"){ legs.forEach(([x,l])=>{ rect(c,x-1,hipY+2+l,1,-(hipY+2),PA);
+    rect(c,x+2,hipY+2+l,1,-(hipY+2),PA); }); }
+  else if(style==="bell"){ legs.forEach(([x,l])=>{ rect(c,x-1,-3+l,4,3,PA); }); }
+  else if(style==="jeans"){ legs.forEach(([x,l])=>{ rect(c,x,hipY+l,1,-hipY,shade(PA,22));
+    px(c,x+1,hipY+2+l,shade(PA,-30)); }); px(c,-1,hipY+1,"#e8c352"); }
+  else if(style==="cargo"){ legs.forEach(([x,l])=>{ rect(c,x,hipY+4+l,2,2,shade(PA,-26)); }); }
+  else if(style==="stripePants"){ rect(c,-4,hipY+lL,1,-hipY,shade(PA,40)); rect(c,3,hipY+lR,1,-hipY,shade(PA,40)); }
+  else if(style==="patched"){ px(c,-3,hipY+3+lL,shade(PA,36)); px(c,2,hipY+5+lR,shade(PA,36)); }
+  else if(style==="formal"){ legs.forEach(([x,l])=>{ rect(c,x,hipY+l,1,-hipY,shade(PA,18));
+    rect(c,x,-2+l,2,1,shade(PA,-34)); }); }
 }
 function shirtDeco(c,bodyTop,P,SH){
   const st=cosOf("shirt",P.shirtStyle||"plain").shape;
@@ -2550,7 +2630,9 @@ function shirtDeco(c,bodyTop,P,SH){
 function drawPlayer(c, P, o){
   o=o||{}; const t=o.t||0, state=o.state||"idle";
   const SK=P.skin, SH=P.shirt, PA=P.pants;
-  const ACC=cosOf("acc",P.acc).shape, SKIRT=cosOf("shirt",P.shirtStyle||"plain").shape;
+  const SHC=cosOf("shirt",P.shirtStyle||"plain");
+  const ACC=cosOf("acc",P.acc).shape, SKIRT=SHC.shape;
+  const SH2=SHC.col||SH;
   const bt0 = (state==="sit"||state==="focus") ? -12 : -16;
   if(ACC==="tail"){ const sw=Math.round(Math.sin(t*3)*2);
     ell(c,-7,bt0+13,2,1,P.haircol); ell(c,-9,bt0+12+sw,2,1,P.haircol); ell(c,-11,bt0+11+sw,1,1,P.haircol); }
@@ -2580,10 +2662,10 @@ function drawPlayer(c, P, o){
     ell(c,0,-2,6,2,PA); rect(c,-6,-4,12,3,PA);
     px(c,-6,-2,"#2b2b33"); px(c,5,-2,"#2b2b33");
     const bodyTop=-12;
-    rect(c,-4,bodyTop,8,10,SH);                       /* ลำตัวคลุมถึงสะโพก */
+    rect(c,-4,bodyTop,8,10,SH2);                       /* ลำตัวคลุมถึงสะโพก */
     rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
-    shirtDeco(c,bodyTop,P,SH);
-    drawSkirt(c,bodyTop,SKIRT,SH,t,true);
+    shirtDeco(c,bodyTop,P,SH2);
+    drawSkirt(c,bodyTop,SKIRT,SH2,t,true);
     const br = state==="focus" ? Math.round(Math.sin(t*1.2)) : 0;
     rect(c,-6,bodyTop+4+br,2,5,SH); rect(c,4,bodyTop+4+br,2,5,SH);
     px(c,-6,bodyTop+9+br,SK); px(c,5,bodyTop+9+br,SK);
@@ -2608,9 +2690,9 @@ function drawPlayer(c, P, o){
       const sp = state==="dance" ? Math.round(Math.sin(t*5)*2) : 0;
       drawLeg(c,-3+sp,hipY,0,PA); drawLeg(c,1+sp,hipY,0,PA);
     }
-    rect(c,-4,bodyTop,8,10,SH); rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
-    shirtDeco(c,bodyTop,P,SH);
-    drawSkirt(c,bodyTop,SKIRT,SH,t,false);
+    rect(c,-4,bodyTop,8,10,SH2); rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
+    shirtDeco(c,bodyTop,P,SH2);
+    drawSkirt(c,bodyTop,SKIRT,SH2,t,false);
     if(state==="cross"){                                   /* ท่ากางแขนเป็นไม้กางเขน */
       rect(c,-11,bodyTop+2,7,2,SH); rect(c,4,bodyTop+2,7,2,SH);
       px(c,-12,bodyTop+2,SK); px(c,11,bodyTop+2,SK);
@@ -2638,14 +2720,16 @@ function drawPlayer(c, P, o){
   const hipY = -7 + bob;                              /* สะโพกขยับพร้อมลำตัว */
   const liftL = (state==="walk" && swing>0.35) ? -1 : 0;
   const liftR = (state==="walk" && swing<-0.35) ? -1 : 0;
+  const PST = cosOf("pants",P.pantsStyle||"long").shape;
   drawLeg(c,-3,hipY,liftL,PA);
   drawLeg(c, 1,hipY,liftR,PA);
+  pantsDeco(c,hipY,PST,PA,SK,liftL,liftR);
 
   const bodyTop = hipY - 9;
-  rect(c,-4,bodyTop,8,10,SH);                         /* ทับสะโพก 1 px กันขาด */
+  rect(c,-4,bodyTop,8,10,SH2);                         /* ทับสะโพก 1 px กันขาด */
   rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
-  shirtDeco(c,bodyTop,P,SH);
-  drawSkirt(c,bodyTop,SKIRT,SH,t,false);
+  shirtDeco(c,bodyTop,P,SH2);
+  drawSkirt(c,bodyTop,SKIRT,SH2,t,false);
   const sw = state==="walk" ? Math.round(swing) : 0;
   rect(c,-6,bodyTop+1+(sw>0?1:0),2,6,SH); rect(c,4,bodyTop+1-(sw>0?1:0),2,6,SH);
   px(c,-6,bodyTop+7+(sw>0?1:0),SK); px(c,5,bodyTop+7-(sw>0?1:0),SK);
@@ -2739,9 +2823,11 @@ function shaft(c,x0,y0,w,h,col){                     /* ลำแสงจาก
 /* ---------- ห้องในบ้าน ---------- */
 function drawHome(c,t){
   const sunny = !isWet() && Env.phase!=="night";
+  const WP = (G&&G.vip&&G.vip.wall!=null&&VIP_WALL[G.vip.wall]) ? VIP_WALL[G.vip.wall] : ["","#96ad70","#879d62","#9db474"];
+  const FP = (G&&G.vip&&G.vip.floor!=null&&VIP_FLOOR[G.vip.floor]) ? VIP_FLOOR[G.vip.floor] : ["","#a8845c","#c49a6c","#96724f"];
   /* ผนัง 3 โทน + แผงไม้ */
-  rect(c,0,0,W,FLOOR,"#96ad70");
-  for(let x=0;x<W;x+=8){ rect(c,x,0,1,FLOOR,"#879d62"); rect(c,x+1,0,1,FLOOR,"#9db474"); }
+  rect(c,0,0,W,FLOOR,WP[1]);
+  for(let x=0;x<W;x+=8){ rect(c,x,0,1,FLOOR,WP[2]); rect(c,x+1,0,1,FLOOR,WP[3]); }
   rect(c,0,0,W,10,"rgba(255,255,255,.06)");
   rect(c,0,FLOOR-20,W,4,"rgba(40,34,26,.10)");
   /* บัวผนัง */
@@ -2755,10 +2841,10 @@ function drawHome(c,t){
   rect(c,wx-5,wy+wh+2,ww+10,3,"#8f7d5c"); rect(c,wx-5,wy+wh+2,ww+10,1,"#a8916c");
   ao(c,wx-5,wy+wh+5,ww+10,"rgba(40,34,26,.20)");
   /* พื้นไม้ */
-  rect(c,0,FLOOR-13,W,13+(H-FLOOR),"#a8845c");
-  rect(c,0,FLOOR-13,W,2,"#c9a06e");
+  rect(c,0,FLOOR-13,W,13+(H-FLOOR),FP[1]);
+  rect(c,0,FLOOR-13,W,2,FP[2]);
   for(let y=FLOOR-11;y<H;y+=7){
-    rect(c,0,y,W,1,"#96724f");
+    rect(c,0,y,W,1,FP[3]);
     for(let x=((y-FLOOR)%14?11:0)-22;x<W;x+=22) rect(c,x,y-6,1,6,"#9c7853");
   }
   rect(c,0,FLOOR-13,W,2,"rgba(40,34,26,.09)");
@@ -2896,6 +2982,7 @@ function drawWild(c,t,key){
     rect(c,0,FLOOR-7,W,H-FLOOR+7,"#39483c"); rect(c,0,FLOOR-7,W,2,"#4a5c4c");
     for(let x=0;x<W;x+=7){ px(c,x,FLOOR-8,"#4d6050"); rect(c,x+2,FLOOR-3,3,1,"#2f3c33"); }
     rect(c,0,FLOOR-16,W,16,"rgba(180,220,200,.05)");
+    outdoorRain(c,t);
   } else if(key==="thunder"){
     skyBands(c,H,["#2f3358","#3d4269","#575d80"]);
     /* เมฆพายุซ้อนชั้น */
@@ -2938,6 +3025,7 @@ function drawWild(c,t,key){
     }
     rect(c,0,FLOOR-7,W,H-FLOOR+7,"#4a3a55"); rect(c,0,FLOOR-7,W,2,"#5c4a68");
     for(let x=0;x<W;x+=5){ ell(c,x,FLOOR-6,2,1,"#5f4d6b"); }
+    outdoorRain(c,t);
     for(let i=0;i<10;i++){ const sx=Math.round(hash01(i*4.7)*W), sy=H-3-Math.round(hash01(i*8.3)*7);
       ell(c,sx,sy,2+Math.round(hash01(i)*3),1+Math.round(hash01(i*2)*1),"#3f3149"); }
   }
@@ -2955,7 +3043,8 @@ function farmTick(dtMin){
   G.farm.forEach(p=>{
     if(!p || p.dead) return;
     const d=plotDef(p); if(!d) return;
-    p.water = clamp(p.water - dtMin*d.dry, 0, 100);
+    if(isWet()) p.water = 100;                 /* ฝนตก = ธรรมชาติรดน้ำให้ */
+    else p.water = clamp(p.water - dtMin*d.dry, 0, 100);
     if(p.water>0){ p.grown += dtMin; p.dry=0; }
     else { p.dry=(p.dry||0)+dtMin; if(p.dry>45){ p.dead="แห้งตาย"; } }
     if(p.grown>=d.grow){
@@ -3020,12 +3109,13 @@ function drawYard(c,t){
   }
   /* ตัวบ้านด้านหลัง */
   const hy=FLOOR-46;
-  rect(c,20,hy,W-40,40,"#c9a06e"); rect(c,20,hy,W-40,2,"#e0bb84");
+  const HS = (G&&G.vip&&G.vip.house!=null&&HOUSES[G.vip.house]) ? HOUSES[G.vip.house] : ["","#c9a06e","#a85846"];
+  rect(c,20,hy,W-40,40,HS[1]); rect(c,20,hy,W-40,2,shade(HS[1],26));
   for(let x=22;x<W-20;x+=6) rect(c,x,hy+2,1,38,"#b38f5f");
   /* หลังคา */
   for(let k=0;k<15;k++){
     const inset=Math.round(k*2.2);
-    rect(c, 10+ (14-k)*2.2, hy-15+k, W-20-((14-k)*4.4), 1, k<2?"#c07158":k<9?"#a85846":"#8f4638");
+    rect(c, 10+ (14-k)*2.2, hy-15+k, W-20-((14-k)*4.4), 1, k<2?shade(HS[2],24):k<9?HS[2]:shade(HS[2],-22));
   }
   rect(c,8,hy-1,W-16,3,"#7d4030"); rect(c,8,hy-1,W-16,1,"#a85846");
   rect(c,W/2+30,hy-24,6,10,"#8a5040"); rect(c,W/2+30,hy-24,6,1,"#a86a58");
@@ -3079,6 +3169,7 @@ function tapPlot(i){
     toast("เก็บเกี่ยว "+itemDef(d.yield).n+" ×"+d.amt+" (เหลือเวลาอีก "+left+" นาที)");
     addXp(3); save(); return;
   }
+  if(isWet()){ toast("🌧️ ฝนกำลังตก · ต้นไม้ได้น้ำเองแล้ว (พอฝนหยุดค่อยกลับมารดน้ำ)"); return; }
   if(p.water>=95){ toast("ยังชุ่มน้ำอยู่ · โตอีก "+Math.max(1,Math.round(d.grow-p.grown))+" นาที"); return; }
   p.water=100; p.dry=0;
   sfx.eat(); floatText(plotX(i),H-30,"💧 รดน้ำ");
@@ -3101,7 +3192,7 @@ function openPlant(){
       g2.appendChild(c);
     });
     b.appendChild(g2);
-    b.insertAdjacentHTML("beforeend",'<p class="hint" style="margin-top:10px">แตะแปลงเพื่อรดน้ำ · ถ้าน้ำหมดนานเกิน 45 นาทีต้นจะแห้งตาย และถ้าสุกแล้วไม่เก็บภายในเวลาที่กำหนดจะเน่าเสีย</p>');
+    b.insertAdjacentHTML("beforeend",'<p class="hint" style="margin-top:10px">แตะแปลงเพื่อรดน้ำ · ถ้าน้ำหมดนานเกิน 45 นาทีต้นจะแห้งตาย และถ้าสุกแล้วไม่เก็บภายในเวลาที่กำหนดจะเน่าเสีย<br>🌧️ วันฝนตกไม่ต้องรดน้ำเลย ฝนจะเติมน้ำให้เต็มตลอด แต่พอฝนหยุดต้องกลับมารดเองตามปกติ</p>');
   }
   openPanel("#p-plant");
 }
@@ -3521,6 +3612,7 @@ function updateScene(dt,t){
     drops = drops.filter(d=>!d.done);
   } else if(clouds.length || drops.length){ clouds=[]; drops=[]; }
 
+  if(typeof fairyFocusTick==="function") fairyFocusTick();
   /* ความหิวลดลงตามสถานที่ที่โฟกัส */
   if(FS.on && G){
     const rate = HUNGER_RATE[FS.mode] || 0.35;
@@ -3663,6 +3755,7 @@ function render(){
   if(Doc.on) layer.push({y:FLOOR+8.5, f:()=>drawDoctor(g,t)});
   layer.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
 
+  if(typeof drawFairy==="function") drawFairy(g,t);
   for(const cl of clouds) drawCloud(g,cl,t);
   for(const d of drops) drawDropIcon(g,d.x,d.y,d.key,t);
   drawParts(g);
@@ -4740,6 +4833,7 @@ function renderShop(){
     b.insertAdjacentHTML("beforeend",'<p class="hint" style="margin-top:10px">ปลูกได้ที่สวนหน้าบ้าน (กดปุ่ม ▼ หน้าบ้าน) · แตะแปลงเพื่อปลูกและรดน้ำ · เมล็ดยังหาได้จากการโฟกัสสำรวจด้วย</p>');
     return;
   }
+  if(shopTab==="vip"){ renderVipShop(b); return; }
   if(shopTab==="fashion"){
     const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="8px";
     Object.keys(COS_CAT).forEach(cat=>{
@@ -4839,12 +4933,58 @@ function showEditPad(on){
   if(on) renderDecorTray();
 }
 function trayZone(){ return zoneOfArea(); }
+function ownedVipOf(type){
+  const own=(G.vip&&G.vip.owned)||[];
+  return own.filter(id=>VIP[id]&&VIP[id].type===type);
+}
+function renderStyleRow(){
+  const row=$("#styleRow"); if(!row) return;
+  row.innerHTML="";
+  const k=area();
+  const groups=[];
+  if(k==="home") groups.push(["wall","ผนัง",VIP_WALL,"wall"],["floor","พื้น",VIP_FLOOR,"floor"]);
+  if(k==="yard") groups.push(["house","แบบบ้าน",HOUSES,"house"]);
+  if(!groups.length){ row.style.display="none"; return; }
+  row.style.display="flex";
+  groups.forEach(([type,label,table,field])=>{
+    const owned=ownedVipOf(type);
+    const head=document.createElement("div");
+    head.className="trayEmpty"; head.style.cssText="flex:0 0 auto;padding:12px 6px 0;font-size:10px;opacity:.8";
+    head.textContent=label+":";
+    row.appendChild(head);
+    const mk=(idx,name,col)=>{
+      const cur=(G.vip&&G.vip[field]);
+      const cell=document.createElement("button");
+      cell.className="trayItem"+((cur===idx||(cur==null&&idx==null))?" on":"");
+      cell.style.width="56px";
+      cell.innerHTML=`<div style="width:34px;height:22px;margin:2px auto 0;border-radius:5px;background:${col};
+        box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)"></div><div class="tn">${name}</div>`;
+      cell.onclick=()=>{ if(!G.vip) G.vip={}; G.vip[field]=idx; sfx.tap(); save(); renderStyleRow(); };
+      row.appendChild(cell);
+    };
+    const defCol = type==="wall"?"#96ad70" : type==="floor"?"#a8845c" : "#c9a06e";
+    mk(null,"ค่าเริ่มต้น",defCol);
+    owned.forEach(id=>{ const v=VIP[id]; mk(v.idx, table[v.idx][0], table[v.idx][1]); });
+    if(!owned.length){
+      const info=document.createElement("div");
+      info.className="trayEmpty"; info.style.cssText="flex:0 0 auto;padding:14px 8px 0;font-size:9.5px;opacity:.7";
+      info.textContent="(ซื้อเพิ่มได้ที่ร้านค้า → 💠 VIP)";
+      row.appendChild(info);
+    }
+  });
+}
 function renderDecorTray(){
   const row=$("#trayRow"); if(!row) return;
   const zone=trayZone();
   $("#trayTitle").textContent = zone==="garden" ? "ของแต่งสวนที่มี" : "ของแต่งบ้านที่มี";
   row.innerHTML="";
-  if(!zone){ row.innerHTML='<div class="trayEmpty">จัดของได้เฉพาะในบ้านและสวนหน้าผา</div>'; return; }
+  renderStyleRow();
+  if(!zone){
+    row.innerHTML = area()==="yard"
+      ? '<div class="trayEmpty">สวนหน้าบ้านวางเฟอร์นิเจอร์ไม่ได้ · แต่เปลี่ยนแบบบ้านที่ซื้อไว้ได้จากแถวด้านล่าง</div>'
+      : '<div class="trayEmpty">จัดของได้เฉพาะในบ้าน สวนหน้าผา และสวนหน้าบ้าน</div>';
+    return;
+  }
   const keys=Object.keys(G.bag).filter(k=>G.bag[k]>0 && FURNI[k] && (FURNI[k].zone||"home")===zone);
   if(!keys.length){
     row.innerHTML='<div class="trayEmpty">ยังไม่มีของในกระเป๋าสำหรับพื้นที่นี้ · กดปุ่มร้านค้าเพื่อไปเลือกซื้อ</div>';
@@ -4933,9 +5073,10 @@ function pickupSel(){
 }
 function toggleEdit(){
   if(Place.mode!=="none"){ exitPlace(); toast("ออกจากโหมดจัดบ้าน"); return; }
-  if(!zoneOfArea()){ toast("จัดของได้เฉพาะในบ้านและสวน"); return; }
-  Place.mode="edit"; showEditPad(true); selectNearest();
-  toast(area()==="garden" ? "โหมดจัดสวน" : "โหมดจัดบ้าน");
+  if(!zoneOfArea() && area()!=="yard"){ toast("จัดของได้เฉพาะในบ้าน สวนหน้าผา และสวนหน้าบ้าน"); return; }
+  Place.mode="edit"; showEditPad(true);
+  if(zoneOfArea()) selectNearest(); else placeHint("โหมดแต่งหน้าบ้าน · เลือกแบบบ้านจากแถวด้านล่าง");
+  toast(area()==="garden" ? "โหมดจัดสวน" : area()==="yard" ? "โหมดแต่งหน้าบ้าน" : "โหมดจัดบ้าน");
 }
 function nudge(dx,dy){
   if(!Place.id) return;
@@ -5221,16 +5362,56 @@ $("#btnReset").onclick=async()=>{
   toast("ลบไฟล์เซฟแล้ว");
 };
 
+function cloudLoading(on,text="กำลังโหลดเซฟล่าสุด"){
+  const el=$("#cloudLoader");
+  if(!el)return;
+  const title=el.querySelector("b"); if(title)title.textContent=text;
+  el.classList.toggle("on",!!on);
+}
+async function enterCloudGame(){
+  hideCover();
+  tickDecay(); refreshHud(); closePanels(); updateMoveBar();
+  const env=$("#envA"); if(env)env.textContent=(G.area==="friend"&&G.visiting)?("บ้านของ "+G.visiting.name):AREAS[area()].n;
+  Ply.x=64; Pet.x=110;
+  checkInviteLink();
+  await loadRegistry(); touchRegistry();
+  SamatiNet.enter(G.account.code).catch(()=>{});
+}
 window.SamatiCloud = {
-  user:null, clientId:"", ready:false,
+  user:null, clientId:"", ready:false, signingIn:false,
   async request(path,opt={}){const r=await fetch(path,{credentials:"same-origin",headers:{"Content-Type":"application/json",...(opt.headers||{})},...opt});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||"server error");return r.json()},
   async init(){try{const [cfg,me]=await Promise.all([this.request("/api/config"),this.request("/api/me")]);this.clientId=cfg.googleClientId||"";this.user=me.user||null}catch(e){}return this.user},
   renderButton(box=$("#googleSignIn")){ if(!this.clientId){toast("Google Login ยังไม่พร้อม");return;} if(!window.google?.accounts?.id){setTimeout(()=>this.renderButton(box),250);return;} box.innerHTML=""; if(!this.ready){google.accounts.id.initialize({client_id:this.clientId,callback:r=>this.signIn(r.credential),auto_select:false});this.ready=true;} google.accounts.id.renderButton(box,{theme:"outline",size:"large",shape:"pill",text:"continue_with",width:280}); },
-  async signIn(credential){try{const out=await this.request("/api/auth/google",{method:"POST",body:JSON.stringify({credential})});this.user=out.user;const remote=await this.pull();
-      if(!G){ if(remote){G=migrate(remote);G.account={...G.account,type:"google",email:this.user.email,linked:true};await Store.set(SAVE_KEY,JSON.stringify(G));hideCover();tickDecay();refreshHud();closePanels();checkInviteLink();} else startNewGame({type:"google",email:this.user.email,code:makeCode(),linked:true}); }
-      else{ G.account={...G.account,type:"google",email:this.user.email,linked:true}; if(remote&&Number(remote.lastTick||0)>Number(G.lastTick||0)){G=migrate(remote);refreshHud();} await this.push(G);await Store.set(SAVE_KEY,JSON.stringify(G));closePanels();toast("เชื่อม Google และซิงก์เซฟแล้ว"); }
-      if(G)SamatiNet.enter(G.account.code).catch(()=>{});
-    }catch(e){sfx.bad();toast("เข้าสู่ระบบ Google ไม่สำเร็จ");}},
+  async signIn(credential){
+    if(this.signingIn)return;
+    this.signingIn=true; const started=Date.now(); cloudLoading(true);
+    try{
+      const out=await this.request("/api/auth/google",{method:"POST",body:JSON.stringify({credential})});
+      this.user=out.user;
+      const remote=await this.pull();
+      const remoteTick=Number(remote?.lastTick||0), localTick=Number(G?.lastTick||0);
+      let useRemote=!!remote && (!G || remoteTick>=localTick);
+
+      if(useRemote)G=migrate(remote);
+      if(G){
+        G.account={...G.account,type:"google",email:this.user.email,linked:true};
+        await Store.set(SAVE_KEY,JSON.stringify(G));
+        if(!useRemote)await this.push(G);
+        await new Promise(r=>setTimeout(r,Math.max(0,1000-(Date.now()-started))));
+        cloudLoading(false);
+        await enterCloudGame();
+        toast(useRemote?"โหลดเซฟล่าสุดจาก Cloud แล้ว":"เชื่อม Google และบันทึกเซฟล่าสุดแล้ว");
+      }else{
+        await new Promise(r=>setTimeout(r,Math.max(0,1000-(Date.now()-started))));
+        cloudLoading(false);
+        startNewGame({type:"google",email:this.user.email,code:makeCode(),linked:true});
+      }
+    }catch(e){
+      await new Promise(r=>setTimeout(r,Math.max(0,1000-(Date.now()-started))));
+      cloudLoading(false); sfx.bad();
+      toast(e.message==="unauthorized"?"Google Login หมดอายุ · กรุณาเลือกบัญชีอีกครั้ง":"เชื่อม Google หรือโหลดเซฟไม่สำเร็จ · ลองใหม่อีกครั้ง");
+    }finally{this.signingIn=false;}
+  },
   async signOut(){await SamatiNet.leave().catch(()=>{});await this.request("/api/logout",{method:"POST",body:"{}"}).catch(()=>{});this.user=null;if(G)G.account={...G.account,type:"guest",email:"",linked:false}},
   async push(state){
     if(!this.user)return null;
@@ -5381,7 +5562,11 @@ function buildCreator(){
     b.style.background=c; b.style.width="22px"; b.style.height="22px";
     b.onclick=()=>{sfx.tap();draft.haircol=c;buildCreator()}; hairEl.appendChild(b);
   });
+  optRow("#o-outfit", BASE_SHIRT, draft.shirtStyle||"plain", v=>SHIRT_TH_BASE[v],
+    v=>{ draft.shirtStyle=v; });
   swRow("#o-shirt", SHIRTS, draft.shirt, v=>draft.shirt=v);
+  optRow("#o-pantstyle", BASE_PANTS, draft.pantsStyle||"long", v=>PANTS_TH_BASE[v],
+    v=>{ draft.pantsStyle=v; });
   swRow("#o-pants", PANTS, draft.pants, v=>draft.pants=v);
   optRow("#o-hat", HATS, draft.hat, v=>HAT_TH[v], v=>draft.hat=v);
   optRow("#o-glass", GLASSES, draft.glass, v=>GL_TH[v], v=>draft.glass=v);
@@ -5393,6 +5578,7 @@ $("#btnRandom").onclick=()=>{
   draft.hair=pick(HAIRS[draft.gender]); draft.haircol=pick(HAIRCOL);
   draft.skin=pick(SKINS); draft.shirt=pick(SHIRTS); draft.pants=pick(PANTS);
   draft.hat=pick(HATS); draft.glass=pick(GLASSES); draft.scarf=pick(SCARVES);
+  draft.shirtStyle=pick(BASE_SHIRT); draft.pantsStyle=pick(BASE_PANTS);
   buildCreator();
 };
 $("#btnToName").onclick=()=>{ sfx.tap(); openPanel("#p-name"); $("#inPlayer").focus(); };
@@ -5792,7 +5978,7 @@ const PHOTO_EMO = ["✨","💖","😆","🌿","🔮","🎉","☯️","🌙","�
 const Photo = { on:false, pose:"sit", emo:"✨", count:0 };
 function openPhoto(){
   const pg=$("#poseGrid"); pg.innerHTML="";
-  POSES.forEach(p=>{
+  allPoses().forEach(p=>{
     const b=document.createElement("button");
     b.className = p.k===Photo.pose ? "on":""; b.textContent=p.n;
     b.onclick=()=>{ sfx.tap(); Photo.pose=p.k; openPhoto(); };
@@ -5809,18 +5995,19 @@ function openPhoto(){
 }
 function randomizePhoto(){
   const oldPose=Photo.pose;
-  do { Photo.pose = pick(POSES).k; } while(POSES.length>1 && Photo.pose===oldPose);
+  const PL=allPoses();
+  do { Photo.pose = pick(PL).k; } while(PL.length>1 && Photo.pose===oldPose);
   Photo.emo = pick(PHOTO_EMO);
   beep(700,.05,"triangle",.03);
 }
 $("#btnPhotoRand").onclick=()=>{
   sfx.tap(); randomizePhoto(); openPhoto();
-  const p=POSES.find(x=>x.k===Photo.pose);
+  const p=allPoses().find(x=>x.k===Photo.pose);
   toast("🎲 สุ่มได้ท่า “"+p.n+"” "+Photo.emo);
 };
 $("#btnShootRand").onclick=()=>{
   sfx.tap(); randomizePhoto();
-  const p=POSES.find(x=>x.k===Photo.pose);
+  const p=allPoses().find(x=>x.k===Photo.pose);
   toast("🎰 ท่าลับ: “"+p.n+"” "+Photo.emo);
   $("#btnShoot").click();
 };
@@ -5839,7 +6026,7 @@ $("#btnShoot").onclick=()=>{
   setTimeout(tick,1000);
 };
 function photoStates(){
-  const p = POSES.find(x=>x.k===Photo.pose) || POSES[0];
+  const p = allPoses().find(x=>x.k===Photo.pose) || POSES[0];
   return p;
 }
 function takeShot(){
@@ -5860,7 +6047,7 @@ function takeShot(){
   /* หัวการ์ด */
   x.fillStyle="rgba(20,16,34,.42)"; rr(x,18,20,CW-36,32,9); x.fill();
   x.textAlign="left"; x.fillStyle="#f7e9c4"; x.font="700 14px 'Noto Sans Thai',sans-serif";
-  x.fillText("📷 "+(POSES.find(p=>p.k===Photo.pose)||POSES[0]).n, 30, 41);
+  x.fillText("📷 "+(allPoses().find(p=>p.k===Photo.pose)||POSES[0]).n, 30, 41);
   x.textAlign="right"; x.font="18px serif"; x.fillText(Photo.emo, CW-30, 42);
   /* ภาพจากหน้าจอเกม */
   x.fillStyle="rgba(255,255,255,.16)"; rr(x,22,62,CW-44,196,12); x.fill();
@@ -6212,22 +6399,26 @@ function drawWardrobePreview(){
    ตู้เสื้อผ้า (แบบแท็บ ใช้ง่ายแม้มีของเยอะ)
 ===================================================================== */
 const LEGACY_OPT = {
-  hair:{}, shirt:{plain:"เรียบ"}, hat:{none:"ไม่ใส่",cap:"แก๊ป",beanie:"ไหมพรม",straw:"สาน"},
+  hair:{}, shirt:{plain:"เรียบ"}, pants:{long:"ขายาว"}, hat:{none:"ไม่ใส่",cap:"แก๊ป",beanie:"ไหมพรม",straw:"สาน"},
   glass:{none:"ไม่ใส่",round:"กลม",square:"เหลี่ยม",shades:"กันแดด"},
   scarf:{none:"ไม่ใส่",short:"สั้น",long:"ยาว"}, acc:{none:"ไม่ใส่"}
 };
-const HAIR_TH_BASE={short:"สั้น",buzz:"เกรียน",messy:"ฟู",long:"ยาว",bun:"มวย",bob:"บ๊อบ"};
+const HAIR_TH_BASE={short:"สั้น",buzz:"เกรียน",messy:"ฟู",long:"ยาว",bun:"มวย",bob:"บ๊อบ",
+  spike:"สไปก์",side:"ปัดข้าง",curly:"หยิกฟู",twin:"มัดสองข้าง",hime:"ฮิเมะ",wave:"ลอนยาว",
+  pony:"หางม้า",braid:"เปีย",lowbun:"มวยต่ำ",halfUp:"รวบครึ่ง"};
 function ownedList(cat){
   const out=[];
   if(cat==="hair") HAIRS[G.player.gender].forEach(v=>out.push({v, n:HAIR_TH_BASE[v]||v}));
+  if(cat==="shirt") BASE_SHIRT.forEach(v=>{ if(v!=="plain") out.push({v, n:SHIRT_TH_BASE[v]}); });
+  if(cat==="pants") BASE_PANTS.forEach(v=>{ if(v!=="long") out.push({v, n:PANTS_TH_BASE[v]}); });
   Object.keys(LEGACY_OPT[cat]||{}).forEach(v=>out.push({v, n:LEGACY_OPT[cat][v]}));
   ((G.wardrobe&&G.wardrobe[cat])||[]).forEach(id=>{ const C=COSMETICS[id]; if(C) out.push({v:id, n:C.n, col:C.col}); });
   return out;
 }
-const WD_TABS=[["hair","ทรงผม"],["shirt","เสื้อ"],["hat","หมวก"],["glass","แว่น"],
+const WD_TABS=[["hair","ทรงผม"],["shirt","เสื้อ/กระโปรง"],["pants","กางเกง"],["hat","หมวก"],["glass","แว่น"],
                ["scarf","ผ้าพันคอ"],["acc","ประดับ"],["color","สี"]];
 let wdTab="hair";
-function fieldOf(cat){ return cat==="shirt" ? "shirtStyle" : cat; }
+function fieldOf(cat){ return cat==="shirt" ? "shirtStyle" : cat==="pants" ? "pantsStyle" : cat; }
 function openWardrobe(){
   const b=$("#wardrobeBody"); b.innerHTML="";
   const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="6px";
@@ -6273,7 +6464,7 @@ function openWardrobe(){
 
 function randomOutfit(){
   const P=G.player;
-  [["hair","hair"],["shirt","shirtStyle"],["hat","hat"],["glass","glass"],["scarf","scarf"],["acc","acc"]]
+  [["hair","hair"],["shirt","shirtStyle"],["pants","pantsStyle"],["hat","hat"],["glass","glass"],["scarf","scarf"],["acc","acc"]]
     .forEach(([cat,field])=>{
       const list=ownedList(cat);
       if(!list.length) return;
@@ -6291,9 +6482,9 @@ function randomOutfit(){
 $("#btnOutfitRand").onclick=()=>{
   sfx.tap(); randomOutfit(); openWardrobe();
   const names=[];
-  [["hair","ทรงผม"],["shirt","เสื้อ"],["hat","หมวก"],["glass","แว่น"],["scarf","ผ้าพันคอ"],["acc","ประดับ"]]
+  [["hair","ทรงผม"],["shirt","เสื้อ"],["pants","กางเกง"],["hat","หมวก"],["glass","แว่น"],["scarf","ผ้าพันคอ"],["acc","ประดับ"]]
     .forEach(([cat,label])=>{
-      const field = cat==="shirt" ? "shirtStyle" : cat;
+      const field = fieldOf(cat);
       const cur=G.player[field];
       const o=ownedList(cat).find(x=>x.v===cur);
       if(o && cur!=="none" && cur!=="plain") names.push(o.n);
@@ -6804,6 +6995,13 @@ function drawGhostArea(c,t,key){
   rect(c,0,FLOOR-8,W,H-FLOOR+8, key==="hospital"?"#3a464e" : key==="cinema"?"#2b2229":"#2f3128");
   rect(c,0,FLOOR-8,W,2,"rgba(255,255,255,.06)");
   for(let x=0;x<W;x+=14) rect(c,x,FLOOR-6,1,H-FLOOR+6,"rgba(0,0,0,.18)");
+  if(key==="grave") outdoorRain(c,t);
+  else if(isWet()){                    /* ในอาคารร้าง: น้ำหยดตามช่องแตก */
+    for(let i=0;i<7;i++){
+      const dx=(i*29+11)%W, dy=((t*36+i*17)%(FLOOR-24))+18;
+      px(c,dx,dy,"rgba(200,225,240,.45)"); px(c,dx,dy+1,"rgba(200,225,240,.25)");
+    }
+  }
   /* หมอกและวิญญาณลอย */
   for(let i=0;i<5;i++){ const fx=((t*6+i*47)%(W+40))-20, fy=50+((i*19)%40);
     ell(c,fx,fy,9,3,"rgba(180,210,230,.07)"); }
@@ -6859,6 +7057,7 @@ async function loadRegistry(){
   try{ const raw=await Store.get(REG_KEY); if(raw) Registry=JSON.parse(raw); }catch(e){}
   if(!Registry.players) Registry.players=[];
   if(!Registry.bans) Registry.bans={};
+  if(!Registry.flags) Registry.flags={};
 }
 async function saveRegistry(){ try{ await Store.set(REG_KEY, JSON.stringify(Registry)); }catch(e){} }
 function touchRegistry(){
@@ -6896,6 +7095,10 @@ function openAdmin(){
     tabs.appendChild(bt);
   });
   b.appendChild(tabs);
+  const wb=document.createElement("button"); wb.className="btn"; wb.style.marginBottom="8px";
+  wb.textContent="🌐 เปิดแผงควบคุมโลก (หน้าเว็บเต็ม)";
+  wb.onclick=()=>{ sfx.tap(); openWorldPanel(); };
+  b.appendChild(wb);
   if(adminTab==="players") adminPlayers(b);
   else if(adminTab==="tools") adminTools(b);
   else if(adminTab==="cards") adminCards(b);
@@ -7130,15 +7333,27 @@ function bgmSet(on){
 /* ---------- เสียงฝน ---------- */
 function rainStart(){
   const c=AC2(); if(!c || Aud.rainSrc) return;
-  const len=2*c.sampleRate;
+  const len=4*c.sampleRate;
   const buf=c.createBuffer(1,len,c.sampleRate);
   const d=buf.getChannelData(0);
-  let last=0;
-  for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.2; }
+  let l1=0,l2=0;
+  for(let i=0;i<len;i++){
+    const w=Math.random()*2-1;
+    l1=(l1+0.015*w)/1.015;            /* ทำให้เป็นเสียงซ่าๆ นุ่ม ไม่แหลม */
+    l2=(l2+0.35*(l1-l2));
+    d[i]=l2*2.2;
+  }
   const src=c.createBufferSource(); src.buffer=buf; src.loop=true;
-  const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1400;
-  const hp=c.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=380;
-  src.connect(hp); hp.connect(lp); lp.connect(Aud.rainGain);
+  const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=760;
+  const hp=c.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=180;
+  const peak=c.createBiquadFilter(); peak.type="peaking"; peak.frequency.value=420;
+  peak.gain.value=-4; peak.Q.value=0.7;
+  /* หายใจเบาๆ ให้เหมือนฝนซาเป็นระลอก */
+  const lfo=c.createOscillator(), lfoG=c.createGain();
+  lfo.frequency.value=0.07; lfoG.gain.value=0.028;
+  const shaper=c.createGain(); shaper.gain.value=1;
+  lfo.connect(lfoG); lfoG.connect(shaper.gain); lfo.start();
+  src.connect(hp); hp.connect(peak); peak.connect(lp); lp.connect(shaper); shaper.connect(Aud.rainGain);
   src.start(); Aud.rainSrc=src;
 }
 function rainSet(on){
@@ -7146,7 +7361,7 @@ function rainSet(on){
   rainStart();
   if(!Aud.rainGain) return;
   Aud.rainGain.gain.cancelScheduledValues(c.currentTime);
-  Aud.rainGain.gain.linearRampToValueAtTime(on?0.22:0.0001, c.currentTime+1.4);
+  Aud.rainGain.gain.linearRampToValueAtTime(on?0.085:0.0001, c.currentTime+2.2);
 }
 function audioSync(){
   if(!Aud.started) return;
@@ -7318,6 +7533,373 @@ function drawBigDigit(c,cx,cy,n,scale,col){
     rect(c, cx-w/2+x*px2, cy-h/2+y*px2, px2, px2, col); });
 }
 
+/* =====================================================================
+   หมวด VIP — ใช้ผลึกสมาธิ 💠 (เบต้า: ยังไม่มีใครมีผลึก)
+===================================================================== */
+const VIP = {};
+const COSPLAY_BASE=["hoodie","vest","kimono","lab","sailor","dress","qipao","longDress","tutu",
+                    "overall","knit","jersey","floral","stripe","skirt","sailorSkirt"];
+const COSPLAY_NAME=["อัศวินเงา","นักเวทย์ดาว","จอมยุทธ์สายลม","กัปตันเรือเมฆ","นักสำรวจโบราณ",
+  "เจ้าหญิงคริสตัล","นินจาหมอก","นักบินอวกาศจิ๋ว","หมอผีป่า","ราชินีดอกไม้",
+  "นักดนตรีเร่ร่อน","จอมเวทย์เพลิง","ผู้พิทักษ์ทะเล","นักล่าดาวตก","เจ้าชายราตรี",
+  "แม่มดชา","นักรบสายฟ้า","ภูตน้ำค้าง","นักบวชแสง","จอมโจรเงา",
+  "เชฟดาวมิชลิน","นักวิทย์ห้องแล็บ","ยามเฝ้าประตูมิติ","สาวน้อยเวทมนตร์","ซามูไรใบไม้",
+  "กะลาสีดาวเหนือ","นักเต้นสายลม","เจ้าสาวหิมะ","พ่อมดหนังสือ","นักผจญเพลิง",
+  "ราชานักปราชญ์","สาวคาเฟ่","นักโบราณคดี","จอมมารน้อย","เทพธิดาแสงจันทร์",
+  "นักบวชป่า","หุ่นยนต์จิ๋ว","เจ้าหญิงบัลเลต์","พรานลูกศร","นักมายากล",
+  "เจ้าชายมหาสมุทร","สาวฤดูใบไม้ผลิ","ผู้คุมกาลเวลา","นักรบคริสตัล","แม่ชีดาว",
+  "นักเดินทางข้ามฝัน","ราชินีผีเสื้อ","จอมเวทย์เงา","สาวน้อยฤดูหนาว","ผู้พิทักษ์สมาธิ"];
+const COSPLAY_COL=["#3a3f5c","#5b3fa0","#2f7d6a","#1f5f8c","#8a6a3e","#9fd7e8","#4a4f5c","#d8dce6",
+  "#4d6b3a","#e07aa0","#c9843c","#c9483c","#2f7d9c","#6a5fa0","#3a2b4a","#7fa86a","#f0c93c",
+  "#a8e0ee","#f2e6c8","#2b2b33"];
+(function buildVIP(){
+  COSPLAY_NAME.forEach((n,i)=>{
+    const id="VC_"+i;
+    COSMETICS[id]={cat:"shirt", v:COSPLAY_BASE[i%COSPLAY_BASE.length], n:"คอสเพลย์ "+n,
+      col:COSPLAY_COL[i%COSPLAY_COL.length], price:0, crystal: 12 + (i%5)*4, e:"👑", vip:true};
+  });
+})();
+/* ---------- ท่าถ่ายภาพ VIP 20 แบบ ---------- */
+const VIP_POSES=[
+  ["vp_hero","ฮีโร่ยืนผงาด","cross","happy","aura"],["vp_win","ชูถ้วยชนะ","cheer","happy","confetti"],
+  ["vp_love","ใจฟูใส่กัน","idle","happy","hearts"],["vp_zen","สมาธิลอยตัว","focus","focus","ring"],
+  ["vp_storm","ท่าปลุกพลัง","cheer","happy","bolt"],["vp_snow","หิมะโปรยปราย","idle","idle","snow"],
+  ["vp_star","ดาวตกอธิษฐาน","sit","sleep","stars"],["vp_flip2","ตีลังกาคู่","flip","happy","aura"],
+  ["vp_dance2","เต้นปาร์ตี้","dance","happy","confetti"],["vp_bubble","ฟองสบู่ลอย","idle","happy","bubble"],
+  ["vp_leaf","ใบไม้ร่วง","sit","idle","leaf"],["vp_fire","เปลวไฟรอบตัว","cross","idle","fire"],
+  ["vp_moon","ใต้แสงจันทร์","sit","sleep","moon"],["vp_rain","เต้นกลางฝน","dance","walk","rainfx"],
+  ["vp_peace2","พีซคู่หู","peace","happy","stars"],["vp_king","ราชาแห่งสมาธิ","cross","focus","aura"],
+  ["vp_jump2","กระโดดสูงสุด","jump","happy","bolt"],["vp_hug","กอดกันแน่น","sit","happy","hearts"],
+  ["vp_magic","ร่ายเวทมนตร์","cheer","focus","ring"],["vp_final","ภาพจบการเดินทาง","focus","focus","confetti"]
+];
+VIP_POSES.forEach((p,i)=>{ VIP[p[0]]={type:"pose", n:"ท่า "+p[1], crystal:8+(i%4)*3, e:"📸", idx:i}; });
+function ownedPoses(){ return (G.vip&&G.vip.poses)||[]; }
+function allPoses(){
+  const own=ownedPoses();
+  return POSES.concat(VIP_POSES.filter(p=>own.includes(p[0]))
+    .map(p=>({k:p[0], n:p[1], ply:p[2], pet:p[3], fx:p[4]})));
+}
+/* ---------- พื้นและผนัง 20 แบบ ---------- */
+const VIP_WALL=[
+  ["ไม้เขียวคลาสสิก","#96ad70","#879d62","#9db474"],["ครีมอบอุ่น","#d8c9a8","#c9b899","#e4d8ba"],
+  ["ฟ้าอ่อน","#9fc4d8","#8fb4c9","#b2d4e4"],["ชมพูหวาน","#dda8b8","#c998a8","#eabbc8"],
+  ["ม่วงลาเวนเดอร์","#b3a8d8","#a397c9","#c4bae4"],["เทาโมเดิร์น","#a8a8a8","#999999","#bcbcbc"],
+  ["ไม้สนอ่อน","#c9a06e","#b38f5f","#dcb47e"],["เขียวมอส","#7f9c6a","#6f8c5c","#93b07c"],
+  ["ส้มพระอาทิตย์","#e0a068","#cc8f5c","#f0b57e"],["น้ำเงินราตรี","#4a5878","#3d4a68","#5c6a8c"],
+  ["อิฐแดง","#b3624f","#9c5445","#c47764"],["หินอ่อนขาว","#e6e2d8","#d6d2c8","#f2efe6"],
+  ["ไผ่ญี่ปุ่น","#c2b184","#b3a276","#d3c396"],["ทะเลลึก","#3f7d8c","#356b78","#4f929c"],
+  ["ทองหรู","#c9a94f","#b39843","#dcbe66"],["ดำหรูหรา","#3a3a44","#2e2e36","#4a4a56"],
+  ["พีชนุ่ม","#e8bfa0","#d6ad8f","#f4d2b6"],["มิ้นต์สดชื่น","#a0d8c4","#8fc7b3","#b6e6d6"],
+  ["ลายจุดพาสเทล","#e4d0e8","#d4bfd8","#f0e0f2"],["กาแฟเข้ม","#6b5040","#5c4436","#7d6050"]
+];
+const VIP_FLOOR=[
+  ["ไม้คลาสสิก","#a8845c","#c49a6c","#96724f"],["ไม้โอ๊คเข้ม","#8a5f3a","#a8763f","#6d4326"],
+  ["ไม้ขาว","#d8c9b0","#e8dcc4","#c3b49c"],["กระเบื้องหมากรุก","#e0dcd0","#f0ece0","#4a4a56"],
+  ["หินอ่อน","#dcd8cc","#eceadf","#c0bcae"],["พรมแดง","#a8443c","#c25a50","#8c352f"],
+  ["พรมน้ำเงิน","#3f5a8c","#4f6ea8","#33486f"],["เสื่อทาทามิ","#c2b184","#d6c69a","#a89a72"],
+  ["หญ้าเทียม","#6f9c46","#84b355","#5c8438"],["หินกรวด","#9aa8b0","#b0bcc4","#7f8a92"],
+  ["ไม้ไผ่","#c9b48a","#dcc9a0","#b09c76"],["กระเบื้องฟ้า","#8fc4d8","#a8d6e8","#7aaec2"],
+  ["กระเบื้องชมพู","#e0a8b8","#f0bcc9","#c894a4"],["ไม้เชอร์รี่","#a8563a","#c26a4c","#8c4530"],
+  ["เงาดำเงา","#3a3a44","#4a4a56","#2e2e36"],["ทรายชายหาด","#e4d2a8","#f2e2bc","#cbb98f"],
+  ["คริสตัลใส","#b6dce8","#cfeaf4","#9cc4d2"],["ลายดาว","#4a4470","#5c5688","#3a3558"],
+  ["ไม้ลายก้างปลา","#b38f5f","#c9a472","#9c7a4c"],["พรมขนนุ่ม","#d8c4d8","#e8d6e8","#c2aec2"]
+];
+VIP_WALL.forEach((wv,i)=> VIP["vw_"+i]={type:"wall", n:"ผนัง "+wv[0], crystal:10+(i%4)*3, e:"🧱", idx:i});
+VIP_FLOOR.forEach((fv,i)=> VIP["vf_"+i]={type:"floor", n:"พื้น "+fv[0], crystal:10+(i%4)*3, e:"🟫", idx:i});
+/* ---------- แฟรี่ 5 สี ---------- */
+const FAIRIES=[["ฟ้าคริสตัล","#9fd7e8"],["ชมพูซากุระ","#f2a8c8"],["ทองอรุณ","#f7e08a"],
+               ["เขียวใบไม้","#a8e07a"],["ม่วงราตรี","#c8a8f0"]];
+FAIRIES.forEach((f,i)=> VIP["fy_"+i]={type:"fairy", n:"แฟรี่"+f[0], crystal:45, e:"🧚", idx:i});
+/* ---------- แบบบ้าน 5 แบบ ---------- */
+const HOUSES=[["กระท่อมไม้ดั้งเดิม","#c9a06e","#a85846"],["บ้านอิฐแดง","#c07a5c","#8f4638"],
+              ["บ้านสไตล์ญี่ปุ่น","#d8cbb0","#5f6b58"],["คฤหาสน์หิน","#c2c2b8","#4a5868"],
+              ["บ้านลอยฟ้าคริสตัล","#cfe6f2","#6fa8c4"]];
+HOUSES.forEach((h,i)=> VIP["hs_"+i]={type:"house", n:"บ้าน"+h[0], crystal:60, e:"🏠", idx:i});
+/* ---------- ซื้อ/ใส่ ---------- */
+function vipOwned(id){ const v=(G.vip&&G.vip.owned)||[]; return v.includes(id); }
+function buyVip(id){
+  const it=VIP[id]||COSMETICS[id]; if(!it) return;
+  const cost=it.crystal||0;
+  if((G.crystal||0) < cost){
+    sfx.bad();
+    toast("ต้องใช้ 💠 "+cost+" ผลึกสมาธิ · ระบบเติมผลึกจะเปิดหลังเบต้า");
+    return;
+  }
+  G.crystal -= cost;
+  if(!G.vip) G.vip={};
+  if(!G.vip.owned) G.vip.owned=[];
+  G.vip.owned.push(id);
+  if(COSMETICS[id]){ if(!G.wardrobe.shirt) G.wardrobe.shirt=[]; G.wardrobe.shirt.push(id); }
+  if(VIP[id] && VIP[id].type==="pose"){ if(!G.vip.poses) G.vip.poses=[]; G.vip.poses.push(id); }
+  if(VIP[id] && VIP[id].type==="wall") G.vip.wall=VIP[id].idx;
+  if(VIP[id] && VIP[id].type==="floor") G.vip.floor=VIP[id].idx;
+  if(VIP[id] && VIP[id].type==="fairy") G.vip.fairy=VIP[id].idx;
+  if(VIP[id] && VIP[id].type==="house") G.vip.house=VIP[id].idx;
+  sfx.ok(); toast("ปลดล็อก "+(it.n||id)+" แล้ว");
+  save(); refreshHud(); renderShop();
+}
+let vipCat="cos";
+function renderVipShop(b){
+  b.insertAdjacentHTML("beforeend",
+    `<p class="hint">หมวด VIP ใช้ <b>💠 ผลึกสมาธิ</b> · ตอนนี้คุณมี 💠 ${G.crystal||0}
+     <br>ระบบเติมผลึกและสมาชิกจะเปิดหลังช่วงเบต้า · ตอนนี้เปิดให้ชมรายการล่วงหน้า</p>`);
+  const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="8px";
+  [["cos","คอสเพลย์"],["pose","ท่าถ่ายภาพ"],["wall","ผนัง"],["floor","พื้น"],
+   ["fairy","แฟรี่"],["house","แบบบ้าน"]].forEach(([k,n])=>{
+    const bt=document.createElement("button"); bt.className="opt"+(vipCat===k?" on":"");
+    bt.textContent=n; bt.onclick=()=>{ sfx.tap(); vipCat=k; renderShop(); };
+    tabs.appendChild(bt);
+  });
+  b.appendChild(tabs);
+  const grid=document.createElement("div"); grid.className="grid";
+  const mk=(id,name,emo,cost,owned,swatch)=>{
+    const c=document.createElement("button");
+    c.className="cell"+(owned?" owned":"");
+    c.innerHTML=(swatch?`<div class="swDot" style="background:${swatch}"></div>`:`<div class="e">${emo}</div>`)
+      +`<div class="n">${name}</div><div class="p">${owned?"มีแล้ว":"💠"+cost}</div>`;
+    c.onclick=()=>owned?toast("ปลดล็อกแล้ว · ใส่ได้ที่ตู้เสื้อผ้า/โหมดถ่ายภาพ"):buyVip(id);
+    grid.appendChild(c);
+  };
+  if(vipCat==="cos") Object.keys(COSMETICS).filter(k=>COSMETICS[k].vip)
+    .forEach(k=>mk(k,COSMETICS[k].n,"👑",COSMETICS[k].crystal,vipOwned(k),COSMETICS[k].col));
+  else Object.keys(VIP).filter(k=>VIP[k].type===vipCat)
+    .forEach(k=>{
+      const v=VIP[k];
+      const sw = v.type==="wall" ? VIP_WALL[v.idx][1] : v.type==="floor" ? VIP_FLOOR[v.idx][1]
+               : v.type==="fairy" ? FAIRIES[v.idx][1] : v.type==="house" ? HOUSES[v.idx][1] : null;
+      mk(k,v.n,v.e,v.crystal,vipOwned(k),sw);
+    });
+  b.appendChild(grid);
+}
+/* ---------- แฟรี่ติดตามผู้เล่น ---------- */
+function drawFairy(c,t){
+  if(!G || !G.vip || G.vip.fairy===null || G.vip.fairy===undefined) return;
+  const col=FAIRIES[G.vip.fairy] ? FAIRIES[G.vip.fairy][1] : "#9fd7e8";
+  const a=t*1.6;
+  const fx=Ply.x - Ply.dir*10 + Math.cos(a)*7;
+  const fy=FLOOR-24 + Math.sin(a*1.4)*5;
+  ell(c,fx,fy,4,4,"rgba(255,255,255,.10)");
+  ell(c,fx,fy,2,2,col); px(c,fx,fy-1,"#ffffff");
+  const wg=Math.sin(t*14)>0?1:0;
+  ell(c,fx-3,fy-1-wg,2,2,"rgba(255,255,255,.55)");
+  ell(c,fx+3,fy-1-wg,2,2,"rgba(255,255,255,.55)");
+  if(Math.sin(t*5)>0.8) px(c,fx+Math.round(Math.cos(a*2)*5), fy+3, col);
+}
+function fairyFocusTick(){
+  if(!FS.on || !G.vip || G.vip.fairy===null || G.vip.fairy===undefined) return;
+  const el=FS.total - Math.max(0,(FS.endAt-now())/1000);
+  const mark=Math.floor(el/1200);
+  if(mark > (FS.fairyMark||0)){
+    FS.fairyMark=mark;
+    const k=pick(Object.keys(SEEDS));
+    addItem(k,1);
+    floatText(Ply.x, FLOOR-34, "🧚 "+SEEDS[k].e+" +1","rare");
+    toast("แฟรี่หาเมล็ด "+SEEDS[k].n+" มาให้!");
+    beep(1040,.06,"triangle",.04); markDirty();
+  }
+}
+
+/* =====================================================================
+   ระบบกันโกง + แผงควบคุมโลก (เว็บแดชบอร์ดสำหรับแอดมิน)
+===================================================================== */
+const AC_LIMIT = { coinPerMin: 900, crystalPerMin: 40, itemPerMin: 60 };
+const Anti = { lastCoins:null, lastCrystal:null, lastItems:null, lastAt:0, grantAt:0 };
+function noteAdminGrant(){ Anti.grantAt = now(); }
+function itemCount(){ let n=0; for(const k in G.bag) n+=G.bag[k]; return n; }
+function antiCheatTick(){
+  if(!G) return;
+  const t=now();
+  if(Anti.lastCoins===null){ Anti.lastCoins=G.coins; Anti.lastCrystal=G.crystal||0;
+    Anti.lastItems=itemCount(); Anti.lastAt=t; return; }
+  const dtMin=Math.max(0.2,(t-Anti.lastAt)/60000);
+  const dCoin=(G.coins-Anti.lastCoins)/dtMin;
+  const dCry=((G.crystal||0)-Anti.lastCrystal)/dtMin;
+  const dItem=(itemCount()-Anti.lastItems)/dtMin;
+  const recentGrant = (t-Anti.grantAt) < 60000;
+  const hits=[];
+  if(dCoin>AC_LIMIT.coinPerMin && !recentGrant) hits.push("เหรียญเพิ่ม "+Math.round(dCoin)+"/นาที");
+  if(dCry>AC_LIMIT.crystalPerMin && !recentGrant) hits.push("ผลึกเพิ่ม "+Math.round(dCry)+"/นาที");
+  if(dItem>AC_LIMIT.itemPerMin && !recentGrant) hits.push("ไอเท็มเพิ่ม "+Math.round(dItem)+"/นาที");
+  if(hits.length) flagPlayer(G.account.code, hits.join(" · "));
+  Anti.lastCoins=G.coins; Anti.lastCrystal=G.crystal||0; Anti.lastItems=itemCount(); Anti.lastAt=t;
+}
+setInterval(antiCheatTick, 20000);
+function flagPlayer(code, reason){
+  if(!Registry.flags) Registry.flags={};
+  const f=Registry.flags[code]||{n:0,last:"",at:0};
+  f.n++; f.last=reason; f.at=now();
+  Registry.flags[code]=f;
+  saveRegistry();
+  if(f.n>=3 && !Registry.bans[code]){
+    Registry.bans[code]={reason:"ระบบตรวจพบความผิดปกติซ้ำ: "+reason, at:now(), by:"auto-guard"};
+    saveRegistry();
+    if(G && code===G.account.code){
+      toast("⛔ ระบบตรวจพบค่าที่ผิดปกติ · บัญชีถูกระงับชั่วคราว");
+    }
+  } else if(G && code===G.account.code){
+    toast("⚠️ ระบบกันโกงพบความผิดปกติ ("+f.n+"/3): "+reason);
+  }
+}
+/* พิกัด/IP จำลอง (เบต้า ยังไม่มีเซิร์ฟเวอร์จริง) */
+const GEO=[["กรุงเทพฯ, ไทย",13.75,100.5],["เชียงใหม่, ไทย",18.79,98.98],["ขอนแก่น, ไทย",16.44,102.83],
+  ["ภูเก็ต, ไทย",7.88,98.39],["โตเกียว, ญี่ปุ่น",35.68,139.69],["สิงคโปร์",1.35,103.82],
+  ["โซล, เกาหลีใต้",37.57,126.98],["ไทเป, ไต้หวัน",25.03,121.56],["ซิดนีย์, ออสเตรเลีย",-33.87,151.21],
+  ["ลอนดอน, อังกฤษ",51.51,-0.13]];
+function simIP(code){ const h=codeHash(code); return (h%223+1)+"."+((h>>3)%255)+"."+((h>>7)%255)+"."+((h>>11)%254+1); }
+function simGeo(code){ return GEO[codeHash(code)%GEO.length]; }
+/* ---------- แผงควบคุมโลก ---------- */
+function adminAction(kind, code, val){
+  if(!isAdmin()) return "denied";
+  if(kind==="ban"){
+    Registry.bans[code]={reason:val||"ไม่ระบุเหตุผล", at:now(), by:G.account.email};
+    saveRegistry(); return "banned";
+  }
+  if(kind==="unban"){ delete Registry.bans[code]; saveRegistry(); return "unbanned"; }
+  if(kind==="coins" && code===G.account.code){ G.coins=clamp(G.coins+(+val||0),0,9999999); noteAdminGrant(); save(); refreshHud(); return "ok"; }
+  if(kind==="crystal" && code===G.account.code){ G.crystal=clamp((G.crystal||0)+(+val||0),0,9999999); noteAdminGrant(); save(); refreshHud(); return "ok"; }
+  if(kind==="item" && code===G.account.code){ addItem(val,1); noteAdminGrant(); save(); return "ok"; }
+  if(kind==="coins"||kind==="crystal"||kind==="item"){
+    const p=Registry.players.find(x=>x.code===code);
+    if(p){ if(kind==="coins") p.coins=(p.coins||0)+(+val||0); saveRegistry(); return "queued"; }
+  }
+  return "noop";
+}
+function worldData(){
+  touchRegistry();
+  return Registry.players.map(p=>{
+    const g=simGeo(p.code), me=(G&&p.code===G.account.code);
+    return {
+      code:p.code, name:p.name, email:p.email, online:isOnline(p),
+      seen:p.seen, ip:simIP(p.code), place:g[0], lat:g[1], lng:g[2],
+      pet:p.pet, form:p.form, formName:(FORMS[p.form]||{}).name||p.form, lv:p.lv,
+      coins:p.coins||0, crystal:me?(G.crystal||0):0, focusMin:p.focusMin||0,
+      banned: Registry.bans[p.code]||null, flags:(Registry.flags||{})[p.code]||null,
+      items: me ? Object.keys(G.bag).map(k=>({k, n:G.bag[k], name:(itemDef(k)||{}).n||k})) : [],
+      wear: me ? { hair:cosOf("hair",G.player.hair).shape, shirt:cosOf("shirt",G.player.shirtStyle||"plain").shape,
+                   hat:cosOf("hat",G.player.hat).shape, glass:cosOf("glass",G.player.glass).shape,
+                   scarf:cosOf("scarf",G.player.scarf).shape, acc:cosOf("acc",G.player.acc).shape } : null,
+      stats: me ? petStats() : null
+    };
+  });
+}
+function openWorldPanel(){
+  if(!isAdmin()){ sfx.bad(); toast("⛔ เฉพาะผู้ดูแลระบบ"); return; }
+  const wnd=window.open("", "samati_world", "width=1180,height=820");
+  if(!wnd){ toast("เบราว์เซอร์บล็อกป๊อบอัพ · อนุญาตแล้วลองใหม่"); return; }
+  const data=worldData();
+  const totalFocus=data.reduce((a,p)=>a+p.focusMin,0);
+  const onlineN=data.filter(p=>p.online).length;
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
+<title>SAMATI · World Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans Thai",system-ui,sans-serif;background:#0d1020;color:#e7ecf5;padding:18px}
+h1{font-family:Comfortaa,sans-serif;font-size:22px;color:#f3d78d;display:flex;align-items:center;gap:10px}
+h1 em{font-style:normal;font-size:11px;background:#243056;padding:3px 8px;border-radius:8px;color:#9fc4ee}
+.sub{font-size:12px;color:#8f9ec2;margin:4px 0 16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.card{background:linear-gradient(180deg,#161c34,#121729);border:1px solid #26304e;border-radius:14px;padding:14px}
+.card b{display:block;font-size:26px;color:#fff;font-family:Comfortaa,sans-serif}
+.card span{font-size:11.5px;color:#8f9ec2}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:16px}
+.panel{background:#121729;border:1px solid #26304e;border-radius:14px;padding:14px}
+.panel h2{font-size:14px;color:#9fc4ee;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:#8f9ec2;font-weight:600;padding:8px 6px;border-bottom:1px solid #26304e;position:sticky;top:0;background:#121729}
+td{padding:7px 6px;border-bottom:1px solid #1d2440;vertical-align:top}
+tr:hover td{background:#161d36}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.on{background:#4ade80;box-shadow:0 0 8px #4ade80}.off{background:#4b5675}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:#243056;color:#9fc4ee}
+.tag.bad{background:#4a1f28;color:#ff9aa8}.tag.warn{background:#4a3a1f;color:#ffd68a}
+button{border:0;border-radius:8px;padding:5px 10px;font-family:inherit;font-size:11px;cursor:pointer;
+  background:#2b3a63;color:#dbe6fa;margin-right:4px}
+button:hover{background:#38497b}
+button.dan{background:#5c2230;color:#ffc3cc}button.ok{background:#1f4a35;color:#a8f0c8}
+.wrap{max-height:420px;overflow:auto}
+canvas{width:100%;height:150px;display:block}
+.foot{font-size:11px;color:#6f7da3;margin-top:14px;line-height:1.6}
+.det{font-size:11px;color:#9fb0d8}
+</style></head><body>
+<h1>SAMATI · World Control <em>Beta 0.1 · admin only</em></h1>
+<div class="sub">ผู้ดูแล: ${G.account.email} · อัปเดตล่าสุด ${new Date().toLocaleString("th-TH")}</div>
+<div class="cards">
+  <div class="card"><b>${data.length}</b><span>บัญชีทั้งหมด</span></div>
+  <div class="card"><b style="color:#4ade80">${onlineN}</b><span>กำลังออนไลน์</span></div>
+  <div class="card"><b>${data.length-onlineN}</b><span>ออฟไลน์</span></div>
+  <div class="card"><b style="color:#ff9aa8">${Object.keys(Registry.bans).length}</b><span>ถูกระงับ</span></div>
+  <div class="card"><b style="color:#ffd68a">${Object.keys(Registry.flags||{}).length}</b><span>ถูกตั้งค่าสงสัย</span></div>
+  <div class="card"><b>${Math.round(totalFocus).toLocaleString()}</b><span>นาทีโฟกัสรวม</span></div>
+</div>
+<div class="grid2">
+  <div class="panel"><h2>กราฟผู้เล่นออนไลน์ (24 ชม.ล่าสุด)</h2><canvas id="c1" width="700" height="150"></canvas></div>
+  <div class="panel"><h2>เวลาโฟกัสรายผู้เล่น</h2><canvas id="c2" width="400" height="150"></canvas></div>
+</div>
+<div class="panel"><h2>รายชื่อผู้เล่นทั้งหมด</h2><div class="wrap"><table id="tb">
+<thead><tr><th>สถานะ</th><th>ผู้เล่น</th><th>IP / พิกัด</th><th>สัตว์เลี้ยง</th><th>ทรัพย์สิน</th><th>ความปลอดภัย</th><th>จัดการ</th></tr></thead>
+<tbody>${data.map(p=>`
+<tr><td><span class="dot ${p.online?"on":"off"}"></span>${p.online?"ออนไลน์":"ออฟไลน์"}<div class="det">${new Date(p.seen).toLocaleTimeString("th-TH")}</div></td>
+<td><b>${p.name}</b><div class="det">${p.code} · ${p.email}</div></td>
+<td>${p.ip}<div class="det">${p.place} (${p.lat}, ${p.lng})</div></td>
+<td>${p.pet} · Lv.${p.lv}<div class="det">${p.formName}</div>
+  ${p.stats?`<div class="det">STR ${p.stats.str} VIT ${p.stats.vit} AGI ${p.stats.agi} INT ${p.stats.int} LUK ${p.stats.luk}</div>`:""}
+  ${p.wear?`<div class="det">สวมใส่: ${Object.values(p.wear).filter(v=>v&&v!=="none"&&v!=="plain").join(", ")||"ชุดพื้นฐาน"}</div>`:""}</td>
+<td>🪙 ${p.coins.toLocaleString()}<div class="det">💠 ${p.crystal} · โฟกัส ${p.focusMin} นาที</div>
+  ${p.items.length?`<div class="det">ไอเท็ม ${p.items.length} ชนิด: ${p.items.slice(0,6).map(i=>i.name+"×"+i.n).join(", ")}${p.items.length>6?" …":""}</div>`:""}</td>
+<td>${p.banned?`<span class="tag bad">ระงับ</span><div class="det">${p.banned.reason}</div>`
+   : p.flags?`<span class="tag warn">สงสัย ${p.flags.n}</span><div class="det">${p.flags.last}</div>`
+   : `<span class="tag">ปกติ</span>`}</td>
+<td>
+ ${p.banned?`<button class="ok" onclick="act('unban','${p.code}')">ปลดระงับ</button>`
+           :`<button class="dan" onclick="ban('${p.code}')">ระงับบัญชี</button>`}
+ <button onclick="act('coins','${p.code}',1000)">+1000🪙</button>
+ <button onclick="act('crystal','${p.code}',100)">+100💠</button>
+</td></tr>`).join("")}</tbody></table></div></div>
+<div class="foot">
+ ⚠️ หมายเหตุความโปร่งใส: เกมเวอร์ชันเบต้ายังทำงานบนเครื่องผู้เล่น ยังไม่มีเซิร์ฟเวอร์กลาง
+ ดังนั้น <b>เลข IP และพิกัดในตารางนี้เป็นค่าจำลอง</b> ที่สร้างจากรหัสผู้เล่นเพื่อทดสอบหน้าตาแผงควบคุม
+ การเก็บ IP/พิกัดจริงต้องทำฝั่งเซิร์ฟเวอร์และต้องแจ้งผู้ใช้ตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
+ ส่วนการเพิ่มเหรียญ/ผลึก/ไอเท็ม จะมีผลทันทีกับบัญชีที่กำลังเล่นอยู่บนเครื่องนี้ บัญชีอื่นจะถูกคิวไว้จนกว่าจะเชื่อมเซิร์ฟเวอร์
+</div>
+<script>
+function act(kind,code,val){
+  const r=window.opener && window.opener.adminAction ? window.opener.adminAction(kind,code,val) : "no-opener";
+  if(r==="denied") alert("ไม่มีสิทธิ์");
+  else location.reload();
+}
+function ban(code){
+  const r=prompt("เหตุผลในการระงับบัญชี "+code);
+  if(!r) return; act('ban',code,r);
+}
+const on=${JSON.stringify(Array.from({length:24},(_,i)=>Math.max(0,Math.round(onlineN*(0.4+0.6*Math.sin(i/3.2))+((i*7)%3)))))};
+(function(){
+ const c=document.getElementById('c1').getContext('2d');
+ const W=700,H=150,mx=Math.max(1,...on);
+ c.clearRect(0,0,W,H);
+ c.strokeStyle='#26304e';for(let i=0;i<=4;i++){c.beginPath();c.moveTo(0,H*i/4);c.lineTo(W,H*i/4);c.stroke();}
+ const g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(96,165,250,.5)'); g.addColorStop(1,'rgba(96,165,250,0)');
+ c.beginPath(); c.moveTo(0,H);
+ on.forEach((v,i)=>c.lineTo(i*(W/23), H-(v/mx)*(H-16)-8));
+ c.lineTo(W,H); c.closePath(); c.fillStyle=g; c.fill();
+ c.beginPath(); on.forEach((v,i)=>{const x=i*(W/23),y=H-(v/mx)*(H-16)-8; i?c.lineTo(x,y):c.moveTo(x,y);});
+ c.strokeStyle='#60a5fa'; c.lineWidth=2; c.stroke();
+})();
+(function(){
+ const c=document.getElementById('c2').getContext('2d');
+ const d=${JSON.stringify(data.map(p=>({n:p.name,v:p.focusMin})))};
+ const W=400,H=150,mx=Math.max(1,...d.map(x=>x.v)),bw=W/Math.max(1,d.length);
+ c.clearRect(0,0,W,H);
+ d.forEach((x,i)=>{ const h=(x.v/mx)*(H-30);
+  c.fillStyle='#f3d78d'; c.fillRect(i*bw+4,H-h-18,bw-8,h);
+  c.fillStyle='#8f9ec2'; c.font='9px sans-serif'; c.textAlign='center';
+  c.fillText(x.n.slice(0,6), i*bw+bw/2, H-6); });
+})();
+<\/script></body></html>`;
+  wnd.document.open(); wnd.document.write(html); wnd.document.close();
+  toast("เปิดแผงควบคุมโลกแล้ว");
+}
+
 function migrate(o){
   const base=newGame();
   const s=Object.assign(base,o);
@@ -7365,6 +7947,7 @@ function migrate(o){
   if(AREAS[s.area] && AREAS[s.area].ghost) s.area="home";
   s.player.shirtStyle = o.player && o.player.shirtStyle || "plain";
   s.player.acc = o.player && o.player.acc || "none";
+  s.player.pantsStyle = (o.player && o.player.pantsStyle) || "long";
   if(s.area==="friend" && !s.visiting) s.area="home";
   s.stats=Object.assign(base.stats, o.stats||{});
   if(!FORMS[s.pet.form]) s.pet.form="seed";
