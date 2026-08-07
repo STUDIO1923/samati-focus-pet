@@ -257,6 +257,23 @@ app.get("/api/friends", rateLimit("friend-search", 30), requireUser, async (req,
     petName: state.pet?.name || "Mori", petForm: state.pet?.form || "seed", petLv: clamp(Math.round(num(state.pet?.lv, 1)), 1, 100)
   })).filter(v => v.code) });
 });
+app.post("/api/friends/:code/cheer", rateLimit("friend-cheer", 20), requireUser, async (req, res) => {
+  const code=String(req.params.code||"").toUpperCase();
+  const sender=await pool.query("SELECT state FROM game_saves WHERE google_sub=$1",[req.user.sub]);
+  const senderCode=String(sender.rows[0]?.state?.account?.code||"").toUpperCase();
+  if(!senderCode||senderCode===code)return res.status(400).json({error:"invalid friend"});
+  const db=await pool.connect();
+  try{
+    await db.query("BEGIN");
+    const target=await db.query("SELECT google_sub,state FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 FOR UPDATE",[code]);
+    if(!target.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"friend not found"});}
+    const ins=await db.query(`INSERT INTO friend_cheers(sender_sub,target_sub,sent_on) VALUES($1,$2,(NOW() AT TIME ZONE 'Asia/Bangkok')::date) ON CONFLICT DO NOTHING RETURNING sender_sub`,[req.user.sub,target.rows[0].google_sub]);
+    if(!ins.rowCount){await db.query("ROLLBACK");return res.status(409).json({error:"already cheered today"});}
+    const state=target.rows[0].state;state.cheers=clamp(Math.round(num(state.cheers,0))+1,0,999999);
+    await db.query("UPDATE game_saves SET state=$2,updated_at=NOW() WHERE google_sub=$1",[target.rows[0].google_sub,state]);
+    await db.query("COMMIT");res.json({ok:true,cheers:state.cheers});
+  }catch(error){await db.query("ROLLBACK").catch(()=>{});throw error;}finally{db.release();}
+});
 app.get("/api/admin/security", rateLimit("admin-security", 30), requireAdmin, async (_req, res) => {
   const [events, counts] = await Promise.all([
     pool.query(`SELECT email,kind,severity,details,created_at FROM security_events
@@ -326,7 +343,9 @@ async function roomState(code, after = 0) {
     pool.query("SELECT id,name,message,created_at FROM room_messages WHERE room_code=$1 AND id>$2 ORDER BY id DESC LIMIT 50", [code, Math.max(0, Number(after) || 0)])
   ]);
   const s = owner.rows[0]?.state;
-  const house = s ? { code, name: s.player?.name || "ผู้เล่น", player: s.player || {}, pet: s.pet || {}, place: Array.isArray(s.place?.home) ? s.place.home.slice(0, 300) : [], vip: s.vip || {} } : null;
+  const house = s ? { code, name: s.player?.name || "ผู้เล่น", player: s.player || {}, pet: s.pet || {}, place: {
+    home:Array.isArray(s.place?.home)?s.place.home.slice(0,300):[],yard:Array.isArray(s.place?.yard)?s.place.yard.slice(0,300):[],garden:Array.isArray(s.place?.garden)?s.place.garden.slice(0,300):[]
+  }, vip: s.vip || {} } : null;
   return { members: members.rows.map(r => r.profile), house, messages: messages.rows.reverse(), capacity: 5 };
 }
 app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, async (req, res) => {
@@ -538,5 +557,12 @@ await pool.query(`CREATE TABLE IF NOT EXISTS active_sessions (
   google_sub TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS friend_cheers (
+  sender_sub TEXT NOT NULL,
+  target_sub TEXT NOT NULL,
+  sent_on DATE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (sender_sub,target_sub,sent_on)
 )`);
 app.listen(port, "0.0.0.0", () => console.log(`SAMATI listening on ${port}`));
