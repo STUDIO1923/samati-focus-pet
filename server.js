@@ -107,7 +107,7 @@ function publicUser(user) {
 }
 const collectibleAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function collectibleId() { const bytes=crypto.randomBytes(13); return Array.from(bytes,b=>collectibleAlphabet[b%collectibleAlphabet.length]).join(""); }
-function cleanPlaced(list){return Array.isArray(list)?list.slice(0,300).map(p=>({id:String(p?.id||"").slice(0,40),x:clamp(num(p?.x,108),-50,270),y:clamp(num(p?.y,100),-50,240),on:p?.on!==false})).filter(p=>p.id):[];}
+function cleanPlaced(list){return Array.isArray(list)?list.slice(0,30).map(p=>({id:String(p?.id||"").slice(0,40),x:clamp(num(p?.x,108),-50,270),y:clamp(num(p?.y,100),-50,240),on:p?.on!==false})).filter(p=>p.id):[];}
 function cleanHouse(raw,state){const p=raw?.place||state?.place||{};return{code:String(state?.account?.code||"").slice(0,10).toUpperCase(),name:String(state?.player?.name||"Player").slice(0,24),player:state?.player||{},pet:state?.pet||{},place:{home:cleanPlaced(p.home),yard:cleanPlaced(p.yard),garden:cleanPlaced(p.garden)},vip:state?.vip||{}};}
 async function recordSecurityEvent(user, kind, severity, details) {
   await pool.query(`INSERT INTO security_events (google_sub, email, kind, severity, details)
@@ -355,7 +355,7 @@ async function roomState(code, after = 0) {
   const s = owner.rows[0]?.state;
   const liveHouse=members.rows.map(r=>r.profile).find(p=>p?.code===code)?.house;
   const house = liveHouse || (s ? { code, name: s.player?.name || "ผู้เล่น", player: s.player || {}, pet: s.pet || {}, place: {
-    home:Array.isArray(s.place?.home)?s.place.home.slice(0,300):[],yard:Array.isArray(s.place?.yard)?s.place.yard.slice(0,300):[],garden:Array.isArray(s.place?.garden)?s.place.garden.slice(0,300):[]
+    home:Array.isArray(s.place?.home)?s.place.home.slice(0,30):[],yard:Array.isArray(s.place?.yard)?s.place.yard.slice(0,30):[],garden:Array.isArray(s.place?.garden)?s.place.garden.slice(0,30):[]
   }, vip: s.vip || {} } : null);
   return { members: members.rows.map(r => r.profile), house, messages: messages.rows.reverse(), capacity: 5 };
 }
