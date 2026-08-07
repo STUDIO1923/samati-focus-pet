@@ -10,8 +10,13 @@ const secret = process.env.SESSION_SECRET || "dev-only-change-me";
 if (process.env.NODE_ENV === "production" && secret === "dev-only-change-me") {
   throw new Error("SESSION_SECRET must be configured in production");
 }
-const adminEmails = new Set(String(process.env.ADMIN_EMAILS || "")
-  .split(",").map(v => v.trim().toLowerCase()).filter(Boolean));
+// The project owner must retain server-side admin access even if Render's
+// optional ADMIN_EMAILS environment variable is removed during a redeploy.
+const ownerAdminEmails = ["jenwzch@gmail.com"];
+const adminEmails = new Set([
+  ...ownerAdminEmails,
+  ...String(process.env.ADMIN_EMAILS || "").split(",")
+].map(v => v.trim().toLowerCase()).filter(Boolean));
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL?.includes("localhost") ? false : { rejectUnauthorized: false } });
 
 app.disable("x-powered-by");
