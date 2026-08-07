@@ -158,6 +158,12 @@ app.get("/api/save", requireUser, async (req, res) => {
   const result = await pool.query("SELECT state, updated_at FROM game_saves WHERE google_sub = $1", [req.user.sub]);
   res.json(result.rows[0] || { state: null });
 });
+app.delete("/api/save", rateLimit("delete-save", 3), requireUser, async (req, res) => {
+  await pool.query("DELETE FROM game_saves WHERE google_sub=$1", [req.user.sub]);
+  await pool.query("DELETE FROM room_presence WHERE google_sub=$1", [req.user.sub]).catch(()=>{});
+  await pool.query("DELETE FROM plaza_presence WHERE google_sub=$1", [req.user.sub]).catch(()=>{});
+  res.json({ ok: true });
+});
 app.post("/api/focus/start", rateLimit("focus-start", 8), requireUser, async (req, res) => {
   const minutes = clamp(Math.round(num(req.body?.minutes, 0)), 5, 120);
   const difficulty = ["easy", "mid", "hard"].includes(req.body?.difficulty) ? req.body.difficulty : "mid";
