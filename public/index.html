@@ -755,7 +755,6 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div class="row" style="margin-bottom:8px">
             <button class="opt on" data-shoptab="home">ของแต่งบ้าน</button>
             <button class="opt" data-shoptab="garden">ต้นไม้ & สวน</button>
-            <button class="opt" data-shoptab="wallcoin">⚽ ผนังฟุตบอล</button>
             <button class="opt" data-shoptab="seed">เมล็ดพันธุ์</button>
             <button class="opt" data-shoptab="fashion">แฟชั่น</button>
             <button class="opt" data-shoptab="item">ไอเท็ม</button>
@@ -2857,8 +2856,7 @@ function shaft(c,x0,y0,w,h,col){                     /* ลำแสงจาก
 /* ---------- ห้องในบ้าน ---------- */
 function drawHome(c,t){
   const sunny = !isWet() && Env.phase!=="night";
-  const WP = (G&&G.vip&&G.vip.footballWall!=null&&FOOTBALL_WALL[G.vip.footballWall]) ? FOOTBALL_WALL[G.vip.footballWall]
-    : (G&&G.vip&&G.vip.wall!=null&&VIP_WALL[G.vip.wall]) ? VIP_WALL[G.vip.wall] : ["","#96ad70","#879d62","#9db474"];
+  const WP = (G&&G.vip&&G.vip.wall!=null&&VIP_WALL[G.vip.wall]) ? VIP_WALL[G.vip.wall] : ["","#96ad70","#879d62","#9db474"];
   const FP = (G&&G.vip&&G.vip.floor!=null&&VIP_FLOOR[G.vip.floor]) ? VIP_FLOOR[G.vip.floor] : ["","#a8845c","#c49a6c","#96724f"];
   /* ผนัง 3 โทน + แผงไม้ */
   rect(c,0,0,W,FLOOR,WP[1]);
@@ -3309,8 +3307,7 @@ async function goOwnRoom(){
 function drawFriendRoom(c,t){
   const sunny = !isWet() && Env.phase!=="night";
   const hv=SamatiNet.house?.vip||{};
-  const WP=(hv.footballWall!=null&&FOOTBALL_WALL[hv.footballWall])?FOOTBALL_WALL[hv.footballWall]
-    :(hv.wall!=null&&VIP_WALL[hv.wall])?VIP_WALL[hv.wall]:["","#96ad70","#879d62","#9db474"];
+  const WP=(hv.wall!=null&&VIP_WALL[hv.wall])?VIP_WALL[hv.wall]:["","#96ad70","#879d62","#9db474"];
   const FP=(hv.floor!=null&&VIP_FLOOR[hv.floor])?VIP_FLOOR[hv.floor]:["","#a8845c","#c49a6c","#96724f"];
   rect(c,0,0,W,FLOOR,WP[1]);
   for(let x=0;x<W;x+=8){ rect(c,x,0,1,FLOOR,WP[2]); rect(c,x+1,0,1,FLOOR,WP[3]); }
@@ -3340,12 +3337,19 @@ function drawFriendRoom(c,t){
   if(!SamatiNet.house){drawFurni(c,"shelf",42,FLOOR+8,t);drawFurni(c,"plant",168,FLOOR+10,t);drawFurni(c,"painting",96,34,t);}
 }
 function roomMembers(){ return (SamatiNet.members||[]).filter(m=>m&&m.code!==G.account.code); }
+function liveCoFocus(){return FS.on&&(SamatiNet.members||[]).some(m=>m&&m.code!==G.account.code&&m.focus);}
+function drawFocusSparkles(c,x,y,t){
+  c.save();c.globalCompositeOperation="lighter";
+  for(let i=0;i<8;i++){const a=t*1.7+i*.785,r=11+(i%3)*3,px_=Math.round(x+Math.cos(a)*r),py_=Math.round(y-7+Math.sin(a*1.3)*9);c.fillStyle=i%2?"rgba(255,238,140,.88)":"rgba(145,226,255,.92)";c.fillRect(px_-1,py_,3,1);c.fillRect(px_,py_-1,1,3);}
+  c.fillStyle="rgba(255,244,176,.12)";c.beginPath();c.arc(x,y-6,18+Math.sin(t*2)*2,0,Math.PI*2);c.fill();c.restore();
+}
 function drawRoomMember(c,m,t,i){
   const x=clamp(Number(m.x)||W-42,28,W-28), dir=Number(m.dir)||-1;
   c.save(); c.translate(Math.round(x),FLOOR+8); c.scale(dir,1);
   drawPlayer(c,m.look||DEFAULT_LOOK,{t:t+i*.4,state:m.state||"idle"}); c.restore();
   c.save(); c.translate(Math.round(clamp(x+dir*-17,18,W-18)),FLOOR+9); c.scale(-dir,1);
   drawPet(c,m.pet?.form||"seed",{t:t+1.7+i*.3,state:m.focus?"focus":"idle"}); c.restore();
+  if(FS.on&&m.focus)drawFocusSparkles(c,clamp(x+dir*-17,18,W-18),FLOOR-5,t+i*.7);
   c.save(); c.font='bold 7px "Noto Sans Thai",sans-serif'; c.textAlign="center";
   c.fillStyle="rgba(28,24,48,.82)"; c.fillText(m.name||"เพื่อน",x,FLOOR-31); c.restore();
 }
@@ -3806,18 +3810,18 @@ function render(){
   if(G && SamatiNet.room){ roomMembers().forEach((m,i)=>layer.push({y:FLOOR+8.5+i*.01,f:()=>drawRoomMember(g,m,t,i)})); }
   if(Doc.on) layer.push({y:FLOOR+8.5, f:()=>drawDoctor(g,t)});
   layer.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+  if(liveCoFocus())drawFocusSparkles(g,Pet.x,FLOOR-5,t);
 
   if(typeof drawFairy==="function") drawFairy(g,t);
   for(const cl of clouds) drawCloud(g,cl,t);
   for(const d of drops) drawDropIcon(g,d.x,d.y,d.key,t);
   drawParts(g);
 
-  const tint = TINT[Env.phase];
+  const lights=placedLightCount(),inside=area()==="home"||(area()==="friend"&&SamatiNet.friendZone==="home");
+  const tint = nightNow()&&inside&&lights>0 ? null : TINT[Env.phase];
   if(tint){ g.fillStyle=tint; g.fillRect(0,0,W,H); }
   if(nightNow() && ["home","yard","garden","friend"].includes(area())){
-    const lights=placedLightCount();
-    const inside=area()==="home"||(area()==="friend"&&SamatiNet.friendZone==="home");
-    if(lights){g.fillStyle=`rgba(255,236,184,${inside?Math.min(.50,.34+lights*.035):Math.min(.18,.06+lights*.025)})`;g.fillRect(0,0,W,H);}
+    if(lights&&!inside){g.fillStyle=`rgba(255,236,184,${Math.min(.18,.06+lights*.025)})`;g.fillRect(0,0,W,H);}
   }
   if(isWet()){ g.fillStyle="rgba(72,92,124,.13)"; g.fillRect(0,0,W,H); }
   if(stormFlash(t)){ g.fillStyle="rgba(255,255,255,.22)"; g.fillRect(0,0,W,H); }
@@ -5019,7 +5023,7 @@ function renderStyleRow(){
   row.innerHTML="";
   const k=area();
   const groups=[];
-  if(k==="home") groups.push(["wall","ผนัง",VIP_WALL,"wall"],["football","ผนังฟุตบอล",FOOTBALL_WALL,"footballWall"],["floor","พื้น",VIP_FLOOR,"floor"]);
+  if(k==="home") groups.push(["wall","ผนัง",VIP_WALL,"wall"],["floor","พื้น",VIP_FLOOR,"floor"]);
   if(k==="yard") groups.push(["house","แบบบ้าน",HOUSES,"house"]);
   if(!groups.length){ row.style.display="none"; return; }
   row.style.display="flex";
@@ -5107,6 +5111,7 @@ function startPlacing(k){
 function commitPlace(){
   if(Place.mode==="none" || !Place.id) return;
   if(Place.mode==="ghost" && Place.id){
+    if(G.place[zoneOfArea()].length>=30){sfx.bad();toast("พื้นที่นี้วางของตกแต่งครบ 30 ชิ้นแล้ว");return;}
     G.place[zoneOfArea()].push({id:Place.id, x:Math.round(Place.x), y:Math.round(Place.y), on:true});
     G.bag[Place.id]--; if(!G.bag[Place.id]) delete G.bag[Place.id];
     sfx.ok(); toast("วาง "+FURNI[Place.id].n+" แล้ว");
@@ -6029,12 +6034,13 @@ function openFriends(){
       const cc=document.createElement("canvas"); cc.width=34; cc.height=34;
       const x=cc.getContext("2d"); x.imageSmoothingEnabled=false;
       x.save(); x.translate(17,31);
-      const sc=Math.min(1.3, 22/(FORMS[f.petForm].h*2)); x.scale(sc,sc);
-      drawPet(x,f.petForm,{t:1.2,state:"idle"}); x.restore();
+      const safeForm=FORMS[f.petForm]?f.petForm:"seed";
+      const sc=Math.min(1.3, 22/(FORMS[safeForm].h*2)); x.scale(sc,sc);
+      drawPet(x,safeForm,{t:1.2,state:"idle"}); x.restore();
       row.appendChild(cc);
       const info=document.createElement("div"); info.className="fi";
       info.innerHTML=`<div class="fn">${f.name} <span style="opacity:.55;font-family:var(--mono);font-size:9px">${f.code}</span></div>
-        <div class="fp">เลี้ยง ${f.petName} · ${FORMS[f.petForm].name}</div>
+        <div class="fp">เลี้ยง ${f.petName} · ${(FORMS[f.petForm]||FORMS.seed).name}</div>
         <div class="fbar"><i style="width:${clamp(f.close,0,100)}%"></i></div>`;
       row.appendChild(info);
       const home=document.createElement("button");home.className="chk";home.textContent="🏠";home.title="วาร์ปไปบ้าน";home.onclick=()=>visitFriend(f.code);row.appendChild(home);
