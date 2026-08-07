@@ -3496,9 +3496,13 @@ function rollDropKey(){
 }
 function planDrops(totalSec, count){
   const out=[];
-  for(let i=0;i<count;i++){
-    const u=Math.random();
-    out.push(clamp(20 + (totalSec-30)*Math.pow(u,0.85), 15, totalSec-3));
+  const opportunities=Math.max(2,Math.ceil(totalSec/Math.max(20,dropInterval())));
+  for(let i=0;i<opportunities;i++){
+    const progress=(i+1)/opportunities;
+    const chance=clamp(.22+progress*.48+(FS.partyDrop||0),.18,.92);
+    if(Math.random()>chance)continue;
+    const center=(i+.65)*totalSec/opportunities;
+    out.push(clamp(center+rnd(-8,8),15,totalSec-3));
   }
   out.sort((a,b)=>a-b);
   for(let i=1;i<out.length;i++) if(out[i]-out[i-1] < 6) out[i]=out[i-1]+6;
@@ -3812,7 +3816,8 @@ function render(){
   if(tint){ g.fillStyle=tint; g.fillRect(0,0,W,H); }
   if(nightNow() && ["home","yard","garden","friend"].includes(area())){
     const lights=placedLightCount();
-    if(lights){g.fillStyle=`rgba(255,226,154,${Math.min(.13,.035+lights*.018)})`;g.fillRect(0,0,W,H);}
+    const inside=area()==="home"||(area()==="friend"&&SamatiNet.friendZone==="home");
+    if(lights){g.fillStyle=`rgba(255,236,184,${inside?Math.min(.50,.34+lights*.035):Math.min(.18,.06+lights*.025)})`;g.fillRect(0,0,W,H);}
   }
   if(isWet()){ g.fillStyle="rgba(72,92,124,.13)"; g.fillRect(0,0,W,H); }
   if(stormFlash(t)){ g.fillStyle="rgba(255,255,255,.22)"; g.fillRect(0,0,W,H); }
@@ -4554,7 +4559,8 @@ function focusXpPerMin(){
   const m = FS.mode||focusMode();
   const mult = DIFF[FS.diff||fDiff].mult;
   const k = m==="wild" ? 1.35 : m==="heal" ? 0.4 : 1;
-  const pl = FS.on ? (FS.party?FS.party.length:0) : (m==="home" ? party.length : 0);
+  const live=FS.on?(SamatiNet.members||[]).filter(v=>v&&v.code!==G.account.code&&v.focus).length:0;
+  const pl = FS.on ? Math.max(FS.party?FS.party.length:0,live) : (m==="home" ? party.length : 0);
   return 5.5 * mult * k * (1 + PARTY_XP[clamp(pl,0,4)]);
 }
 const HUNGER_RATE = { home:0.35, garden:0.5, wild:0.85, heal:0.15 };
@@ -4629,7 +4635,7 @@ function buildFocusOpts(){
   const cap = maxDropsFor(mode, fDur);
   const drain = Math.round((HUNGER_RATE[mode]||0.35)*fDur);
   $("#fPreviewXp").textContent = "✦ "+Math.round(fDur*focusXpPerMin())+"  🪙"+Math.round(fDur*focusCoinsPerMin());
-  $("#fPreviewDrop").textContent = cap+" ชิ้น (สุ่มเวลาตลอดรอบ) · 🍚 −"+drain;
+  $("#fPreviewDrop").textContent = "โอกาสเพิ่มตามเวลาและความต่อเนื่อง · 🍚 −"+drain;
   let ok=true, note="";
   if(area()==="garden" && isWet() && !umbrellaReady()){
     ok=false;
@@ -4685,10 +4691,10 @@ function startFocus(){
   FS.total=fDur*60; FS.endAt=now()+FS.total*1000;
   FS.collected=0; FS.coins=0; FS.spawnCd=1.2; FS.awayAt=0;
   FS.dropped=0; FS.maxDrops=maxDropsFor(mode,fDur); FS.pouch={};
-  FS.plan = planDrops(FS.total, FS.maxDrops); FS.cheerUsed=0;
   FS.xpAcc=0; FS.xpTick=10; FS.encCd=rnd(18,34);
   FS.party = (mode==="home") ? party.slice(0,4) : [];
   FS.partyDrop = FS.party.length ? partyDropBonus() : 0;
+  FS.plan = planDrops(FS.total, FS.maxDrops); FS.maxDrops=FS.plan.length; FS.cheerUsed=0;
   $("#focusHud").style.display="flex";
   $("#fhHome").style.display = mode==="wild" ? "inline-block" : "none";
   $("#ring").classList.add("on");
@@ -4722,7 +4728,10 @@ function updateFocusHud(){
   const left = Math.max(0, Math.round((FS.endAt-now())/1000));
   const m=String(Math.floor(left/60)).padStart(2,"0"), s=String(left%60).padStart(2,"0");
   $("#fhTime").textContent = m+":"+s;
-  $("#fhDrop").textContent = FS.collected+"/"+FS.maxDrops;
+  const together=(SamatiNet.members||[]).filter(v=>v&&v.code!==G.account.code&&v.focus).length;
+  if(together)FS.partyDrop=Math.max(FS.partyDrop||0,together*.0025);
+  const xpBonus=PARTY_XP[clamp(together,0,4)]||0,dropBonus=Math.max(FS.partyDrop||0,together*.0025);
+  $("#fhDrop").textContent = together?"ร่วมโฟกัส ✦ ×"+(1+xpBonus).toFixed(4)+" · ดรอป +"+(dropBonus*100).toFixed(2)+"%":"ดรอปเพิ่มตามเวลาที่ต่อเนื่อง";
   if(left<=0) endFocus(null);
 }
 setInterval(updateFocusHud, 500);
@@ -5572,7 +5581,7 @@ window.SamatiNet = {
     const names={home:"ในบ้าน",yard:"หน้าบ้าน",garden:"ริมหน้าผา"};
     toast("🚪 วาร์ปตามเพื่อนไป"+names[zone]);updateMoveBar();
   },
-  serialize(){ const zone=G.area==="friend"?"visitor":(["home","yard","garden"].includes(G.area)?G.area:"away");return { code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:Math.round(Ply.x),dir:Ply.dir,state:Ply.state,focus:!!FS.on,zone,at:now() }; }
+  serialize(){ const zone=G.area==="friend"?"visitor":(["home","yard","garden"].includes(G.area)?G.area:"away"),own=this.room===G.account.code;return { code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:Math.round(Ply.x),dir:Ply.dir,state:Ply.state,focus:!!FS.on,zone,at:now(),house:own?{place:{home:G.place.home,yard:G.place.yard,garden:G.place.garden}}:undefined }; }
 };
 window.HouseChat={
   open(){if(!SamatiCloud.user){toast("เชื่อมต่อบัญชี Google เพื่อใช้แชทในบ้าน");return;}if(!SamatiNet.room){toast("กำลังเชื่อมต่อห้องแชท…");SamatiNet.enter(G.account.code).then(()=>this.open()).catch(()=>toast("เชื่อมต่อแชทไม่สำเร็จ"));return;}const q=$("#houseChatQuick");if(q)q.textContent="💬 แชท";this.render();openPanel("#p-housechat");setTimeout(()=>$("#houseChatInput").focus(),100);},
@@ -6100,6 +6109,24 @@ const POSES = [
   {k:"nap",   n:"งีบด้วยกัน",  ply:"sit",   pet:"sleep"}
 ];
 const PHOTO_EMO = ["✨","💖","😆","🌿","🔮","🎉","☯️","🌙","🍀","⭐","😴","🥰"];
+const COLLECT_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function freshCollectId(){const a=new Uint8Array(13);crypto.getRandomValues(a);return Array.from(a,b=>COLLECT_CHARS[b%COLLECT_CHARS.length]).join("");}
+function registerCollectId(id,kind,ref,record){if(!SamatiCloud.user)return;SamatiCloud.request("/api/collectibles/id",{method:"POST",body:JSON.stringify({id,kind,ref})}).then(o=>{if(o.id&&o.id!==id){record.collectId=o.id;save();}}).catch(()=>{});}
+function collectIdFor(record,kind,ref){if(!record.collectId){record.collectId=freshCollectId();registerCollectId(record.collectId,kind,ref,record);save();}return record.collectId;}
+/* QR Version 1-L, byte mode. The 13-character collection code is the payload. */
+function qrV1(text){
+  const bits=[0,1,0,0];for(let i=7;i>=0;i--)bits.push((text.length>>i)&1);for(const ch of text)for(let i=7;i>=0;i--)bits.push((ch.charCodeAt(0)>>i)&1);for(let i=0;i<4&&bits.length<152;i++)bits.push(0);while(bits.length%8)bits.push(0);
+  const data=[];for(let i=0;i<bits.length;i+=8)data.push(parseInt(bits.slice(i,i+8).join(""),2));for(let p=0;data.length<19;p++)data.push(p%2?17:236);
+  const exp=new Array(512),log=new Array(256);let v=1;for(let i=0;i<255;i++){exp[i]=v;log[v]=i;v<<=1;if(v&256)v^=0x11d;}for(let i=255;i<512;i++)exp[i]=exp[i-255];
+  const gen=[87,229,146,149,238,102,21],ecc=Array(7).fill(0);for(const b of data){const f=b^ecc.shift();ecc.push(0);if(f)for(let j=0;j<7;j++)ecc[j]^=exp[log[f]+log[gen[j]]];}
+  const stream=[];for(const b of data.concat(ecc))for(let i=7;i>=0;i--)stream.push((b>>i)&1);
+  const n=21,m=Array.from({length:n},()=>Array(n).fill(null)),fn=(x,y,b)=>{if(x>=0&&y>=0&&x<n&&y<n)m[y][x]=!!b;};
+  for(const [cx,cy] of [[3,3],[17,3],[3,17]])for(let y=-4;y<=4;y++)for(let x=-4;x<=4;x++){const d=Math.max(Math.abs(x),Math.abs(y));fn(cx+x,cy+y,d!==2&&d!==4);}
+  for(let i=8;i<13;i++){fn(i,6,i%2===0);fn(6,i,i%2===0);}fn(8,13,true);
+  const fmt=0x77c4;for(let i=0;i<=5;i++)fn(8,i,(fmt>>i)&1);fn(8,7,(fmt>>6)&1);fn(8,8,(fmt>>7)&1);fn(7,8,(fmt>>8)&1);for(let i=9;i<15;i++)fn(14-i,8,(fmt>>i)&1);for(let i=0;i<8;i++)fn(20-i,8,(fmt>>i)&1);for(let i=8;i<15;i++)fn(8,21-15+i,(fmt>>i)&1);
+  let k=0,up=true;for(let right=20;right>=1;right-=2){if(right===6)right--;for(let z=0;z<n;z++){const y=up?20-z:z;for(let q=0;q<2;q++){const x=right-q;if(m[y][x]===null){let b=stream[k++]||0;if((x+y)%2===0)b^=1;m[y][x]=!!b;}}}up=!up;}return m;
+}
+function drawCollectMark(x,id,left,top,module=2){const q=qrV1(id),size=25*module;x.fillStyle="rgba(255,255,255,.94)";x.fillRect(left,top,size,size);x.fillStyle="#111827";q.forEach((r,y)=>r.forEach((b,xx)=>{if(b)x.fillRect(left+(xx+2)*module,top+(y+2)*module,module,module);}));x.fillStyle="#fff7d1";x.textAlign="left";x.font="700 8px monospace";x.fillText(id,left+size+5,top+12);x.font="7px 'Noto Sans Thai',sans-serif";x.fillText("รหัสสะสมเฉพาะใบ",left+size+5,top+24);}
 const Photo = { on:false, pose:"sit", emo:"✨", count:0 };
 function openPhoto(){
   const pg=$("#poseGrid"); pg.innerHTML="";
@@ -6163,7 +6190,8 @@ function photoStates(){
   return p;
 }
 function takeShot(){
-  const S=3, CW=300, CH=430;
+  const S=3, CW=300, CH=470, photoRec={};
+  const collectId=collectIdFor(photoRec,"photo","photo-"+Date.now()+"-"+freshCollectId());
   const f=FORMS[G.pet.form], P=f.pal;
   const out=document.createElement("canvas"); out.width=CW*S; out.height=CH*S;
   const x=out.getContext("2d"); x.setTransform(S,0,0,S,0,0);
@@ -6204,6 +6232,7 @@ function takeShot(){
   rows.forEach((r,i)=>{ const yy=337+i*17;
     x.textAlign="left"; x.fillStyle="rgba(255,255,255,.72)"; x.fillText(r[0], 38, yy);
     x.textAlign="right"; x.fillStyle="#ffe9b0"; x.fillText(r[1], CW-38, yy); });
+  drawCollectMark(x,collectId,24,400,1);
   x.textAlign="left"; x.fillStyle="#f3d78d"; x.font="700 13px 'Comfortaa',sans-serif";
   x.fillText("Samati", 24, CH-20);
   const d=new Date();
@@ -6222,7 +6251,8 @@ const MAX_LV = 60;
 function albumUnlock(key){
   if(!G.album) G.album={forms:{},special:[],rebirths:0};
   const a=G.album.forms[key];
-  G.album.forms[key] = { n:(a?a.n:0)+1, at:(a?a.at:now()) };
+  G.album.forms[key] = { n:(a?a.n:0)+1, at:(a?a.at:now()), collectId:(a&&a.collectId)||freshCollectId() };
+  registerCollectId(G.album.forms[key].collectId,"card","form-"+key,G.album.forms[key]);
 }
 function albumHas(key){ return !!(G.album && G.album.forms && G.album.forms[key]); }
 function albumCount(){ return G.album ? Object.keys(G.album.forms).length : 0; }
@@ -6254,7 +6284,7 @@ function wrapText(x,txt,cx,cy,maxW,lh,max){
 }
 function makeCard(key, S){
   S=S||3;
-  const CW=300, CH=430, f=FORMS[key], P=f.pal;
+  const CW=300, CH=470, f=FORMS[key], P=f.pal;
   const cvs=document.createElement("canvas"); cvs.width=CW*S; cvs.height=CH*S;
   const x=cvs.getContext("2d");
   x.setTransform(S,0,0,S,0,0);
@@ -6297,8 +6327,10 @@ function makeCard(key, S){
   wrapText(x, f.desc, CW/2, 349, CW-64, 16, 3);
   /* ท้ายการ์ด */
   const rec = G.album.forms[key];
+  const collectId=collectIdFor(rec,"card","form-"+key);
   const d = rec ? new Date(rec.at) : new Date();
   x.fillStyle="#f3d78d"; x.textAlign="left"; x.font="700 13px 'Comfortaa',sans-serif";
+  drawCollectMark(x,collectId,24,400,1);
   x.fillText("Samati", 24, CH-20);
   x.textAlign="right"; x.fillStyle="rgba(255,255,255,.75)"; x.font="11px 'Noto Sans Thai',sans-serif";
   x.fillText((G.player?G.player.name:"")+" · "+d.toLocaleDateString("th-TH")+(rec&&rec.n>1?" · ปลดล็อก "+rec.n+" ครั้ง":""), CW-24, CH-20);
@@ -6306,7 +6338,7 @@ function makeCard(key, S){
 }
 function makeSpecialCard(e, S){
   S=S||3;
-  const CW=300, CH=430;
+  const CW=300, CH=470;
   const cvs=document.createElement("canvas"); cvs.width=CW*S; cvs.height=CH*S;
   const x=cvs.getContext("2d"); x.setTransform(S,0,0,S,0,0);
   const gr=x.createLinearGradient(0,0,0,CH);
@@ -6353,6 +6385,8 @@ function makeSpecialCard(e, S){
     x.textAlign="left"; x.fillStyle="rgba(255,255,255,.72)"; x.fillText(r[0], 38, yy);
     x.textAlign="right"; x.fillStyle="#ffe9b0"; x.fillText(r[1], CW-38, yy);
   });
+  const collectId=collectIdFor(e,"special-card","rebirth-"+e.rebirthNo);
+  drawCollectMark(x,collectId,24,400,1);
   x.textAlign="left"; x.fillStyle="#f3d78d"; x.font="700 13px 'Comfortaa',sans-serif";
   x.fillText("Samati", 24, CH-20);
   x.textAlign="right"; x.fillStyle="rgba(255,255,255,.75)"; x.font="11px 'Noto Sans Thai',sans-serif";
