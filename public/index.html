@@ -11,8 +11,8 @@
 <meta name="apple-mobile-web-app-title" content="SAMATI">
 <title>SAMATI — Focus Pet</title>
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/samati-icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/samati-icon.svg">
+<link rel="icon" href="/samati-icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/samati-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Comfortaa:wght@500;700&display=swap" rel="stylesheet">
@@ -353,10 +353,23 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 /* ---------- ตกปลา ---------- */
 .mgWrap{position:relative;border-radius:10px;overflow:hidden;margin:-4px -2px 8px;
   box-shadow:0 4px 14px rgba(0,0,0,.45), inset 0 0 0 2px rgba(217,164,65,.45)}
+.mgTitle{padding:6px 10px;text-align:center;background:#172516;color:#f3d78d;border:3px solid #8d6420;
+  border-bottom:0;font:800 13px/1.2 var(--mono);letter-spacing:.12em;text-shadow:2px 2px #111;box-shadow:inset 0 0 0 2px #d9a441}
 .mgWrap::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(120% 90% at 50% 40%, rgba(0,0,0,0) 55%, rgba(10,14,8,.30) 100%),
              linear-gradient(160deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 32%)}
 #mgCv{display:block;width:100%;height:auto;image-rendering:pixelated;background:#1b2416}
+.rps button,#fGo{min-height:52px;border-radius:4px;border:3px solid #8d6420;box-shadow:inset 0 0 0 2px #f3d78d,0 4px 0 #523912}
+#device.miniGameMode{width:min(760px,calc(100vw - 8px));height:min(100dvh,900px);max-height:100dvh}
+#device.miniGameMode .moveRow,#device.miniGameMode .padWrap,#device.miniGameMode .decorTray,#device.miniGameMode .envbar{display:none!important}
+#device.miniGameMode .screen-frame{flex:1;min-height:0}
+#device.miniGameMode .screen{height:100%;max-height:none;aspect-ratio:auto}
+#device.miniGameMode #p-play{display:flex;flex-direction:column;height:100%}
+#device.miniGameMode #playBody{display:flex;flex-direction:column;justify-content:center;min-height:0;height:100%;overflow:auto}
+#device.miniGameMode .mgWrap{width:min(100%,700px);margin:0 auto 10px}
+#device.miniGameMode #mgCv{max-height:64dvh;object-fit:contain}
+#device.miniGameMode .rps button{font-size:32px;min-width:76px;min-height:62px}
+@media(max-width:600px){#device.miniGameMode{border-radius:8px;padding:5px}.mgTitle{font-size:12px}.miniGameMode .pb{padding:8px}}
 .lvgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
 .lvb{background:#2a3623;border:2px solid transparent;border-radius:9px;padding:7px 2px;cursor:pointer;
   color:var(--cream);font-family:var(--ui);display:flex;flex-direction:column;align-items:center;gap:1px}
@@ -3283,7 +3296,7 @@ async function visitFriend(code){
   SamatiNet.friendZone=["home","yard","garden"].includes(owner.zone)?owner.zone:"home";
   try{await SamatiNet.enter(code);}catch(e){G.visiting=null;sfx.bad();toast(e.message==="house full"?"🏠 บ้านเพื่อนเต็มแล้ว (สูงสุด 5 คน)":e.message==="house locked"?"🔒 เพื่อนล็อกบ้านไว้":e.message==="friend is not home"?"🏠 เพื่อนไม่ได้อยู่ในบริเวณบ้าน":"เข้าบ้านเพื่อนไม่สำเร็จ");return;}
   closePanels(); goArea("friend"); save();
-  setTimeout(()=>{toast("🚪 มาถึงบริเวณบ้านของ "+owner.name+" แล้ว · 💬 แชทพร้อมใช้งาน");const q=$("#houseChatQuick");if(q){q.style.display="block";q.textContent="💬 แชท";}}, 900);
+  setTimeout(()=>toast("🚪 มาถึงบริเวณบ้านของ "+owner.name+" แล้ว"), 900);
 }
 async function goOwnRoom(){
   G.visiting=null; closePanels(); goArea("home"); save();
@@ -3748,6 +3761,9 @@ function placedList(){
   if(area()==="friend" && SamatiNet.house) return SamatiNet.friendZone==="home"&&Array.isArray(SamatiNet.house.place)?SamatiNet.house.place:[];
   return G.place[area()] || [];
 }
+function placedLightCount(){
+  return placedList().reduce((n,p)=>n+((FURNI[p.id]&&FURNI[p.id].light&&p.on!==false)?1:0),0);
+}
 function render(){
   const tms = performance.now();
   const dt = Math.min(0.05, (tms-lastFrame)/1000); lastFrame = tms;
@@ -3790,6 +3806,10 @@ function render(){
 
   const tint = TINT[Env.phase];
   if(tint){ g.fillStyle=tint; g.fillRect(0,0,W,H); }
+  if(nightNow() && ["home","yard","garden","friend"].includes(area())){
+    const lights=placedLightCount();
+    if(lights){g.fillStyle=`rgba(255,226,154,${Math.min(.13,.035+lights*.018)})`;g.fillRect(0,0,W,H);}
+  }
   if(isWet()){ g.fillStyle="rgba(72,92,124,.13)"; g.fillRect(0,0,W,H); }
   if(stormFlash(t)){ g.fillStyle="rgba(255,255,255,.22)"; g.fillRect(0,0,W,H); }
 
@@ -3937,7 +3957,7 @@ $("#btnLeaveCenter").addEventListener("click",()=>{ sfx.tap(); closePanels(); if
 function updateMoveBar(){
   const v=$("#mvV"); if(!v) return;
   const k=area();
-  const hc=$("#houseChatQuick");if(hc)hc.style.display=k==="friend"?"block":"none";
+  const hc=$("#houseChatQuick");if(hc)hc.style.display=["home","yard","garden","friend"].includes(k)?"block":"none";
   if(k==="home"){ v.style.display="block"; v.textContent="▼ หน้าบ้าน"; v.dataset.go="yard"; }
   else if(k==="yard"){ v.style.display="block"; v.textContent="▲ เข้าบ้าน"; v.dataset.go="home"; }
   else if(k==="friend"){ v.style.display="block"; v.textContent="🏠 กลับห้อง"; v.dataset.go="own"; }
@@ -4126,14 +4146,16 @@ function playResult(win, label, bonusXp){
 const MGW=192, MGH=144, MGF=128;
 let mgRaf=null, mgCtx=null;
 const MG={ kind:null, t0:0, d:{} };
-function mgCanvasHTML(){ return '<div class="mgWrap"><canvas id="mgCv" width="192" height="144"></canvas></div>'; }
+function setMiniGameMode(on){const d=$("#device");if(d)d.classList.toggle("miniGameMode",!!on);}
+function mgCanvasHTML(title){ return `<div class="mgTitle">${title}</div><div class="mgWrap"><canvas id="mgCv" width="192" height="144"></canvas></div>`; }
 function mgInit(kind, data){
+  setMiniGameMode(true);
   MG.kind=kind; MG.t0=performance.now(); MG.d=data||{};
   const el=$("#mgCv"); if(!el) return;
   mgCtx=el.getContext("2d"); mgCtx.imageSmoothingEnabled=false;
   if(!mgRaf) mgLoop();
 }
-function mgStop(){ if(mgRaf) cancelAnimationFrame(mgRaf); mgRaf=null; MG.kind=null; }
+function mgStop(){ if(mgRaf) cancelAnimationFrame(mgRaf); mgRaf=null; MG.kind=null; setMiniGameMode(false); }
 function mgLoop(){
   const el=$("#mgCv");
   if(!el || !$("#p-play").classList.contains("on")){ mgStop(); return; }
@@ -4389,7 +4411,7 @@ function gameFish(){
 function gameOX(){
   const body=$("#playBody");
   let bd=Array(9).fill(""), over=false;
-  body.innerHTML = mgCanvasHTML() +
+  body.innerHTML = mgCanvasHTML("OX · PIXEL DUEL") +
     `<div class="mid" id="oxMsg">คุณคือ ⭕ — แตะช่องบนกระดานได้เลย</div>`;
   mgInit("ox",{bd, turn:"me", over:false, win:null});
   const winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
@@ -4436,7 +4458,7 @@ function gameFishRun(lv){
   let pos=0, dir=1, speed=58+lv*15;
   let zoneW = Math.max(7, 30-lv*2.1), zoneL = rnd(8,90-zoneW), zDir=1, zSpeed = lv>=4 ? 8+lv*2.2 : 0;
   let raf=null, over=false, last=performance.now();
-  body.innerHTML = mgCanvasHTML() + `
+  body.innerHTML = mgCanvasHTML("SAMATI · FISHING") + `
     <div class="mid" id="fMsg">ระดับ ${lv} · แตะ “ตก!” ตอนทุ่นตรงกับเงาปลา</div>
     <div class="row" style="justify-content:center;gap:12px;margin:6px 0">
       <span class="pill" id="fHit">🎣 0/${need}</span><span class="pill" id="fLife">❤️ ${lives}</span>
@@ -4489,8 +4511,8 @@ function gameRps(){
   const body=$("#playBody");
   let me=0,pet=0,rd=0;
   const M=["✊","✌️","🖐️"];
-  body.innerHTML = mgCanvasHTML() + `
-    <div class="mid" id="rMsg">ชนะ 2 ใน 3 ตา · เลือกมือของคุณ</div>
+  body.innerHTML = mgCanvasHTML("เป่ายิ้งฉุบ · PIXEL ARENA") + `
+    <div class="mid" id="rMsg">ชนะ 2 ใน 3 ตา · ✊ ชนะ ✌️ · ✌️ ชนะ 🖐️ · 🖐️ ชนะ ✊</div>
     <div class="rps"><button data-i="0">✊</button><button data-i="1">✌️</button><button data-i="2">🖐️</button></div>
     <div class="mid" id="rScore">คุณ 0 : 0 ${G.pet.name}</div>`;
   mgInit("rps",{me:0,pe:0,shown:false,myPick:0,petPick:0,res:null});
@@ -4502,7 +4524,7 @@ function gameRps(){
     setTimeout(()=>{
       MG.d.myPick=i; MG.d.petPick=j; MG.d.shown=true;
       MG.d.shownAt=(performance.now()-MG.t0)/1000;
-      const r=(i-j+3)%3;
+      const r=i===j?0:((i===0&&j===1)||(i===1&&j===2)||(i===2&&j===0)?1:2);
       MG.d.res=r; MG.d.rolling=false;
       $("#rMsg").textContent = (r===1?"คุณชนะตานี้!":r===2?G.pet.name+" ชนะตานี้":"เสมอ")+"  "+M[i]+" vs "+M[j];
       if(r===1){me++;sfx.ok()} else if(r===2){pet++;sfx.bad()} else beep(400,.06);
@@ -5516,7 +5538,7 @@ window.SamatiNet = {
   async enter(code){
     if(!SamatiCloud.user||!G)return[]; code=String(code).toUpperCase();
     if(this.room&&this.room!==code)await this.leave(); this.room=code; clearInterval(this.heartbeat);
-    const ping=async()=>{if(!this.room)return[];const room=this.room;const out=await SamatiCloud.request("/api/rooms/"+room+"/presence",{method:"PUT",body:JSON.stringify({profile:this.serialize(),after:this.lastMessage})});if(room!==this.room)return[];this.members=out.members||[];this.house=out.house||this.house;if(out.messages?.length){this.messages.push(...out.messages);this.messages=this.messages.slice(-50);this.lastMessage=Math.max(this.lastMessage,...out.messages.map(x=>Number(x.id)||0));HouseChat.render();const q=$("#houseChatQuick");if(q&&G.area==="friend"){q.textContent="💬 แชท ("+out.messages.length+")";q.style.display="block";}if(!$("#p-housechat").classList.contains("on"))toast("💬 มีข้อความใหม่ในบ้าน");}
+    const ping=async()=>{if(!this.room)return[];const room=this.room;const out=await SamatiCloud.request("/api/rooms/"+room+"/presence",{method:"PUT",body:JSON.stringify({profile:this.serialize(),after:this.lastMessage})});if(room!==this.room)return[];this.members=out.members||[];this.house=out.house||this.house;if(out.messages?.length){this.messages.push(...out.messages);this.messages=this.messages.slice(-50);this.lastMessage=Math.max(this.lastMessage,...out.messages.map(x=>Number(x.id)||0));HouseChat.render();const q=$("#houseChatQuick");if(q&&["home","yard","garden","friend"].includes(G.area)){q.textContent="💬 แชท ("+out.messages.length+")";q.style.display="block";}if(!$("#p-housechat").classList.contains("on"))toast("💬 มีข้อความใหม่ในบ้าน");}
       if(G.area==="friend"&&G.visiting){const owner=this.members.find(m=>m&&m.code===G.visiting.code);if(owner){this.misses=0;G.visiting={code:owner.code,name:owner.name,petName:owner.pet?.name||"Mori",petForm:owner.pet?.form||"seed"};this.syncFriendZone(owner);}else if(++this.misses>=2){this.misses=0;toast("🏠 เพื่อนไม่อยู่บ้านแล้ว");setTimeout(()=>goOwnRoom(),700);}}
       return this.members;};
     try{await ping();}catch(e){this.room=null;throw e;}this.heartbeat=setInterval(()=>ping().catch(e=>{if(G?.area==="friend"&&e.message==="friend is not home"){toast("🏠 เพื่อนออกจากบริเวณบ้านแล้ว");goOwnRoom();}}),2500);return this.members;
@@ -5535,7 +5557,7 @@ window.SamatiNet = {
   serialize(){ const zone=G.area==="friend"?"visitor":(["home","yard","garden"].includes(G.area)?G.area:"away");return { code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:Math.round(Ply.x),dir:Ply.dir,state:Ply.state,focus:!!FS.on,zone,at:now() }; }
 };
 window.HouseChat={
-  open(){if(!SamatiNet.room){toast("ยังไม่ได้อยู่ในบ้านออนไลน์");return;}const q=$("#houseChatQuick");if(q)q.textContent="💬 แชท";this.render();openPanel("#p-housechat");setTimeout(()=>$("#houseChatInput").focus(),100);},
+  open(){if(!SamatiCloud.user){toast("เชื่อมต่อบัญชี Google เพื่อใช้แชทในบ้าน");return;}if(!SamatiNet.room){toast("กำลังเชื่อมต่อห้องแชท…");SamatiNet.enter(G.account.code).then(()=>this.open()).catch(()=>toast("เชื่อมต่อแชทไม่สำเร็จ"));return;}const q=$("#houseChatQuick");if(q)q.textContent="💬 แชท";this.render();openPanel("#p-housechat");setTimeout(()=>$("#houseChatInput").focus(),100);},
   render(){const log=$("#houseChatLog");if(!log)return;log.innerHTML="";(SamatiNet.messages||[]).forEach(m=>{const row=document.createElement("div"),n=document.createElement("b");n.style.color="#f0c766";n.textContent=(m.name||"ผู้เล่น")+": ";row.append(n,document.createTextNode(m.message||""));log.appendChild(row);});log.scrollTop=log.scrollHeight;const c=$("#houseChatCount");if(c)c.textContent=(SamatiNet.members?.length||0)+"/5 คน";},
   async send(){const i=$("#houseChatInput"),v=i.value.trim();if(!v)return;try{await SamatiNet.chat(v);i.value="";setTimeout(()=>SamatiNet.peekState(SamatiNet.room).then(o=>{if(o.messages?.length){SamatiNet.messages.push(...o.messages);SamatiNet.messages=SamatiNet.messages.slice(-50);SamatiNet.lastMessage=Math.max(SamatiNet.lastMessage,...o.messages.map(x=>Number(x.id)||0));this.render();}}),250);}catch(e){sfx.bad();toast(e.message==="too many requests"?"ส่งข้อความเร็วเกินไป":"ส่งข้อความไม่สำเร็จ");}}
 };

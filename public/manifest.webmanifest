@@ -14,9 +14,15 @@
   "categories": ["games", "lifestyle", "productivity"],
   "icons": [
     {
-      "src": "/samati-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/samati-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/samati-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
@@ -25,7 +31,7 @@
       "name": "เข้าเกม SAMATI",
       "short_name": "เข้าเกม",
       "url": "/?source=shortcut",
-      "icons": [{"src": "/samati-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+      "icons": [{"src": "/samati-icon-192.png", "sizes": "192x192", "type": "image/png"}]
     }
   ]
 }
