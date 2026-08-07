@@ -745,7 +745,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
             <button class="opt" data-shoptab="seed">เมล็ดพันธุ์</button>
             <button class="opt" data-shoptab="fashion">แฟชั่น</button>
             <button class="opt" data-shoptab="item">ไอเท็ม</button>
-            <button class="opt" data-shoptab="vip">💠 VIP</button>
+            <button class="opt" data-shoptab="vip">💠 ผลึกสมาธิ</button>
             <button class="opt" data-shoptab="sell">ขายของ</button>
           </div>
           <div id="shopBody"></div>
@@ -766,7 +766,8 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
       <div class="panel" id="p-photo">
         <div class="pt">ถ่ายภาพ<button class="x" data-close>✕</button></div>
         <div class="pb">
-          <div class="sec">ท่าทาง</div><div class="poseGrid" id="poseGrid"></div>
+          <div class="sec">ท่าทางทั่วไป</div><div class="poseGrid" id="poseGrid"></div>
+          <div class="sec">ท่าถ่ายภาพพิเศษ</div><div class="poseGrid" id="vipPoseGrid"></div>
           <div class="sec">อิโมจิ</div><div class="emoGrid" id="emoGrid"></div>
           <p class="hint" style="margin-top:10px">กดถ่ายแล้วจะนับถอยหลัง 3 วินาที ภาพจะบันทึกลงเครื่องเป็นไฟล์ PNG พร้อมกรอบและโลโก้</p>
         </div>
@@ -4995,7 +4996,7 @@ function renderStyleRow(){
     if(!owned.length){
       const info=document.createElement("div");
       info.className="trayEmpty"; info.style.cssText="flex:0 0 auto;padding:14px 8px 0;font-size:9.5px;opacity:.7";
-      info.textContent="(ซื้อเพิ่มได้ที่ร้านค้า → 💠 VIP)";
+      info.textContent="(ปลดล็อกเพิ่มได้ที่ร้านค้า → 💠 ผลึกสมาธิ)";
       row.appendChild(info);
     }
   });
@@ -6055,11 +6056,19 @@ const PHOTO_EMO = ["✨","💖","😆","🌿","🔮","🎉","☯️","🌙","�
 const Photo = { on:false, pose:"sit", emo:"✨", count:0 };
 function openPhoto(){
   const pg=$("#poseGrid"); pg.innerHTML="";
-  allPoses().forEach(p=>{
+  POSES.forEach(p=>{
     const b=document.createElement("button");
     b.className = p.k===Photo.pose ? "on":""; b.textContent=p.n;
     b.onclick=()=>{ sfx.tap(); Photo.pose=p.k; openPhoto(); };
     pg.appendChild(b);
+  });
+  const vg=$("#vipPoseGrid"); vg.innerHTML="";
+  const specials=allPoses().filter(p=>p.k.startsWith("vp_"));
+  if(!specials.length) vg.innerHTML='<p class="hint" style="grid-column:1/-1">ยังไม่มีท่าพิเศษ · ปลดล็อกได้ในร้านค้า “ผลึกสมาธิ”</p>';
+  specials.forEach(p=>{
+    const b=document.createElement("button");
+    b.className=p.k===Photo.pose?"on":""; b.textContent="✨ "+p.n;
+    b.onclick=()=>{sfx.tap();Photo.pose=p.k;openPhoto();}; vg.appendChild(b);
   });
   const eg=$("#emoGrid"); eg.innerHTML="";
   PHOTO_EMO.forEach(e=>{
@@ -6493,7 +6502,7 @@ function ownedList(cat){
   return out;
 }
 const WD_TABS=[["hair","ทรงผม"],["shirt","เสื้อ/กระโปรง"],["pants","กางเกง"],["hat","หมวก"],["glass","แว่น"],
-               ["scarf","ผ้าพันคอ"],["acc","ประดับ"],["color","สี"]];
+               ["scarf","ผ้าพันคอ"],["acc","ประดับ"],["cosplay","คอสเพลย์"],["fairy","แฟรี่"],["color","สี"]];
 let wdTab="hair";
 function fieldOf(cat){ return cat==="shirt" ? "shirtStyle" : cat==="pants" ? "pantsStyle" : cat; }
 function openWardrobe(){
@@ -6506,7 +6515,23 @@ function openWardrobe(){
   });
   b.appendChild(tabs);
   const P=G.player;
-  if(wdTab==="color"){
+  if(wdTab==="cosplay"){
+    const ids=((G.wardrobe&&G.wardrobe.shirt)||[]).filter(id=>COSMETICS[id]&&COSMETICS[id].vip);
+    b.insertAdjacentHTML("beforeend",`<div class="sec">คอสเพลย์ · ปลดล็อกแล้ว ${ids.length} ชุด</div>`);
+    const grid=document.createElement("div"); grid.className="wdGrid";
+    ids.forEach(id=>{const c=COSMETICS[id],bt=document.createElement("button");bt.className="wdItem"+(P.shirtStyle===id?" on":"");bt.innerHTML=`<i style="background:${c.col}"></i><span>${c.n}</span>`;bt.onclick=()=>{sfx.tap();P.shirtStyle=id;save();openWardrobe();};grid.appendChild(bt);});
+    if(!ids.length)grid.innerHTML='<p class="hint">ยังไม่มีชุดคอสเพลย์ · ปลดล็อกได้ในร้านค้า “ผลึกสมาธิ”</p>';
+    b.appendChild(grid);
+    const go=document.createElement("button");go.className="btn ghost";go.style.marginTop="8px";go.textContent="💠 ไปดูคอสเพลย์";go.onclick=()=>{shopTab="vip";vipCat="cos";renderShop();openPanel("#p-shop");};b.appendChild(go);
+  } else if(wdTab==="fairy"){
+    const owned=ownedVipOf("fairy");
+    b.insertAdjacentHTML("beforeend",`<div class="sec">แฟรี่ติดตาม · ปลดล็อกแล้ว ${owned.length} แบบ</div>`);
+    const grid=document.createElement("div");grid.className="wdGrid";
+    const none=document.createElement("button");none.className="wdItem"+(G.vip.fairy==null?" on":"");none.innerHTML='<span>ไม่ใช้แฟรี่</span>';none.onclick=()=>{G.vip.fairy=null;save();openWardrobe();};grid.appendChild(none);
+    owned.forEach(id=>{const v=VIP[id],f=FAIRIES[v.idx],bt=document.createElement("button");bt.className="wdItem"+(G.vip.fairy===v.idx?" on":"");bt.innerHTML=`<i style="background:${f[1]}"></i><span>${v.n}</span>`;bt.onclick=()=>{sfx.tap();G.vip.fairy=v.idx;save();openWardrobe();};grid.appendChild(bt);});
+    b.appendChild(grid);
+    const go=document.createElement("button");go.className="btn ghost";go.style.marginTop="8px";go.textContent="💠 ไปดูแฟรี่";go.onclick=()=>{shopTab="vip";vipCat="fairy";renderShop();openPanel("#p-shop");};b.appendChild(go);
+  } else if(wdTab==="color"){
     [["haircol","สีผม",HAIRCOL],["shirt","สีเสื้อ",SHIRTS],["pants","สีกางเกง",PANTS],["skin","สีผิว",SKINS]].forEach(([f,label,list])=>{
       b.insertAdjacentHTML("beforeend",`<div class="sec">${label}</div>`);
       const w=document.createElement("div"); w.className="opts";
@@ -7180,7 +7205,7 @@ async function openAdmin(){
   else adminSecurity(b);
 }
 async function adminWorld(b){
-  b.innerHTML += '<div id="adminLive"><p class="hint">กำลังโหลดข้อมูลผู้เล่นจากเซิร์ฟเวอร์…</p></div>';
+  b.insertAdjacentHTML("beforeend",'<div id="adminLive"><p class="hint">กำลังโหลดข้อมูลผู้เล่นจากเซิร์ฟเวอร์…</p></div>');
   const root=b.querySelector("#adminLive");
   let data=[];
   try{ data=await worldData(); }catch(e){ root.innerHTML='<p class="hint warn">โหลดข้อมูลเซิร์ฟเวอร์ไม่สำเร็จ · กรุณาลองใหม่</p>'; return; }
@@ -7646,7 +7671,7 @@ function drawBigDigit(c,cx,cy,n,scale,col){
 }
 
 /* =====================================================================
-   หมวด VIP — ใช้ผลึกสมาธิ 💠 (เบต้า: ยังไม่มีใครมีผลึก)
+   หมวดผลึกสมาธิ 💠
 ===================================================================== */
 const VIP = {};
 const COSPLAY_BASE=["hoodie","vest","kimono","lab","sailor","dress","qipao","longDress","tutu",
@@ -7734,7 +7759,7 @@ function buyVip(id){
   const cost=it.crystal||0;
   if((G.crystal||0) < cost){
     sfx.bad();
-    toast("ต้องใช้ 💠 "+cost+" ผลึกสมาธิ · ระบบเติมผลึกจะเปิดหลังเบต้า");
+    toast("ต้องใช้ 💠 "+cost+" ผลึกสมาธิ");
     return;
   }
   G.crystal -= cost;
@@ -7753,8 +7778,7 @@ function buyVip(id){
 let vipCat="cos";
 function renderVipShop(b){
   b.insertAdjacentHTML("beforeend",
-    `<p class="hint">หมวด VIP ใช้ <b>💠 ผลึกสมาธิ</b> · ตอนนี้คุณมี 💠 ${G.crystal||0}
-     <br>ระบบเติมผลึกและสมาชิกจะเปิดหลังช่วงเบต้า · ตอนนี้เปิดให้ชมรายการล่วงหน้า</p>`);
+    `<p class="hint"><b>💠 ผลึกสมาธิ</b> · ตอนนี้คุณมี 💠 ${G.crystal||0}<br>ใช้ปลดล็อกของสะสมและตัวเลือกพิเศษภายในเกม</p>`);
   const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="8px";
   [["cos","คอสเพลย์"],["pose","ท่าถ่ายภาพ"],["wall","ผนัง"],["floor","พื้น"],
    ["fairy","แฟรี่"],["house","แบบบ้าน"]].forEach(([k,n])=>{
