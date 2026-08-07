@@ -560,6 +560,18 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 #device.creating .brand em{opacity:.6}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
+/* Central Plaza online beta */
+#plaza{position:fixed;inset:0;z-index:350;display:none;background:#11190f;color:#f7edcf;font-family:var(--ui)}
+#plaza.on{display:flex;flex-direction:column}.plazaHead{height:54px;display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(#26351f,#172114);border-bottom:2px solid #b98b38}
+.plazaHead b{font-size:16px;color:#f4cf73}.plazaHead .spacer{flex:1}.plazaHead button,.plazaChannels button{border:1px solid #9d7734;border-radius:8px;background:#34452b;color:#fff4d2;padding:7px 10px;font-weight:700}
+.plazaChannels{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#1b2717}.plazaChannels button.on{background:#b98732;color:#1c170d}.plazaChannels button.full{opacity:.48}
+.plazaWorld{position:relative;flex:1;min-height:260px;overflow:hidden;background:linear-gradient(#17291f 0 22%,#3d5832 22% 65%,#776341 65%);touch-action:none}
+.plazaWorld:before{content:"";position:absolute;left:0;right:0;top:16%;height:20%;background:linear-gradient(90deg,#263c2d,#52744d 45%,#29402e);clip-path:polygon(0 65%,12% 25%,23% 60%,38% 15%,55% 60%,72% 20%,88% 62%,100% 32%,100% 100%,0 100%)}
+.plazaFountain{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:56px;filter:drop-shadow(0 4px 1px #27331e)}.plazaSign{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11px;background:#25351fdd;border:1px solid #c29543;padding:5px 10px;border-radius:8px}
+.plazaAvatar{position:absolute;transform:translate(-50%,-100%);width:54px;text-align:center;transition:left .35s linear,top .35s linear;cursor:pointer;user-select:none;z-index:3}.plazaAvatar .bubble{display:none;position:absolute;bottom:59px;left:50%;transform:translateX(-50%);min-width:70px;max-width:150px;background:#fffbe8;color:#252013;border:2px solid #5b4a2c;border-radius:10px;padding:4px 6px;font-size:9px;word-break:break-word}.plazaAvatar.talking .bubble{display:block}
+.plazaAvatar .char{font-size:30px;line-height:32px;filter:drop-shadow(0 3px 1px #202818)}.plazaAvatar.me .char{filter:drop-shadow(0 0 5px #ffe07b)}.plazaAvatar .pet{position:absolute;font-size:17px;right:-3px;bottom:14px}.plazaAvatar .name{background:#1a251bd9;border:1px solid #c89b48;border-radius:6px;padding:2px 3px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plazaChat{height:174px;display:flex;flex-direction:column;background:#10170e;border-top:2px solid #8a6a31}.plazaMessages{flex:1;overflow-y:auto;padding:7px 10px;font-size:11px;line-height:1.55}.plazaMessages b{color:#efc663}.plazaComposer{display:flex;gap:6px;padding:7px}.plazaComposer input{flex:1;min-width:0;border:1px solid #6f613e;border-radius:8px;background:#202b1c;color:#fff;padding:8px}.plazaComposer button{border:0;border-radius:8px;background:#b98835;color:#21190c;padding:7px 13px;font-weight:800}
+#plazaProfile{position:absolute;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);width:min(280px,86%);background:#27341f;border:2px solid #c99d4a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 10px 40px #000b;display:none}#plazaProfile.on{display:block}#plazaProfile button{margin:5px;border:1px solid #c99d4a;border-radius:8px;padding:7px 12px;background:#3b4d30;color:#fff}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -855,6 +867,13 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
         <button class="btn" id="evoOk" style="margin-top:12px;max-width:150px">ยินดีด้วย!</button>
       </div>
 
+      <div id="plaza" aria-label="Central Plaza">
+        <div class="plazaHead"><b>🏰 CENTRAL PLAZA</b><span id="plazaCount">0/30</span><span class="spacer"></span><button id="plazaRefresh">↻</button><button id="plazaExit">ออก</button></div>
+        <div class="plazaChannels" id="plazaChannels"></div>
+        <div class="plazaWorld" id="plazaWorld"><div class="plazaSign">Your focus. Their world.</div><div class="plazaFountain">⛲</div><div id="plazaPlayers"></div><div id="plazaProfile"></div></div>
+        <div class="plazaChat"><div class="plazaMessages" id="plazaMessages"></div><form class="plazaComposer" id="plazaChatForm"><input id="plazaChatInput" maxlength="140" autocomplete="off" placeholder="พูดคุยใน Channel…"><button>ส่ง</button></form></div>
+      </div>
+
       <button id="homeBtn" title="กลับหน้าหลัก">🏠</button>
       <div id="shot"></div>
       <div id="flash"></div>
@@ -915,6 +934,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
     <button class="key hero" data-act="focus"><span class="g">🧘</span><span class="t">FocusTime</span></button>
     <button class="key" data-act="play"><span class="g">🎲</span><span class="t">เล่นด้วย</span></button>
     <button class="key" data-act="friends"><span class="g">👥</span><span class="t">เพื่อน</span></button>
+    <button class="key hero" data-act="plaza"><span class="g">🏰</span><span class="t">Central Plaza</span></button>
     <button class="key" data-act="shop"><span class="g">🛒</span><span class="t">ร้านค้า</span></button>
     <button class="key" data-act="bag"><span class="g">🎒</span><span class="t">กระเป๋า</span></button>
     <button class="key" data-act="house"><span class="g">🛋️</span><span class="t">จัดบ้าน</span></button>
@@ -3496,6 +3516,7 @@ $$(".key").forEach(k=>k.addEventListener("click",()=>{
   if(a==="shop"){ openShop(); }
   if(a==="house"){ toggleEdit(); }
   if(a==="friends"){ openFriends(); }
+  if(a==="plaza"){ CentralPlaza.open(); }
   if(a==="photo"){ openPhoto(); }
   if(a==="wardrobe"){ openWardrobe(); }
   if(a==="album"){ albumTab="forms"; openAlbum(); }
@@ -4953,6 +4974,37 @@ window.SamatiNet = {
   async leave(){if(this.heartbeat)clearInterval(this.heartbeat);if(this.room&&SamatiCloud.user)await SamatiCloud.request("/api/rooms/"+this.room+"/presence",{method:"DELETE",body:"{}"}).catch(()=>{});this.room=null;this.members=[];},
   serialize(){ return { code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:Math.round(Ply.x),dir:Ply.dir,state:Ply.state,focus:!!FS.on,at:now() }; }
 };
+window.CentralPlaza = {
+  channel:0,members:[],messages:[],timer:null,x:50,y:72,lastMessage:0,busy:false,
+  profile(){return{code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:this.x,y:this.y,dir:Ply.dir}},
+  async open(){
+    if(!SamatiCloud.user){sfx.bad();toast("Central Plaza ต้องเข้าสู่ระบบ Google ก่อน");return;}
+    if(FS.on){toast("จบรอบโฟกัสก่อนเข้า Plaza นะ");return;}
+    closePanels();await SamatiNet.leave().catch(()=>{});$("#plaza").classList.add("on");
+    await this.loadChannels();await this.join(0);
+  },
+  async loadChannels(){
+    try{const out=await SamatiCloud.request("/api/plaza/channels");const box=$("#plazaChannels");box.innerHTML="";(out.channels||[]).forEach(c=>{const b=document.createElement("button");b.textContent=`CH ${c.channel} · ${c.players}/30`;b.className=(c.channel===this.channel?"on ":"")+(c.players>=30?"full":"");b.disabled=c.players>=30&&c.channel!==this.channel;b.onclick=()=>this.join(c.channel);box.appendChild(b);});}
+    catch(e){toast("โหลด Channel ไม่สำเร็จ");}
+  },
+  async join(channel=0){
+    if(this.busy)return;this.busy=true;
+    try{if(this.channel)await this.leave(false);const out=await SamatiCloud.request("/api/plaza/join",{method:"POST",body:JSON.stringify({channel,profile:this.profile()})});this.channel=out.channel;this.members=out.members||[];this.messages=out.messages||[];this.lastMessage=this.messages.reduce((m,x)=>Math.max(m,Number(x.id)||0),0);this.render();clearInterval(this.timer);this.timer=setInterval(()=>this.ping(),2500);await this.loadChannels();toast(`เข้าสู่ Central Plaza · CH ${this.channel}`);}catch(e){sfx.bad();toast(e.message==="channel full"?"Channel เต็มแล้ว":"เข้า Plaza ไม่สำเร็จ");}finally{this.busy=false;}
+  },
+  async ping(){if(!this.channel||this.busy)return;try{const out=await SamatiCloud.request(`/api/plaza/${this.channel}/presence`,{method:"PUT",body:JSON.stringify({profile:this.profile(),after:this.lastMessage})});this.members=out.members||[];if(out.messages?.length){this.messages.push(...out.messages);this.messages=this.messages.slice(-50);this.lastMessage=Math.max(this.lastMessage,...out.messages.map(x=>Number(x.id)||0));}this.render();}catch(e){if(e.message==="join plaza first")this.join(this.channel);}},
+  render(){
+    $("#plazaCount").textContent=`CH ${this.channel} · ${this.members.length}/30`;
+    const players=$("#plazaPlayers");players.innerHTML="";this.members.forEach(m=>{const a=document.createElement("div");const mine=m.code===G.account.code;a.className="plazaAvatar"+(mine?" me":"");a.style.left=(Number(m.x)||50)+"%";a.style.top=(Number(m.y)||70)+"%";const char=document.createElement("div");char.className="char";char.textContent=mine?"🧘":"🧑";const pet=document.createElement("span");pet.className="pet";pet.textContent={seed:"🌱",child:"🐣",adult:"🐾",ancient:"✨"}[m.pet?.form]||"🌿";const name=document.createElement("div");name.className="name";name.textContent=(mine?"★ ":"")+(m.name||"ผู้เล่น");a.append(char,pet,name);if(!mine)a.onclick=()=>this.showProfile(m);players.appendChild(a);});
+    const log=$("#plazaMessages");const atBottom=log.scrollHeight-log.scrollTop-log.clientHeight<35;log.innerHTML="";this.messages.slice(-50).forEach(msg=>{const row=document.createElement("div");const n=document.createElement("b");n.textContent=(msg.name||"ผู้เล่น")+": ";row.append(n,document.createTextNode(msg.message||""));log.appendChild(row);});if(atBottom)log.scrollTop=log.scrollHeight;
+  },
+  showProfile(m){const p=$("#plazaProfile");p.innerHTML="";const h=document.createElement("h3");h.textContent=m.name||"ผู้เล่น";const d=document.createElement("p");d.textContent=`${m.pet?.name||"Mori"} · Lv.${m.pet?.lv||1} · ${m.code}`;const add=document.createElement("button");add.textContent=G.friends.some(f=>f.code===m.code)?"เป็นเพื่อนแล้ว":"➕ เพิ่มเพื่อน";add.disabled=G.friends.some(f=>f.code===m.code);add.onclick=async()=>{await addFriend(m.code,m);p.classList.remove("on");};const close=document.createElement("button");close.textContent="ปิด";close.onclick=()=>p.classList.remove("on");p.append(h,d,add,close);p.classList.add("on");},
+  async send(message){message=String(message||"").trim();if(!message||!this.channel)return;try{await SamatiCloud.request(`/api/plaza/${this.channel}/chat`,{method:"POST",body:JSON.stringify({message})});$("#plazaChatInput").value="";await this.ping();}catch(e){sfx.bad();toast(e.message==="too many requests"?"ส่งข้อความเร็วเกินไป":"ส่งข้อความไม่สำเร็จ");}},
+  async leave(close=true){clearInterval(this.timer);this.timer=null;if(this.channel)await SamatiCloud.request(`/api/plaza/${this.channel}/presence`,{method:"DELETE",body:"{}"}).catch(()=>{});this.channel=0;this.members=[];if(close){$("#plaza").classList.remove("on");$("#plazaProfile").classList.remove("on");if(G&&SamatiCloud.user)SamatiNet.host().catch(()=>{});}},
+  move(e){if(!this.channel)return;const r=$("#plazaWorld").getBoundingClientRect();this.x=clamp((e.clientX-r.left)/r.width*100,4,96);this.y=clamp((e.clientY-r.top)/r.height*100,28,86);this.ping();}
+};
+$("#plazaWorld").addEventListener("pointerdown",e=>{if(e.target.closest(".plazaAvatar,#plazaProfile"))return;CentralPlaza.move(e);});
+$("#plazaExit").onclick=()=>CentralPlaza.leave();$("#plazaRefresh").onclick=()=>{CentralPlaza.loadChannels();CentralPlaza.ping();};
+$("#plazaChatForm").addEventListener("submit",e=>{e.preventDefault();CentralPlaza.send($("#plazaChatInput").value);});
 window.addEventListener("pagehide",()=>{if(SamatiNet.room&&SamatiCloud.user)fetch("/api/rooms/"+SamatiNet.room+"/presence",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}",keepalive:true}).catch(()=>{});});
 
 /* =====================================================================
@@ -5367,8 +5419,10 @@ function openFriends(){
 async function addFriend(code,profile=null){
   if(code===G.account.code){ sfx.bad(); toast("นั่นคือรหัสของคุณเอง"); return; }
   if(G.friends.some(f=>f.code===code)){ toast("มีเพื่อนคนนี้อยู่แล้ว"); return; }
-  if(G.area!=="friend"||!SamatiNet.members.some(m=>m&&m.code===code)){sfx.bad();toast("ต้องไปพบและแตะตัวเพื่อนขณะที่ออนไลน์ก่อน");return;}
-  const m=profile||SamatiNet.members.find(x=>x&&x.code===code);
+  const metAtHome=G.area==="friend"&&SamatiNet.members.some(m=>m&&m.code===code);
+  const metAtPlaza=CentralPlaza.channel&&CentralPlaza.members.some(m=>m&&m.code===code);
+  if(!metAtHome&&!metAtPlaza){sfx.bad();toast("ต้องไปพบและแตะตัวเพื่อนขณะที่ออนไลน์ก่อน");return;}
+  const m=profile||SamatiNet.members.find(x=>x&&x.code===code)||CentralPlaza.members.find(x=>x&&x.code===code);
   const f={code:m.code,name:m.name||"เพื่อน",petName:m.pet?.name||"Mori",petForm:m.pet?.form||"seed",close:0,sessions:0};
   G.friends.push(f); sfx.ok(); toast("เพิ่มเพื่อน "+f.name+" แล้ว");
   save(); openFriends();
