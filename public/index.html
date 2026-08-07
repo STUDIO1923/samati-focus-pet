@@ -150,6 +150,8 @@ body{
 .btn:active{transform:translateY(3px);box-shadow:0 0 0 var(--brass-d),0 2px 6px rgba(0,0,0,.4)}
 .btn.ghost{background:linear-gradient(180deg,#3d4d33,#2a3623);color:var(--cream);box-shadow:0 3px 0 #1a2215}
 .btn.ghost:active{box-shadow:0 0 0 #1a2215}
+.btn.danger{background:linear-gradient(180deg,#d94b55,#8f1f2b);color:#fff5f5;box-shadow:0 3px 0 #59131b,0 5px 10px rgba(0,0,0,.35)}
+.btn.danger:active{box-shadow:0 0 0 #59131b}
 .btn:disabled{filter:grayscale(.7) brightness(.7);cursor:not-allowed}
 /* ---------- HUD under screen ---------- */
 .hud{padding:9px 4px 8px;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}
@@ -850,6 +852,8 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div id="statList"></div>
           <div class="sec">บันทึกข้อมูล</div>
           <div class="row"><button class="btn ghost" id="btnSaveNow">บันทึกตอนนี้</button><button class="btn ghost" id="btnCloud">เชื่อมบัญชี Google</button></div>
+          <div class="kv" id="cloudAccountRow" style="display:none"><span>อีเมลที่เชื่อมต่อ</span><b id="cloudAccountEmail">-</b></div>
+          <div class="row" id="cloudLogoutRow" style="display:none;margin-top:6px"><button class="btn danger" id="btnLogout">ออกจากระบบ Google</button></div>
           <p class="hint" id="cloudHint" style="margin-top:6px">บันทึกอัตโนมัติทุก 15 วินาทีลงเครื่องนี้</p>
           <div class="sec">ส่งออก / นำเข้า</div>
           <textarea class="field" id="saveBox" spellcheck="false" placeholder="กด “ส่งออก” เพื่อสร้างรหัสเซฟ แล้วคัดลอกไปเก็บไว้"></textarea>
@@ -882,7 +886,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <p class="hint">เพลงพื้นหลังเป็นเมโลดี้ 6-bit เบาๆ ที่แต่งขึ้นสำหรับเกมนี้ · เสียงฝนจะดังเฉพาะวันที่ฝนตกจริงในเกม เหมาะกับการนั่งสมาธิ</p>
           <div class="row">
             <button class="btn ghost" id="btnSound">เสียงเอฟเฟกต์: เปิด</button>
-            <button class="btn ghost" id="btnReset">เริ่มใหม่ทั้งหมด</button>
+            <button class="btn danger" id="btnReset">ลบตัวละครและเริ่มใหม่ทั้งหมด</button>
           </div>
         </div>
       </div>
@@ -5267,6 +5271,9 @@ function openMenu(){
   const cloudConnected=!!cloudUser;
   if(typeof syncSoundBtns==="function") setTimeout(syncSoundBtns,0);
   $("#btnCloud").textContent = cloudConnected ? "รีเฟรชบัญชี Google" : "เชื่อมบัญชี Google";
+  $("#cloudAccountRow").style.display=cloudConnected?"flex":"none";
+  $("#cloudLogoutRow").style.display=cloudConnected?"flex":"none";
+  $("#cloudAccountEmail").textContent=cloudConnected?(cloudUser.email||"-"):"-";
   $("#btnHouseLock").textContent=G.houseLocked?"🔒 ล็อกบ้านแล้ว":"🔓 บ้านเปิดอยู่";
   $("#btnInstallApp").textContent = window.matchMedia("(display-mode: standalone)").matches ? "✓ ติดตั้งเป็นแอปแล้ว" : "📲 ติดตั้งเว็บแอป";
   $("#statList").innerHTML = `
@@ -5307,6 +5314,16 @@ $("#btnCloud").onclick=async()=>{
   }
   const box=$("#menuGoogleSignIn"); box.style.display="flex";
   $("#cloudHint").textContent="เลือกบัญชี Google เพื่อเชื่อมเซฟนี้"; SamatiCloud.renderButton(box);
+};
+$("#btnLogout").onclick=async()=>{
+  sfx.tap();
+  if(!confirm("ต้องการออกจากระบบ Google บนอุปกรณ์นี้หรือไม่?\n\nข้อมูลที่บันทึกไว้บน Cloud จะไม่ถูกลบ")) return;
+  await SamatiCloud.signOut();
+  closePanels();
+  $("#loginBox").classList.add("on");
+  $("#coverNote").textContent="ออกจากระบบแล้ว · เชื่อม Google อีกครั้งหรือเข้าเล่นแบบ Guest";
+  showCover();
+  toast("ออกจากระบบ Google แล้ว");
 };
 $("#btnExport").onclick=()=>{
   sfx.tap();
@@ -5367,9 +5384,14 @@ $("#btnBgm").onclick=()=>{ const o=opt(); o.bgm=!o.bgm; sfx.tap(); audioKick(); 
 $("#btnRain").onclick=()=>{ const o=opt(); o.rain=!o.rain; sfx.tap(); audioKick(); audioSync(); syncSoundBtns();
   if(o.rain && !isWet()) toast("เปิดแล้ว · เสียงฝนจะดังเมื่ออากาศในเกมเป็นฝนตก"); save(); };
 $("#btnReset").onclick=async()=>{
-  if(!confirm("ลบไฟล์เซฟของผู้เล่นและสัตว์เลี้ยงทั้งหมด แล้วกลับไปหน้าเข้าสู่ระบบเพื่อสร้างตัวละครใหม่?\n\nแนะนำให้กด “ส่งออก” เก็บรหัสเซฟไว้ก่อน")) return;
+  if(!confirm("⚠️ ลบตัวละคร สัตว์เลี้ยง ไอเท็ม บ้าน และข้อมูลการเล่นทั้งหมดอย่างถาวรหรือไม่?\n\nข้อมูลนี้ไม่สามารถกู้คืนได้ แนะนำให้กด “ส่งออก” เก็บเซฟไว้ก่อน")) return;
+  if(!confirm("ยืนยันครั้งสุดท้าย: ต้องการลบข้อมูลทั้งหมดและเริ่มเกมใหม่จริงหรือไม่?")) return;
+  try{
+    if(SamatiCloud.user) await SamatiCloud.request("/api/save",{method:"DELETE"});
+  }catch(e){ sfx.bad(); toast("ลบข้อมูลบน Cloud ไม่สำเร็จ · กรุณาลองอีกครั้ง"); return; }
   await Store.del(SAVE_KEY);
   await SamatiNet.leave().catch(()=>{});
+  if(SamatiCloud.user) await SamatiCloud.signOut();
   clearTimeout(saveTimer); dirty=false;
   G = null; party = []; Doc.on=false; mobs=[]; clouds=[]; drops=[];
   FS.on=false; $("#focusHud").style.display="none"; $("#ring").classList.remove("on");
@@ -7897,15 +7919,24 @@ canvas{width:100%;height:150px;display:block}
 <script>
 async function act(kind,code,val){
   if(!window.opener||!window.opener.adminAction){ alert("กรุณาเปิดห้องควบคุมจากในเกมอีกครั้ง"); return; }
+  const labels={
+    coins:`เพิ่ม 1,000 เหรียญให้บัญชีนี้หรือไม่?`,
+    crystal:`เพิ่ม 100 ผลึกสมาธิให้บัญชีนี้หรือไม่?`,
+    unblockip:`ปลดบล็อก IP ${code} หรือไม่?`
+  };
+  if(labels[kind]&&!confirm(labels[kind])) return;
   try{
+    document.body.style.pointerEvents="none";
     const r=await window.opener.adminAction(kind,code,val);
     if(r==="denied") alert("ไม่มีสิทธิ์");
-    else await window.opener.openWorldPanel();
-  }catch(e){ alert("คำสั่งไม่สำเร็จ: "+(e.message||e)); }
+    else { await window.opener.openWorldPanel(); return; }
+  }catch(e){ document.body.style.pointerEvents=""; alert("คำสั่งไม่สำเร็จ: "+(e.message||e)); }
 }
 function blockip(ip){
   const r=prompt("เหตุผลในการบล็อก IP "+ip,"ตรวจพบการใช้งานผิดปกติ");
-  if(!r) return; act('blockip',ip,r);
+  if(!r) return;
+  if(!confirm("ยืนยันบล็อก IP "+ip+" หรือไม่?\n\nผู้เล่นจาก IP นี้จะไม่สามารถเข้าเกมได้")) return;
+  act('blockip',ip,r);
 }
 function delacc(sub,email){
   if(!confirm("ลบบัญชี "+email+" และเซฟเกมอย่างถาวรหรือไม่?")) return;
