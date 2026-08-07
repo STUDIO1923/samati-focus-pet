@@ -3345,7 +3345,16 @@ function coFocusLayout(code){
   const focusedFriends=roomMembers().filter(m=>m.focus).map(m=>m.code).filter(Boolean);
   if(!focusedFriends.length)return null;
   const codes=[G.account.code,...focusedFriends].filter(Boolean).sort().slice(0,5),i=codes.indexOf(code);
-  if(i<0)return null;const slots=[24,66,108,150,192],dir=i%2===0?1:-1,x=slots[i];return{x,dir,pet:clamp(x+dir*14,10,W-10)};
+  if(i<0)return null;
+  const layouts={
+    2:[72,144],
+    3:[42,108,174],
+    4:[24,78,138,192],
+    5:[18,63,108,153,198]
+  };
+  const slots=layouts[codes.length]||layouts[2],x=slots[i];
+  const dir=x<W/2?1:x>W/2?-1:(i%2?-1:1);
+  return{x,dir,pet:clamp(x-dir*15,10,W-10)};
 }
 function liveCoFocus(){return FS.on&&(SamatiNet.members||[]).some(m=>m&&m.code!==G.account.code&&m.focus);}
 function drawFocusSparkles(c,x,y,t){
