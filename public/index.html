@@ -131,6 +131,19 @@ body{
   background:linear-gradient(180deg,#22301c,#161f12);color:var(--cream);
 }
 .panel.on{display:flex}
+.adminMode{width:min(1024px,calc(100vw - 16px))!important;height:calc(100vh - 16px);max-height:none!important;border-radius:20px!important}
+#device.adminMode .screen-frame{flex:1;min-height:0;margin:0}
+#device.adminMode .screen{height:100%;aspect-ratio:auto;border-radius:10px}
+#device.adminMode .moverow,#device.adminMode #editPad,#device.adminMode #decorTray,
+#device.adminMode .envbar,#device.adminMode .padWrap{display:none!important}
+#device.adminMode #p-admin{background:#0d1020;color:#e7ecf5}
+#device.adminMode #p-admin .pt{font-size:16px;background:#121729;border-color:#26304e}
+.adminDash{min-width:760px}.adminCards{display:grid;grid-template-columns:repeat(6,minmax(105px,1fr));gap:8px;margin-bottom:10px}
+.adminCard{background:#121729;border:1px solid #26304e;border-radius:12px;padding:10px}.adminCard b{display:block;font-size:22px;color:#fff}.adminCard span{font-size:10px;color:#8f9ec2}
+.adminTableWrap{overflow:auto;max-height:calc(100vh - 205px);border:1px solid #26304e;border-radius:12px;background:#121729}
+.adminTable{width:100%;border-collapse:collapse;font-size:11px}.adminTable th{position:sticky;top:0;z-index:1;background:#121729;color:#9fc4ee;text-align:left;padding:8px 6px;border-bottom:1px solid #26304e}
+.adminTable td{padding:8px 6px;border-bottom:1px solid #1d2440;vertical-align:top}.adminTable .det{font-size:10px;color:#9fb0d8;line-height:1.45}.adminTable button{border:0;border-radius:7px;padding:5px 8px;margin:2px;font-family:var(--ui);font-size:10px;background:#2b3a63;color:#dbe6fa}.adminTable button.dan{background:#6c2635;color:#ffd4da}.adminTable button.ok{background:#1f4a35;color:#bff4d2}.adminTable button:disabled{opacity:.35}
+@media(max-width:820px){.adminDash{min-width:720px}.adminCards{grid-template-columns:repeat(3,1fr)}}
 .pt{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:2px solid rgba(183,207,139,.25);
   font-size:13px;font-weight:700;letter-spacing:.02em;flex:none}
 .pt .x{margin-left:auto;background:none;border:0;color:var(--cream);font-size:16px;padding:2px 4px;cursor:pointer}
@@ -3814,7 +3827,7 @@ function openPanel(id){
   const creating = (id==="#p-creator" || id==="#p-name");
   const noHome = creating || id==="#p-rebirth";
   const hb=$("#homeBtn"); if(hb) hb.style.display = (id && !noHome) ? "block" : "none";
-  const dev=$("#device"); if(dev) dev.classList.toggle("creating", creating || id==="#p-wardrobe");
+  const dev=$("#device"); if(dev){ dev.classList.toggle("creating", creating || id==="#p-wardrobe"); dev.classList.toggle("adminMode",id==="#p-admin"); }
 }
 function closePanels(){ openPanel(null); if(typeof mgStop==="function") mgStop(); }
 $$("[data-close]").forEach(b=>b.addEventListener("click",()=>{ sfx.tap(); closePanels(); }));
@@ -7144,8 +7157,8 @@ function touchRegistry(){
 }
 setInterval(()=>{ if(G) touchRegistry(); }, 30000);
 function isOnline(p){ return (now()-p.seen) < 5*60000; }
-let adminTab="players";
-function openAdmin(){
+let adminTab="world";
+async function openAdmin(){
   if(!isAdmin()){
     sfx.bad(); toast("⛔ ห้องควบคุมสำหรับผู้ดูแลระบบเท่านั้น");
     return;
@@ -7153,21 +7166,56 @@ function openAdmin(){
   touchRegistry();
   const b=$("#adminBody"); b.innerHTML="";
   const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="8px";
-  [["players","ผู้เล่น"],["tools","แก้ค่าทดสอบ"],["cards","การ์ดทั้งหมด"],["sec","ความปลอดภัย"]].forEach(([k,n])=>{
+  [["world","ภาพรวมออนไลน์"],["players","ข้อมูลในเครื่อง"],["tools","แก้ค่าทดสอบ"],["cards","การ์ดทั้งหมด"],["sec","ความปลอดภัย"]].forEach(([k,n])=>{
     const bt=document.createElement("button"); bt.className="opt"+(adminTab===k?" on":"");
     bt.textContent=n; bt.onclick=()=>{ sfx.tap(); adminTab=k; openAdmin(); };
     tabs.appendChild(bt);
   });
   b.appendChild(tabs);
-  const wb=document.createElement("button"); wb.className="btn"; wb.style.marginBottom="8px";
-  wb.textContent="🌐 เปิดแผงควบคุมโลก (หน้าเว็บเต็ม)";
-  wb.onclick=()=>{ sfx.tap(); openWorldPanel(); };
-  b.appendChild(wb);
-  if(adminTab==="players") adminPlayers(b);
+  openPanel("#p-admin");
+  if(adminTab==="world") await adminWorld(b);
+  else if(adminTab==="players") adminPlayers(b);
   else if(adminTab==="tools") adminTools(b);
   else if(adminTab==="cards") adminCards(b);
   else adminSecurity(b);
-  openPanel("#p-admin");
+}
+async function adminWorld(b){
+  b.innerHTML += '<div id="adminLive"><p class="hint">กำลังโหลดข้อมูลผู้เล่นจากเซิร์ฟเวอร์…</p></div>';
+  const root=b.querySelector("#adminLive");
+  let data=[];
+  try{ data=await worldData(); }catch(e){ root.innerHTML='<p class="hint warn">โหลดข้อมูลเซิร์ฟเวอร์ไม่สำเร็จ · กรุณาลองใหม่</p>'; return; }
+  const online=data.filter(p=>p.online).length, focus=Math.round(data.reduce((n,p)=>n+p.focusMin,0));
+  root.className="adminDash";
+  root.innerHTML=`<div class="adminCards">
+    <div class="adminCard"><b>${data.length}</b><span>บัญชีทั้งหมด</span></div>
+    <div class="adminCard"><b style="color:#4ade80">${online}</b><span>กำลังออนไลน์</span></div>
+    <div class="adminCard"><b>${data.length-online}</b><span>ออฟไลน์</span></div>
+    <div class="adminCard"><b style="color:#ff9aa8">${data.filter(p=>p.ipBlocked).length}</b><span>IP ถูกบล็อก</span></div>
+    <div class="adminCard"><b style="color:#ffd68a">${Object.keys(Registry.flags||{}).length}</b><span>ถูกตั้งค่าสงสัย</span></div>
+    <div class="adminCard"><b>${focus.toLocaleString()}</b><span>นาทีโฟกัสรวม</span></div></div>
+    <div class="adminTableWrap"><table class="adminTable"><thead><tr><th>สถานะ</th><th>ผู้เล่น</th><th>IP</th><th>สัตว์เลี้ยง</th><th>ทรัพย์สิน</th><th>ความปลอดภัย</th><th>จัดการ</th></tr></thead><tbody>
+    ${data.map(p=>`<tr><td>${p.online?'🟢 ออนไลน์':'⚫ ออฟไลน์'}<div class="det">${new Date(p.seen).toLocaleTimeString('th-TH')}</div></td>
+    <td><b>${p.name}</b><div class="det">${p.code} · ${p.email}</div></td><td>${p.ip}<div class="det">${p.place}</div></td>
+    <td>${p.pet} · Lv.${p.lv}<div class="det">${p.formName}</div>${p.stats?`<div class="det">STR ${p.stats.str} VIT ${p.stats.vit} AGI ${p.stats.agi} INT ${p.stats.int} LUK ${p.stats.luk}</div>`:''}</td>
+    <td>🪙 ${p.coins.toLocaleString()}<div class="det">💠 ${p.crystal} · โฟกัส ${p.focusMin} นาที</div><div class="det">ไอเท็ม ${p.items.length} ชนิด</div></td>
+    <td>${p.ipBlocked?'🔴 บล็อก IP':'🔵 ปกติ'}</td><td>
+      <button class="${p.ipBlocked?'ok':'dan'}" data-admin-action="${p.ipBlocked?'unblockip':'blockip'}" data-code="${p.ip}">${p.ipBlocked?'ปลดบล็อก IP':'บล็อก IP'}</button>
+      <button class="dan" data-admin-action="delete" data-code="${p.sub}" data-email="${p.email}" ${p.owner?'disabled':''}>ลบบัญชี</button>
+      <button data-admin-action="coins" data-code="${p.sub}">+1000🪙</button><button data-admin-action="crystal" data-code="${p.sub}">+100💠</button>
+    </td></tr>`).join('')}</tbody></table></div>
+    <p class="hint" style="margin-top:8px">ข้อมูลอัปเดตจากฐานข้อมูลกลาง · ทุกคำสั่งต้องยืนยันก่อนดำเนินการ</p>`;
+  root.querySelectorAll("[data-admin-action]").forEach(btn=>btn.onclick=()=>runAdminPanelAction(btn.dataset.adminAction,btn.dataset.code,btn.dataset.email));
+}
+async function runAdminPanelAction(kind,code,email){
+  let val=kind==="coins"?1000:kind==="crystal"?100:null;
+  let message=kind==="coins"?"เพิ่ม 1,000 เหรียญให้บัญชีนี้หรือไม่?":kind==="crystal"?"เพิ่ม 100 ผลึกสมาธิให้บัญชีนี้หรือไม่?":kind==="delete"?"ลบบัญชี "+email+" และเซฟเกมอย่างถาวรหรือไม่?":kind==="unblockip"?"ปลดบล็อก IP "+code+" หรือไม่?":"";
+  if(kind==="blockip"){
+    val=prompt("เหตุผลในการบล็อก IP "+code,"ตรวจพบการใช้งานผิดปกติ"); if(!val)return;
+    message="ยืนยันบล็อก IP "+code+" หรือไม่?\n\nผู้เล่นจาก IP นี้จะไม่สามารถเข้าเกมได้";
+  }
+  if(!confirm(message))return;
+  try{ await adminAction(kind,code,val); toast("ดำเนินการสำเร็จ · อัปเดตข้อมูลแล้ว"); await openAdmin(); }
+  catch(e){ sfx.bad(); toast("คำสั่งไม่สำเร็จ · "+(e.message||e)); }
 }
 function adminPlayers(b){
   const on=Registry.players.filter(isOnline).length;
