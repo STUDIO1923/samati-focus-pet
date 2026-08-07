@@ -297,6 +297,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 .envbar span{background:#0f0c22;border-radius:14px;padding:3px 9px;
   box-shadow:inset 0 0 0 1px rgba(217,164,65,.28)}
 .envbar #envC{margin-left:auto;color:var(--brass-l);font-family:var(--mono)}
+.envbar #envX{color:#9fd7e8;font-family:var(--mono);box-shadow:inset 0 0 0 1px rgba(159,215,232,.35)}
 /* ---------- ปุ่มเดิน/นั่ง ---------- */
 .moverow{display:grid;grid-template-columns:1fr 1.15fr 1fr 1.15fr;gap:6px;padding:8px 2px 2px}
 .mv{font-size:12.5px}
@@ -724,6 +725,12 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
         <div class="pb" id="friendsBody"></div>
       </div>
 
+      <div class="panel" id="p-housechat">
+        <div class="pt">💬 แชทในบ้าน <span id="houseChatCount" style="margin-left:auto;font-size:10px;opacity:.7"></span><button class="x" data-close>✕</button></div>
+        <div class="pb"><div id="houseChatLog" style="height:250px;overflow:auto;background:#171d14;border:1px solid #76633c;border-radius:8px;padding:8px;font-size:11px;line-height:1.6"></div></div>
+        <div class="pf"><input class="field" id="houseChatInput" maxlength="140" placeholder="พิมพ์ข้อความ…" style="flex:1;margin:0"><button class="btn" id="houseChatSend" style="flex:0 0 auto">ส่ง</button></div>
+      </div>
+
       <div class="panel" id="p-photo">
         <div class="pt">ถ่ายภาพ<button class="x" data-close>✕</button></div>
         <div class="pb">
@@ -851,8 +858,13 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <p class="hint">STUDIO1923 เจ้าของเดียวกับช่อง SPOIL1923 · อีเวนต์พิเศษในเกมกดได้ที่ปุ่ม SPOIL1923</p>
           <div class="sec">อื่นๆ</div>
           <div class="row">
-            <button class="btn" id="btnInstallApp">?? ??????????????</button>
-            <button class="btn ghost" id="btnSound">เสียง: เปิด</button>
+            <button class="btn" id="btnInstallApp">📲 ติดตั้งเว็บแอป</button>
+            <button class="btn ghost" id="btnBgm">เพลง Lo-Fi: เปิด</button>
+            <button class="btn ghost" id="btnRain">เสียงฝน: เปิด</button>
+          </div>
+          <p class="hint">เพลงพื้นหลังเป็นเมโลดี้ 6-bit เบาๆ ที่แต่งขึ้นสำหรับเกมนี้ · เสียงฝนจะดังเฉพาะวันที่ฝนตกจริงในเกม เหมาะกับการนั่งสมาธิ</p>
+          <div class="row">
+            <button class="btn ghost" id="btnSound">เสียงเอฟเฟกต์: เปิด</button>
             <button class="btn ghost" id="btnReset">เริ่มใหม่ทั้งหมด</button>
           </div>
         </div>
@@ -905,6 +917,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
     <button class="mv" id="mvSit">นั่งลง</button>
     <button class="mv" id="mvR">▶</button>
     <button class="mv" id="mvV">▼ หน้าบ้าน</button>
+    <button class="mv" id="houseChatQuick" style="display:none">💬 แชท</button>
   </div>
   <div id="editPad">
     <button id="padL">◀</button>
@@ -925,7 +938,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
     <div class="trayRow" id="trayRow"></div>
   </div>
 
-  <div class="envbar"><span id="envW">☀️</span><span id="envT">--:--</span><span id="envA">บ้าน</span><span id="envC">🪙 0</span></div>
+  <div class="envbar"><span id="envW">☀️</span><span id="envT">--:--</span><span id="envA">บ้าน</span><span id="envC">🪙 0</span><span id="envX" title="ผลึกสมาธิ — สกุลเงินพิเศษ (ยังไม่เปิดใช้ในเบต้า)">💠 0</span></div>
 
   <div class="padWrap">
   <div class="pad">
@@ -1223,6 +1236,86 @@ const SEEDS = {
   seedTea:  {n:"เมล็ดชาโพธิ์",e:"🍃",grow:70, dry:1.4, rot:240, yield:"tea",   amt:3, buy:110, price:34},
   seedStar: {n:"เมล็ดผลไม้ดารา",e:"💫",grow:180,dry:1.7, rot:300, yield:"star",  amt:2, buy:300, price:95}
 };
+/* =====================================================================
+   ผลผลิตและเมล็ดพันธุ์ 50 ชนิด (ความยากและเวลาต่างกัน)
+===================================================================== */
+const PRODUCE = {
+  tomato:{n:"มะเขือเทศ",e:"🍅",hun:14,moo:5,price:5},
+  carrot:{n:"แครอท",e:"🥕",hun:16,moo:4,price:6},
+  corn:{n:"ข้าวโพด",e:"🌽",hun:20,moo:6,price:8},
+  pumpkin:{n:"ฟักทอง",e:"🎃",hun:28,moo:8,price:12},
+  melon:{n:"แตงโม",e:"🍉",hun:26,moo:12,price:13},
+  grape:{n:"องุ่น",e:"🍇",hun:18,moo:14,price:11},
+  potato:{n:"มันฝรั่ง",e:"🥔",hun:22,moo:3,price:7},
+  broccoli:{n:"บรอกโคลี",e:"🥦",hun:18,moo:4,price:8},
+  chili:{n:"พริก",e:"🌶️",hun:8,moo:10,price:9},
+  lemon:{n:"มะนาว",e:"🍋",hun:10,moo:12,price:9},
+  apple:{n:"แอปเปิล",e:"🍎",hun:20,moo:10,price:10},
+  banana:{n:"กล้วย",e:"🍌",hun:22,moo:9,price:9},
+  pineapple:{n:"สับปะรด",e:"🍍",hun:24,moo:13,price:14},
+  coconut:{n:"มะพร้าว",e:"🥥",hun:26,moo:11,price:15},
+  peach:{n:"พีช",e:"🍑",hun:19,moo:15,price:13},
+  cherry:{n:"เชอร์รี่",e:"🍒",hun:12,moo:16,price:12},
+  beans:{n:"ถั่วสมาธิ",e:"🫘",hun:15,moo:6,price:7},
+  mushroomF:{n:"เห็ดหอม",e:"🍄",hun:17,moo:7,price:9},
+  lotusSeed:{n:"เมล็ดบัว",e:"🪷",hun:14,moo:18,price:16},
+  starfruit:{n:"สตาร์ฟรุต",e:"⭐",hun:30,moo:20,price:20}
+};
+Object.keys(PRODUCE).forEach(k=>{ ITEMS[k]=Object.assign({type:"food",rare:2}, PRODUCE[k]); });
+
+const SEED_DEF = [
+  ["sdTomato","มะเขือเทศ","tomato",1],["sdTomatoCherry","มะเขือเทศเชอร์รี่","tomato",2],
+  ["sdCarrot","แครอท","carrot",1],["sdCarrotGold","แครอททอง","carrot",3],
+  ["sdCorn","ข้าวโพด","corn",2],["sdCornSweet","ข้าวโพดหวาน","corn",3],
+  ["sdPumpkin","ฟักทอง","pumpkin",3],["sdPumpkinGiant","ฟักทองยักษ์","pumpkin",5],
+  ["sdMelon","แตงโม","melon",3],["sdMelonHoney","แตงโมน้ำผึ้ง","melon",4],
+  ["sdGrape","องุ่น","grape",3],["sdGrapeMoon","องุ่นแสงจันทร์","grape",4],
+  ["sdPotato","มันฝรั่ง","potato",1],["sdPotatoSweet","มันหวาน","potato",2],
+  ["sdBroccoli","บรอกโคลี","broccoli",2],["sdBroccoliWild","บรอกโคลีป่า","broccoli",3],
+  ["sdChili","พริก","chili",2],["sdChiliFire","พริกไฟ","chili",4],
+  ["sdLemon","มะนาว","lemon",2],["sdLemonSky","มะนาวฟ้า","lemon",4],
+  ["sdApple","แอปเปิล","apple",3],["sdAppleCrystal","แอปเปิลคริสตัล","apple",5],
+  ["sdBanana","กล้วย","banana",2],["sdBananaGold","กล้วยทอง","banana",4],
+  ["sdPineapple","สับปะรด","pineapple",3],["sdPineappleMini","สับปะรดจิ๋ว","pineapple",2],
+  ["sdCoconut","มะพร้าว","coconut",4],["sdCoconutSky","มะพร้าวลอยฟ้า","coconut",5],
+  ["sdPeach","พีช","peach",3],["sdPeachSpirit","พีชวิญญาณ","peach",5],
+  ["sdCherry","เชอร์รี่","cherry",3],["sdCherryTwin","เชอร์รี่คู่","cherry",4],
+  ["sdBeans","ถั่วสมาธิ","beans",1],["sdBeansJade","ถั่วหยก","beans",3],
+  ["sdMushroom","เห็ดหอม","mushroomF",2],["sdMushroomGlow","เห็ดเรืองแสง","mushroomF",4],
+  ["sdLotus","บัวหลวง","lotusSeed",4],["sdLotusNight","บัวราตรี","lotusSeed",5],
+  ["sdStar","สตาร์ฟรุต","starfruit",5],["sdStarDawn","สตาร์ฟรุตอรุณ","starfruit",5],
+  ["sdRiceA","ข้าวสมาธิพันธุ์เบา","rice",1],["sdRiceB","ข้าวสมาธิพันธุ์หนัก","rice",3],
+  ["sdTeaA","ชาโพธิ์ใบอ่อน","tea",2],["sdTeaB","ชาโพธิ์ใบแก่","tea",4],
+  ["sdBerryA","เบอร์รีป่า","berry",1],["sdBerryB","เบอร์รีหิมะ","berry",3],
+  ["sdCakeHerb","สมุนไพรเค้กเมฆ","cake",4],["sdFishGrass","หญ้าล่อปลา","fish",2],
+  ["sdCrystalMoss","มอสคริสตัล","crystal",5],["sdDewFlower","ดอกน้ำค้าง","dew",4]
+];
+const TIER_GROW=[0,15,30,60,120,240], TIER_DRY=[0,0.8,1.05,1.3,1.6,1.95];
+const TIER_TH=["","ง่ายมาก","ง่าย","ปานกลาง","ยาก","ยากมาก"];
+const SEED_EMO={1:"🌱",2:"🌿",3:"🍀",4:"🌾",5:"✨"};
+SEED_DEF.forEach(([key,name,yk,tier])=>{
+  const pr = (ITEMS[yk]&&ITEMS[yk].price)||6;
+  const amt = 1 + tier;
+  const yieldVal = pr*amt;
+  const buy = Math.ceil(yieldVal/0.5) + tier*18;
+  SEEDS[key] = {
+    n:"เมล็ด"+name, e:SEED_EMO[tier], tier,
+    grow:TIER_GROW[tier], dry:TIER_DRY[tier],
+    rot:Math.round(TIER_GROW[tier]*2.2+60),
+    yield:yk, amt, buy, price:Math.round(buy*0.3),
+    d:"ความยาก "+TIER_TH[tier]+" · โต "+TIER_GROW[tier]+" นาที · เก็บภายใน "+Math.round(TIER_GROW[tier]*2.2+60)+" นาที"
+  };
+});
+/* เมล็ดชุดแรก 4 แบบ ปรับสมดุลราคาใหม่ให้ขายไม่ได้กำไร */
+[["seedBerry","berry",1],["seedRice","rice",2],["seedTea","tea",3],["seedStar","star",4]].forEach(([k,yk,tier])=>{
+  const d=SEEDS[k]; if(!d) return;
+  const pr=(ITEMS[yk]&&ITEMS[yk].price)||6;
+  d.amt = 1+tier; d.tier=tier;
+  d.buy = Math.ceil(pr*d.amt/0.5) + tier*18;
+  d.price = Math.round(d.buy*0.3);
+  d.d = "ความยาก "+TIER_TH[tier]+" · โต "+d.grow+" นาที";
+});
+
 /* ---------- เครื่องแต่งกายที่ต้องซื้อ ---------- */
 const COSMETICS = {
   /* ทรงผม */
@@ -1415,6 +1508,153 @@ const FAM = {
       for(let r=2;r<10;r++) px(c, x+Math.round(Math.cos(ang)*r), y-27+Math.round(Math.sin(ang)*r), "#e8dcb8"); }
     ell(c,x,y-27,1,1,"#8a6a4e"); }
 };
+/* =====================================================================
+   ธงตกแต่ง — ธงชาติ · ธงสีทีม · ธงลายการ์ตูน · ธงสีรุ้ง
+   (ใช้ลายสีพื้นฐาน ไม่มีตราสัญลักษณ์ที่มีลิขสิทธิ์)
+===================================================================== */
+const FLAGS = [
+  ["ไทย","h5",["#a51931","#f4f5f8","#2d2a4a","#f4f5f8","#a51931"]],
+  ["ญี่ปุ่น","circle",["#ffffff","#bc002d"]],
+  ["ฝรั่งเศส","v3",["#0055a4","#ffffff","#ef4135"]],
+  ["อิตาลี","v3",["#009246","#ffffff","#ce2b37"]],
+  ["เยอรมนี","h3",["#000000","#dd0000","#ffce00"]],
+  ["เนเธอร์แลนด์","h3",["#ae1c28","#ffffff","#21468b"]],
+  ["เบลเยียม","v3",["#000000","#fdda24","#ef3340"]],
+  ["ไอร์แลนด์","v3",["#169b62","#ffffff","#ff883e"]],
+  ["โรมาเนีย","v3",["#002b7f","#fcd116","#ce1126"]],
+  ["ไนจีเรีย","v3",["#008751","#ffffff","#008751"]],
+  ["เปรู","v3",["#d91023","#ffffff","#d91023"]],
+  ["ออสเตรีย","h3",["#ed2939","#ffffff","#ed2939"]],
+  ["สเปน","h3",["#aa151b","#f1bf00","#aa151b"]],
+  ["โคลอมเบีย","h3",["#fcd116","#003893","#ce1126"]],
+  ["ยูเครน","h2",["#0057b7","#ffd700"]],
+  ["โปแลนด์","h2",["#ffffff","#dc143c"]],
+  ["อินโดนีเซีย","h2",["#ce1126","#ffffff"]],
+  ["โมนาโก","h2",["#ce1126","#ffffff"]],
+  ["เดนมาร์ก","nordic",["#c60c30","#ffffff"]],
+  ["สวีเดน","nordic",["#006aa7","#fecc00"]],
+  ["นอร์เวย์","nordic",["#ba0c2f","#ffffff"]],
+  ["ฟินแลนด์","nordic",["#ffffff","#003580"]],
+  ["ไอซ์แลนด์","nordic",["#02529c","#ffffff"]],
+  ["สวิตเซอร์แลนด์","cross",["#d52b1e","#ffffff"]],
+  ["กรีซ","greek",["#0d5eaf","#ffffff"]],
+  ["โปรตุเกส","split",["#046a38","#da291c"]],
+  ["บังกลาเทศ","circle",["#006a4e","#f42a41"]],
+  ["ปาเลา","circle",["#4aadd6","#ffde00"]],
+  ["ลาว","laos",["#ce1126","#002868","#ffffff"]],
+  ["จีน","corner",["#de2910","#ffde00"]],
+  ["เวียดนาม","corner",["#da251d","#ffff00"]],
+  ["เกาหลีใต้","circle2",["#ffffff","#cd2e3a","#0047a0"]],
+  ["สีรุ้ง LGBTQ+","h6",["#e40303","#ff8c00","#ffed00","#008026","#004dff","#750787"]],
+  ["ธงทรานส์","h5",["#5bcefa","#f5a9b8","#ffffff","#f5a9b8","#5bcefa"]],
+  ["ทีมแดง-ขาว","hoop",["#c62828","#ffffff"]],
+  ["ทีมน้ำเงิน-ขาว","hoop",["#1e4fa0","#ffffff"]],
+  ["ทีมเขียว-ขาว","hoop",["#0e7a3c","#ffffff"]],
+  ["ทีมดำ-ขาว","stripeV",["#1a1a1a","#ffffff"]],
+  ["ทีมแดง-ดำ","stripeV",["#c62828","#1a1a1a"]],
+  ["ทีมเหลือง-ดำ","stripeV",["#f2c31a","#1a1a1a"]],
+  ["ทีมฟ้า-ขาว","stripeV",["#5aa9e6","#ffffff"]],
+  ["ทีมม่วง-ทอง","hoop",["#6a3fa0","#e8c352"]],
+  ["ธงหน้ายิ้ม","smile",["#f2c31a","#2b2b2b"]],
+  ["ธงดาวการ์ตูน","starf",["#3a4f9c","#ffe066"]],
+  ["ธงหัวใจ","heart",["#ffd9e6","#e8607a"]],
+  ["ธงเห็ดการ์ตูน","mushf",["#f6efe0","#e05a6a"]],
+  ["ธงเมฆน้อย","cloudf",["#8fd0e8","#ffffff"]]
+];
+function drawFlagArt(c,x,y,w,h,def,t){
+  const [name,kind,cols]=def;
+  const wave = i => Math.round(Math.sin(t*2 + i*0.5)*1);
+  const put=(fx,fy,fw,fh,col)=>rect(c,x+fx,y+fy+wave(fx),fw,fh,col);
+  put(0,0,w,h,cols[1]||cols[0]);
+  if(kind==="h2"||kind==="h3"||kind==="h5"||kind==="h6"){
+    const n=cols.length, step=h/n;
+    cols.forEach((cc,i)=>put(0,Math.round(i*step),w,Math.ceil(step),cc));
+  } else if(kind==="v3"){
+    const step=w/3; cols.forEach((cc,i)=>put(Math.round(i*step),0,Math.ceil(step),h,cc));
+  } else if(kind==="split"){
+    put(0,0,Math.round(w*0.42),h,cols[0]); put(Math.round(w*0.42),0,w-Math.round(w*0.42),h,cols[1]);
+    ell(c,x+Math.round(w*0.42),y+h/2+wave(0),2,2,"#ffe066");
+  } else if(kind==="circle"){
+    put(0,0,w,h,cols[0]); ell(c,x+w/2,y+h/2+wave(0),Math.round(h*0.3),Math.round(h*0.3),cols[1]);
+  } else if(kind==="circle2"){
+    put(0,0,w,h,cols[0]);
+    ell(c,x+w/2,y+h/2+wave(0),Math.round(h*0.28),Math.round(h*0.28),cols[1]);
+    ellHalf(c,x+w/2,y+h/2+wave(0),Math.round(h*0.28),Math.round(h*0.28),cols[2],false);
+  } else if(kind==="nordic"){
+    put(0,0,w,h,cols[0]);
+    put(Math.round(w*0.32),0,Math.max(2,Math.round(w*0.14)),h,cols[1]);
+    put(0,Math.round(h*0.4),w,Math.max(2,Math.round(h*0.22)),cols[1]);
+  } else if(kind==="cross"){
+    put(0,0,w,h,cols[0]);
+    put(Math.round(w*0.42),Math.round(h*0.18),Math.max(2,Math.round(w*0.16)),Math.round(h*0.64),cols[1]);
+    put(Math.round(w*0.24),Math.round(h*0.4),Math.round(w*0.52),Math.max(2,Math.round(h*0.2)),cols[1]);
+  } else if(kind==="greek"){
+    put(0,0,w,h,cols[1]);
+    for(let i=0;i<5;i+=2) put(0,Math.round(i*h/5),w,Math.ceil(h/5),cols[0]);
+    put(0,0,Math.round(w*0.42),Math.round(h*0.6),cols[0]);
+    put(Math.round(w*0.16),0,Math.max(1,Math.round(w*0.1)),Math.round(h*0.6),cols[1]);
+    put(0,Math.round(h*0.24),Math.round(w*0.42),Math.max(1,Math.round(h*0.12)),cols[1]);
+  } else if(kind==="laos"){
+    put(0,0,w,h,cols[0]); put(0,Math.round(h*0.28),w,Math.round(h*0.44),cols[1]);
+    ell(c,x+w/2,y+h/2+wave(0),Math.round(h*0.18),Math.round(h*0.18),cols[2]);
+  } else if(kind==="corner"){
+    put(0,0,w,h,cols[0]); star(c,x+Math.round(w*0.22),y+Math.round(h*0.3)+wave(0),2,cols[1]);
+    px(c,x+Math.round(w*0.38),y+Math.round(h*0.2)+wave(0),cols[1]);
+    px(c,x+Math.round(w*0.42),y+Math.round(h*0.36)+wave(0),cols[1]);
+  } else if(kind==="hoop"){
+    put(0,0,w,h,cols[1]);
+    for(let i=0;i<h;i+=4) put(0,i,w,2,cols[0]);
+  } else if(kind==="stripeV"){
+    for(let i=0;i<w;i+=4){ put(i,0,2,h,cols[0]); put(i+2,0,2,h,cols[1]); }
+  } else if(kind==="smile"){
+    put(0,0,w,h,cols[0]);
+    px(c,x+Math.round(w*0.33),y+Math.round(h*0.35)+wave(0),cols[1]);
+    px(c,x+Math.round(w*0.62),y+Math.round(h*0.35)+wave(0),cols[1]);
+    put(Math.round(w*0.32),Math.round(h*0.62),Math.round(w*0.36),1,cols[1]);
+  } else if(kind==="starf"){
+    put(0,0,w,h,cols[0]); star(c,x+w/2,y+h/2+wave(0),3,cols[1]);
+  } else if(kind==="heart"){
+    put(0,0,w,h,cols[0]);
+    const hx=x+w/2, hy=y+h/2+wave(0);
+    ell(c,hx-2,hy-1,2,2,cols[1]); ell(c,hx+2,hy-1,2,2,cols[1]);
+    for(let i=0;i<4;i++) rect(c,hx-3+i,hy+i,7-i*2,1,cols[1]);
+  } else if(kind==="mushf"){
+    put(0,0,w,h,cols[0]);
+    ellHalf(c,x+w/2,y+Math.round(h*0.55)+wave(0),Math.round(w*0.28),Math.round(h*0.3),cols[1],true);
+    rect(c,x+w/2-1,y+Math.round(h*0.55)+wave(0),3,Math.round(h*0.3),"#e8dcc8");
+  } else if(kind==="cloudf"){
+    put(0,0,w,h,cols[0]);
+    ell(c,x+w/2,y+h/2+wave(0),Math.round(w*0.2),Math.round(h*0.18),cols[1]);
+    ell(c,x+w/2-3,y+h/2+1+wave(0),Math.round(w*0.13),Math.round(h*0.14),cols[1]);
+    ell(c,x+w/2+3,y+h/2+1+wave(0),Math.round(w*0.13),Math.round(h*0.14),cols[1]);
+  }
+  rect(c,x,y+wave(0),w,1,"rgba(255,255,255,.25)");
+}
+/* ---- ธงแขวนผนัง + ธงปักสวน ---- */
+FAM.wflag=function(c,x,y,t,idx){
+  const def=FLAGS[idx]; if(!def) return;
+  rect(c,x-11,y-11,23,2,"#6d4326"); px(c,x-11,y-11,"#8f5f3a");
+  drawFlagArt(c,x-10,y-8,20,14,def,t);
+  rect(c,x-10,y+6,20,1,"rgba(0,0,0,.25)");
+};
+FAM.gflag=function(c,x,y,t,idx){
+  const def=FLAGS[idx]; if(!def) return;
+  shadowUnder(c,x,y,5);
+  rect(c,x-1,y-26,2,26,"#9aa8b0"); rect(c,x-1,y-26,1,26,"#c3ced4");
+  ell(c,x,y-27,2,1,"#e8c352");
+  drawFlagArt(c,x+1,y-25,18,12,def,t);
+};
+(function buildFlags(){
+  FLAGS.forEach((f,i)=>{
+    addGen("wflag","g_wflag_"+i,"ธง"+f[0]+" (แขวนผนัง)","#ffffff","home","wall",
+      120+ (i%5)*10, {w:11,top:11,bot:7}, {e:"🏳️"});
+    GEN["g_wflag_"+i].c=i;
+    addGen("gflag","g_gflag_"+i,"ธง"+f[0]+" (ปักสวน)","#ffffff","garden","floor",
+      140+ (i%5)*10, {w:10,top:28,bot:2}, {e:"🚩"});
+    GEN["g_gflag_"+i].c=i;
+  });
+})();
+
 /* ---------- สร้างรายการทั้งหมด ---------- */
 (function buildCatalog(){
   const mk=(fam,list,prefix,label,zone,kind,base,box,e)=>{
@@ -1486,6 +1726,13 @@ const ACC_LIST=[["headphone","หูฟัง"],["wing","ปีกน้อย"]
   HAIR_EXTRA.forEach((h,i)=> add("HR_"+i,"hair",h[0],h[1], 130+i*12, null, "💇"));
   SHIRT_STYLES.forEach((s,i)=> add("SH_"+i,"shirt",s[0],s[1], 150+i*22, null, "👕"));
   ACC_LIST.forEach((a,i)=> add("AC_"+i,"acc",a[0],a[1], 110+i*28, null, "✨"));
+  /* เครื่องแต่งกายสไตล์ผู้หญิง */
+  const FEM_SHIRT=[["skirt","กระโปรงสั้น",170],["dress","เดรสลำลอง",240],["sailorSkirt","ชุดกะลาสีกระโปรง",280],
+                   ["longDress","เดรสยาว",320],["qipao","ชุดกี่เพ้า",360],["tutu","กระโปรงบัลเลต์",300]];
+  FEM_SHIRT.forEach((f,i)=> add("FS_"+i,"shirt",f[0],f[1],f[2],null,"👗"));
+  const FEM_ACC=[["ribbon","โบว์ใหญ่",140],["necklace","สร้อยคอ",190],["handbag","กระเป๋าถือ",220],
+                 ["earringLong","ต่างหูระย้า",160],["hairpin","ปิ่นปักผม",130],["choker","โชกเกอร์",150]];
+  FEM_ACC.forEach((f,i)=> add("FA_"+i,"acc",f[0],f[1],f[2],null,"🎀"));
 })();
 /* แปลงค่าที่สวมใส่เป็นรูปทรง+สี */
 function cosOf(field,v){
@@ -1497,7 +1744,7 @@ function cosOf(field,v){
 const SKINS  = ["#f3d2b3","#e8b98d","#cf9c6b","#a9744a","#7d5433","#5b3b23"];
 const SHIRTS = ["#7e8fa3","#8a9a7e","#a88b7a","#8c7f9e","#c4b79a","#6f7b86","#9c6f6f","#5f6b5c"];
 const PANTS  = ["#4a4f5c","#5e5546","#3f4a3d","#6a6a6a","#4a3f4f","#2f3540"];
-const HAIRS  = { m:["short","buzz","messy"], f:["long","bun","bob"], n:["short","bun","messy"] };
+const HAIRS  = { m:["short","buzz","messy","spike"], f:["long","bun","bob","twin","hime","wave"], n:["short","bun","messy","pony"] };
 const HAIRCOL= ["#2b2118","#4a3423","#6f4b2a","#a8813f","#8c8c8c","#3d2b4a"];
 const HATS   = ["none","cap","beanie","straw"];
 const GLASSES= ["none","round","square","shades"];
@@ -1530,6 +1777,9 @@ function newGame(){
           injured:false, medUsed:false, sick:false, salineUsed:false,
           care:{focus:0,play:0,feed:0}, seen:{seed:1} },
     coins: 120,
+    crystal: 0,
+    opt: { bgm:true, rain:true },
+    vip: { floor:null, wall:null, house:null, fairy:null, poses:[] },
     cheers: 0,
     storage: [],
     farm: [null,null,null,null,null,null],
@@ -1581,6 +1831,7 @@ function checkEvolve(){
 }
 function evolveTo(o){
   const key = typeof o==="string" ? o : o.to;
+  const prevForm = G.pet.form;
   if(typeof o!=="string" && o.item){
     G.bag[o.item]--; if(!G.bag[o.item]) delete G.bag[o.item];
     toast("ใช้ "+itemDef(o.item).n+" ในการวิวัฒนาการ");
@@ -1590,7 +1841,9 @@ function evolveTo(o){
   albumUnlock(key);
   G.pet.hp = maxHp();
   Pet.state="happy"; Pet.stateT=2.5;
-  showEvo(key);
+  const fromKey = prevForm;
+  if(typeof startEvoAnim==="function") startEvoAnim(fromKey, key, ()=>showEvo(key));
+  else showEvo(key);
   save();
 }
 function addItem(k,n){ G.bag[k]=(G.bag[k]||0)+(n||1); }
@@ -2145,6 +2398,7 @@ function drawLeg(c,x,hipY,footLift,PA){
 }
 function drawHead(c,P,headY,t,state){
   const SK=P.skin, HC=P.haircol, OL="#25301c";
+  const HAIR=cosOf("hair",P.hair).shape, ACC=cosOf("acc",P.acc).shape;
   rect(c,-1,headY+8,2,2,SK);                 /* คอ ซ้อนกับไหล่ 1 px */
   ell(c,0,headY+4,4,4,SK);
   const SCC=cosOf("scarf",P.scarf);
@@ -2156,37 +2410,37 @@ function drawHead(c,P,headY,t,state){
       for(let i=-4;i<=4;i+=2) px(c,i,headY+9,shade(SC,-26));
       rect(c,3,headY+11,2,4,SC); }
   }
-  if(P.hair==="long"){ ell(c,0,headY+4,5,5,HC); ell(c,0,headY+6,5,4,SK); rect(c,-5,headY+3,2,8,HC); rect(c,3,headY+3,2,8,HC); ellHalf(c,0,headY+3,5,4,HC,true); }
-  else if(P.hair==="bun"){ ellHalf(c,0,headY+3,4,4,HC,true); ell(c,0,headY-2,2,2,HC); }
-  else if(P.hair==="pony"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+  if(HAIR==="long"){ ell(c,0,headY+4,5,5,HC); ell(c,0,headY+6,5,4,SK); rect(c,-5,headY+3,2,8,HC); rect(c,3,headY+3,2,8,HC); ellHalf(c,0,headY+3,5,4,HC,true); }
+  else if(HAIR==="bun"){ ellHalf(c,0,headY+3,4,4,HC,true); ell(c,0,headY-2,2,2,HC); }
+  else if(HAIR==="pony"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
     rect(c,4,headY+4,2,3,HC); ell(c,6,headY+8,2,4,HC); ell(c,6,headY+11,1,2,HC);
     px(c,4,headY+3,"#e8dcb8"); }
-  else if(P.hair==="curly"){ ellHalf(c,0,headY+2,5,5,HC,true); rect(c,-5,headY+2,11,2,HC);
+  else if(HAIR==="curly"){ ellHalf(c,0,headY+2,5,5,HC,true); rect(c,-5,headY+2,11,2,HC);
     [[-5,1],[-3,-2],[0,-4],[3,-2],[5,1],[-6,4],[6,4]].forEach(q=>ell(c,q[0],headY+3+q[1],2,2,HC));
     ell(c,-2,headY-1,2,1,"rgba(255,255,255,.18)"); }
-  else if(P.hair==="twin"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+  else if(HAIR==="twin"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
     ell(c,-6,headY+7,2,4,HC); ell(c,6,headY+7,2,4,HC);
     px(c,-6,headY+4,"#e8788f"); px(c,6,headY+4,"#e8788f"); }
-  else if(P.hair==="wave"){ ell(c,0,headY+4,5,5,HC); ell(c,0,headY+6,5,4,SK);
+  else if(HAIR==="wave"){ ell(c,0,headY+4,5,5,HC); ell(c,0,headY+6,5,4,SK);
     rect(c,-6,headY+3,2,10,HC); rect(c,4,headY+3,2,10,HC); ellHalf(c,0,headY+3,5,4,HC,true);
     for(let i=0;i<3;i++){ ell(c,-6+((i%2)?1:0),headY+11+i*2,2,1,HC); ell(c,5-((i%2)?1:0),headY+11+i*2,2,1,HC); } }
-  else if(P.hair==="afro"){ ell(c,0,headY+1,7,6,HC); ell(c,0,headY+4,5,4,SK); ellHalf(c,0,headY+2,7,6,HC,true);
+  else if(HAIR==="afro"){ ell(c,0,headY+1,7,6,HC); ell(c,0,headY+4,5,4,SK); ellHalf(c,0,headY+2,7,6,HC,true);
     [[-6,0],[-4,-4],[0,-6],[4,-4],[6,0]].forEach(q=>ell(c,q[0],headY+3+q[1],2,2,HC)); }
-  else if(P.hair==="braid"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+  else if(HAIR==="braid"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
     for(let i=0;i<4;i++) ell(c,-6,headY+7+i*2,2,1,HC);
     px(c,-6,headY+15,"#e8788f"); }
-  else if(P.hair==="mohawk"){ rect(c,-4,headY+3,9,1,shade(HC,-30));
+  else if(HAIR==="mohawk"){ rect(c,-4,headY+3,9,1,shade(HC,-30));
     for(let i=0;i<5;i++) rect(c,-2+i,headY-2-((i===2)?2:Math.abs(2-i)),1,6,HC); }
-  else if(P.hair==="hime"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+5,4,3,SK);
+  else if(HAIR==="hime"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+5,4,3,SK);
     rect(c,-6,headY+3,2,9,HC); rect(c,4,headY+3,2,9,HC); rect(c,-5,headY+2,11,2,HC);
     for(let i=-4;i<=4;i+=2) px(c,i,headY+4,HC); }
-  else if(P.hair==="side"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
+  else if(HAIR==="side"){ ellHalf(c,0,headY+3,5,4,HC,true); rect(c,-5,headY+3,10,1,HC);
     rect(c,-5,headY+4,3,4,HC); px(c,-2,headY+3,shade(HC,30)); }
-  else if(P.hair==="spike"){ ellHalf(c,0,headY+3,4,3,HC,true); rect(c,-4,headY+3,9,1,HC);
+  else if(HAIR==="spike"){ ellHalf(c,0,headY+3,4,3,HC,true); rect(c,-4,headY+3,9,1,HC);
     for(let i=0;i<5;i++){ const sx=-4+i*2; rect(c,sx,headY-1-((i%2)?1:0),1,3,HC); } }
-  else if(P.hair==="bob"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+5,4,3,SK); rect(c,-5,headY+3,1,4,HC); rect(c,4,headY+3,1,4,HC); }
-  else if(P.hair==="buzz"){ ellHalf(c,0,headY+3,4,3,HC,true); }
-  else if(P.hair==="messy"){ ellHalf(c,0,headY+3,4,4,HC,true); px(c,-3,headY-1,HC); px(c,1,headY-2,HC); px(c,3,headY,HC); }
+  else if(HAIR==="bob"){ ell(c,0,headY+3,5,4,HC); ell(c,0,headY+5,4,3,SK); rect(c,-5,headY+3,1,4,HC); rect(c,4,headY+3,1,4,HC); }
+  else if(HAIR==="buzz"){ ellHalf(c,0,headY+3,4,3,HC,true); }
+  else if(HAIR==="messy"){ ellHalf(c,0,headY+3,4,4,HC,true); px(c,-3,headY-1,HC); px(c,1,headY-2,HC); px(c,3,headY,HC); }
   else { ellHalf(c,0,headY+3,4,4,HC,true); rect(c,-4,headY+3,8,1,HC); }
   const closed = state==="focus" || (Math.sin(t*0.8)>0.985);
   if(closed){ rect(c,-3,headY+4,2,1,OL); rect(c,2,headY+4,2,1,OL); }
@@ -2221,22 +2475,45 @@ function drawHead(c,P,headY,t,state){
     [[-4,0],[-1,-1],[2,0],[4,1]].forEach((q,i)=>{ ell(c,q[0],headY+1+q[1],1,1,["#f0d24a","#e8788f","#c98ae0","#f6f2e2"][i]);
       px(c,q[0],headY+q[1],"#fdf6dc"); }); }
   /* เครื่องประดับบนหัว */
-  if(P.acc==="headphone"){ rect(c,-6,headY+2,2,4,"#33384a"); rect(c,5,headY+2,2,4,"#33384a");
+  if(ACC==="headphone"){ rect(c,-6,headY+2,2,4,"#33384a"); rect(c,5,headY+2,2,4,"#33384a");
     ellHalf(c,0,headY+2,6,4,"#3f4658",true); px(c,-6,headY+3,"#8fd0e8"); px(c,6,headY+3,"#8fd0e8"); }
-  else if(P.acc==="halo"){ const hy=headY-3+Math.round(Math.sin(t*2));
+  else if(ACC==="halo"){ const hy=headY-3+Math.round(Math.sin(t*2));
     for(let x=-4;x<=4;x++) px(c,x,hy+(Math.abs(x)===4?1:0),"#f6e08a"); }
-  else if(P.acc==="bow"){ px(c,4,headY+1,"#e8607a"); ell(c,5,headY+1,1,1,"#f28da0"); ell(c,3,headY+1,1,1,"#f28da0"); }
-  else if(P.acc==="earring"){ px(c,-4,headY+6,"#f0d24a"); px(c,4,headY+6,"#f0d24a"); }
-  else if(P.acc==="mask"){ rect(c,-4,headY+5,9,3,"#e8eef2"); rect(c,-4,headY+5,9,1,"#cdd8de");
+  else if(ACC==="bow"){ px(c,4,headY+1,"#e8607a"); ell(c,5,headY+1,1,1,"#f28da0"); ell(c,3,headY+1,1,1,"#f28da0"); }
+  else if(ACC==="earring"){ px(c,-4,headY+6,"#f0d24a"); px(c,4,headY+6,"#f0d24a"); }
+  else if(ACC==="mask"){ rect(c,-4,headY+5,9,3,"#e8eef2"); rect(c,-4,headY+5,9,1,"#cdd8de");
     px(c,-5,headY+5,"#b8c4cc"); px(c,5,headY+5,"#b8c4cc"); }
-  else if(P.acc==="antenna"){ rect(c,1,headY-3,1,4,"#6f7b86"); ell(c,1,headY-4,1,1,"#f06f6f");
+  else if(ACC==="antenna"){ rect(c,1,headY-3,1,4,"#6f7b86"); ell(c,1,headY-4,1,1,"#f06f6f");
     if(Math.sin(t*4)>0.5) px(c,1,headY-6,"#f9c2c2"); }
-  else if(P.acc==="flowerpin"){ ell(c,-4,headY+2,1,1,"#f0d24a");
+  else if(ACC==="flowerpin"){ ell(c,-4,headY+2,1,1,"#f0d24a");
     [[-5,1],[-3,1],[-4,0],[-4,2]].forEach(q=>px(c,q[0],headY+1+q[1],"#f6c6d8")); }
-  else if(P.acc==="star"){ const sy=headY-4+Math.round(Math.sin(t*2.4)); star(c,5,sy,1,"#f7e08a"); }
+  else if(ACC==="star"){ const sy=headY-4+Math.round(Math.sin(t*2.4)); star(c,5,sy,1,"#f7e08a"); }
+  else if(ACC==="ribbon"){ ell(c,-4,headY+1,2,2,"#e8607a"); ell(c,1,headY+1,2,2,"#e8607a");
+    px(c,-1,headY+1,"#c94a62"); px(c,-4,headY,"#f28da0"); px(c,2,headY,"#f28da0"); }
+  else if(ACC==="hairpin"){ px(c,-4,headY+2,"#f0d24a"); px(c,-5,headY+1,"#f6e8b0"); px(c,-3,headY+1,"#f6e8b0"); }
+  else if(ACC==="earringLong"){ px(c,-4,headY+6,"#f0d24a"); px(c,-4,headY+7,"#f6e8b0");
+    px(c,4,headY+6,"#f0d24a"); px(c,4,headY+7,"#f6e8b0"); }
+  else if(ACC==="choker"){ rect(c,-3,headY+8,7,1,"#3a2b3a"); px(c,0,headY+9,"#f0d24a"); }
+}
+const SKIRT_KINDS={skirt:1,dress:1,sailorSkirt:1,longDress:1,qipao:1,tutu:1};
+function drawSkirt(c,bodyTop,kind,SH,t,sitting){
+  if(!SKIRT_KINDS[kind]) return;
+  const col = kind==="sailorSkirt" ? "#3f4a68" : kind==="tutu" ? "#f0a8c8" : shade(SH,-18);
+  const y = bodyTop+9;
+  const len = (kind==="longDress") ? 9 : (kind==="dress"||kind==="qipao") ? 7 : 5;
+  if(sitting){ ell(c,0,y+1,7,3,col); ell(c,0,y,6,2,shade(col,22)); return; }
+  for(let i=0;i<len;i++){
+    const wdt = 4 + Math.round(i*(kind==="tutu"?0.9:0.6));
+    rect(c,-wdt,y+i,wdt*2,1, i===0?shade(col,26):col);
+  }
+  const bw2=4+Math.round((len-1)*(kind==="tutu"?0.9:0.6));
+  rect(c,-bw2,y+len-1,bw2*2,1,shade(col,-30));
+  if(kind==="sailorSkirt") for(let i=-5;i<=5;i+=3) rect(c,i,y+1,1,len-2,shade(col,-24));
+  if(kind==="qipao"){ rect(c,-1,y,2,len,shade(col,30)); px(c,0,y+2,"#f0d24a"); }
+  if(kind==="tutu") for(let i=-6;i<=6;i+=3) px(c,i,y+len-1,"#fdd8e8");
 }
 function shirtDeco(c,bodyTop,P,SH){
-  const st=P.shirtStyle||"plain";
+  const st=cosOf("shirt",P.shirtStyle||"plain").shape;
   if(st==="hoodie"){
     ellHalf(c,0,bodyTop+2,5,3,shade(SH,-26),false);
     rect(c,-1,bodyTop+3,1,5,shade(SH,-34)); rect(c,1,bodyTop+3,1,5,shade(SH,-34));
@@ -2273,13 +2550,18 @@ function shirtDeco(c,bodyTop,P,SH){
 function drawPlayer(c, P, o){
   o=o||{}; const t=o.t||0, state=o.state||"idle";
   const SK=P.skin, SH=P.shirt, PA=P.pants;
+  const ACC=cosOf("acc",P.acc).shape, SKIRT=cosOf("shirt",P.shirtStyle||"plain").shape;
   const bt0 = (state==="sit"||state==="focus") ? -12 : -16;
-  if(P.acc==="tail"){ const sw=Math.round(Math.sin(t*3)*2);
+  if(ACC==="tail"){ const sw=Math.round(Math.sin(t*3)*2);
     ell(c,-7,bt0+13,2,1,P.haircol); ell(c,-9,bt0+12+sw,2,1,P.haircol); ell(c,-11,bt0+11+sw,1,1,P.haircol); }
-  if(P.acc==="backpack"){ rect(c,-7,bt0+3,3,8,"#8a6a3e"); rect(c,-7,bt0+3,3,1,"#a8834e");
+  if(ACC==="backpack"){ rect(c,-7,bt0+3,3,8,"#8a6a3e"); rect(c,-7,bt0+3,3,1,"#a8834e");
     rect(c,4,bt0+3,3,8,"#8a6a3e"); }
-  if(P.acc==="scarfpin"){ px(c,0,bt0+9,"#f0d24a"); }
-  if(P.acc==="wing"){
+  if(ACC==="scarfpin"){ px(c,0,bt0+9,"#f0d24a"); }
+  if(ACC==="necklace"){ rect(c,-2,bt0+9,5,1,"#f0d24a"); px(c,0,bt0+10,"#9fd7e8"); }
+  if(ACC==="handbag"){ const sw3=state==="walk"?Math.round(Math.sin(t*8)):0;
+    rect(c,6,bt0+8+sw3,4,4,"#b3624f"); rect(c,6,bt0+8+sw3,4,1,"#d1806a");
+    px(c,7,bt0+7+sw3,"#8a4838"); px(c,8,bt0+7+sw3,"#8a4838"); }
+  if(ACC==="wing"){
     const f=Math.round(Math.sin(t*3));
     ellHalf(c,-7,bt0+5+f,4,5,"rgba(240,248,255,.9)",true);
     ellHalf(c,7,bt0+5-f,4,5,"rgba(240,248,255,.9)",true);
@@ -2301,6 +2583,7 @@ function drawPlayer(c, P, o){
     rect(c,-4,bodyTop,8,10,SH);                       /* ลำตัวคลุมถึงสะโพก */
     rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
     shirtDeco(c,bodyTop,P,SH);
+    drawSkirt(c,bodyTop,SKIRT,SH,t,true);
     const br = state==="focus" ? Math.round(Math.sin(t*1.2)) : 0;
     rect(c,-6,bodyTop+4+br,2,5,SH); rect(c,4,bodyTop+4+br,2,5,SH);
     px(c,-6,bodyTop+9+br,SK); px(c,5,bodyTop+9+br,SK);
@@ -2327,6 +2610,7 @@ function drawPlayer(c, P, o){
     }
     rect(c,-4,bodyTop,8,10,SH); rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
     shirtDeco(c,bodyTop,P,SH);
+    drawSkirt(c,bodyTop,SKIRT,SH,t,false);
     if(state==="cross"){                                   /* ท่ากางแขนเป็นไม้กางเขน */
       rect(c,-11,bodyTop+2,7,2,SH); rect(c,4,bodyTop+2,7,2,SH);
       px(c,-12,bodyTop+2,SK); px(c,11,bodyTop+2,SK);
@@ -2361,6 +2645,7 @@ function drawPlayer(c, P, o){
   rect(c,-4,bodyTop,8,10,SH);                         /* ทับสะโพก 1 px กันขาด */
   rect(c,-4,bodyTop,8,1,"rgba(255,255,255,.18)");
   shirtDeco(c,bodyTop,P,SH);
+  drawSkirt(c,bodyTop,SKIRT,SH,t,false);
   const sw = state==="walk" ? Math.round(swing) : 0;
   rect(c,-6,bodyTop+1+(sw>0?1:0),2,6,SH); rect(c,4,bodyTop+1-(sw>0?1:0),2,6,SH);
   px(c,-6,bodyTop+7+(sw>0?1:0),SK); px(c,5,bodyTop+7-(sw>0?1:0),SK);
@@ -2407,7 +2692,7 @@ function stormFlash(t){ return Env.weather==="storm" && (Math.sin(t*0.73)>0.994 
 /* ---------- พื้นที่ทั้งหมดของเกาะลอยฟ้า ---------- */
 const AREAS = {
   home:   { n:"บ้าน",           kind:"home"   },
-  friend: { n:"ห้องเพื่อน",     kind:"home"   },
+  friend: { n:"บ้านเพื่อน",     kind:"home"   },
   yard:   { n:"สวนหน้าบ้าน",    kind:"yard"   },
   center: { n:"Samati Center",  kind:"center" },
   garden: { n:"สวนริมหน้าผา",   kind:"garden" },
@@ -2435,7 +2720,7 @@ function applyArea(key){
   else { Ply.x=W-26; }
   Pet.x = Ply.x + (Ply.x<W/2?18:-18); Pet.tx=Pet.x;
   Place.mode="none"; Place.id=null; Place.sel=-1;
-  const el=$("#envA"); if(el) el.textContent = (key==="friend"&&G.visiting) ? ("ห้องของ "+G.visiting.name) : AREAS[key].n;
+  const el=$("#envA"); if(el) el.textContent = (key==="friend"&&G.visiting) ? ("บ้านของ "+G.visiting.name) : AREAS[key].n;
   updateMoveBar();
   save();
 }
@@ -2875,15 +3160,16 @@ function cleanPoopAt(px_,py_){
 /* ---------- ห้องเพื่อน ---------- */
 async function visitFriend(code){
   code=String(code||"").trim().toUpperCase();
-  if(!code){ sfx.bad(); toast("ใส่รหัสห้องเพื่อนก่อน"); return; }
-  if(code===G.account.code){ sfx.bad(); toast("นั่นคือรหัสห้องของคุณเอง"); return; }
+  if(!code){ sfx.bad(); toast("ใส่รหัสบ้านเพื่อนก่อน"); return; }
+  if(code===G.account.code){ sfx.bad(); toast("นั่นคือรหัสบ้านของคุณเอง"); return; }
   if(FS.on){ toast("จบรอบโฟกัสก่อนค่อยไปเยี่ยมเพื่อน"); return; }
-  if(!SamatiCloud.user){ sfx.bad(); toast("ต้องเข้าสู่ระบบ Google เพื่อไปห้องเพื่อนแบบเรียลไทม์"); return; }
-  let members=[]; try{members=await SamatiNet.peek(code)}catch(e){}
+  if(!SamatiCloud.user){ sfx.bad(); toast("ต้องเข้าสู่ระบบ Google เพื่อไปบ้านเพื่อนแบบเรียลไทม์"); return; }
+  let state={members:[]}; try{state=await SamatiNet.peekState(code)}catch(e){}
+  const members=state.members||[];
   const owner=members.find(m=>m&&m.code===code);
   if(!owner){ sfx.bad(); toast("🏠 เพื่อนไม่อยู่บ้าน หรือออฟไลน์อยู่"); return; }
   G.visiting = { code:owner.code, name:owner.name, petName:owner.pet?.name||"Mori", petForm:owner.pet?.form||"seed" };
-  await SamatiNet.enter(code);
+  try{await SamatiNet.enter(code);}catch(e){G.visiting=null;sfx.bad();toast(e.message==="house full"?"🏠 บ้านเพื่อนเต็มแล้ว (สูงสุด 5 คน)":"เข้าบ้านเพื่อนไม่สำเร็จ");return;}
   closePanels(); goArea("friend"); save();
   setTimeout(()=>toast("🚪 มาถึงห้องของ "+owner.name+" แล้ว · แตะตัวเพื่อนเพื่อเพิ่มเพื่อน"), 900);
 }
@@ -2919,9 +3205,7 @@ function drawFriendRoom(c,t){
   /* เสื่อและของตกแต่งเจ้าของห้อง */
   ell(c,128,FLOOR+9,25,7,"#8f7fa8"); ell(c,128,FLOOR+8,24,7,"#a292c4");
   ell(c,128,FLOOR+8,18,5,"#bcaedb");
-  drawFurni(c,"shelf",42,FLOOR+8,t);
-  drawFurni(c,"plant",168,FLOOR+10,t);
-  drawFurni(c,"painting",96,34,t);
+  if(!SamatiNet.house){drawFurni(c,"shelf",42,FLOOR+8,t);drawFurni(c,"plant",168,FLOOR+10,t);drawFurni(c,"painting",96,34,t);}
 }
 function roomMembers(){ return (SamatiNet.members||[]).filter(m=>m&&m.code!==G.account.code); }
 function drawRoomMember(c,m,t,i){
@@ -3154,6 +3438,7 @@ function shade(hex,amt){
 /* ---------- อัปเดตฉาก ---------- */
 function updateScene(dt,t){
   const k = area(), kind = AREAS[k].kind;
+  if(Evo.on){ updateParts(dt); return; }
   if(Photo.on){
     const ps = photoStates();
     Ply.state=ps.ply; Pet.state=ps.pet; Ply.dir=1; Pet.dir=-1;
@@ -3340,6 +3625,7 @@ const TINT = { dawn:"rgba(255,168,104,.12)", day:null, afternoon:"rgba(255,226,1
 const Shake = { t:0 };
 function placedList(){
   if(!G || !G.place) return [];
+  if(area()==="friend" && SamatiNet.house) return Array.isArray(SamatiNet.house.place)?SamatiNet.house.place:[];
   return G.place[area()] || [];
 }
 function render(){
@@ -3400,6 +3686,7 @@ function render(){
     }
   }
 
+  if(Evo.on){ drawEvoAnim(g, dt); }
   if(Fade.a>0){ g.fillStyle="rgba(10,8,20,"+Fade.a.toFixed(2)+")"; g.fillRect(0,0,W,H); }
   g.setTransform(1,0,0,1,0,0);
 
@@ -3474,10 +3761,11 @@ function refreshHud(){
   $("#bHp").classList.toggle("low", hpPct<30);
   $("#hpTxt").textContent = Math.max(0,Math.round(G.pet.hp))+"/"+maxHp();
   const cEl=$("#envC"); if(cEl) cEl.textContent = "🪙 "+G.coins;
+  const xEl=$("#envX"); if(xEl) xEl.textContent = "💠 "+(G.crystal||0);
   renderStatLayer();
   const ak=document.querySelector(".key.adminKey");
   if(ak) ak.style.display = isAdmin() ? "flex" : "none";
-  const aEl=$("#envA"); if(aEl) aEl.textContent = (G.area==="friend"&&G.visiting) ? ("ห้องของ "+G.visiting.name) : AREAS[area()].n;
+  const aEl=$("#envA"); if(aEl) aEl.textContent = (G.area==="friend"&&G.visiting) ? ("บ้านของ "+G.visiting.name) : AREAS[area()].n;
   updateMoveBar();
 }
 function tickDecay(){
@@ -3528,6 +3816,7 @@ $("#btnLeaveCenter").addEventListener("click",()=>{ sfx.tap(); closePanels(); if
 function updateMoveBar(){
   const v=$("#mvV"); if(!v) return;
   const k=area();
+  const hc=$("#houseChatQuick");if(hc)hc.style.display=k==="friend"?"block":"none";
   if(k==="home"){ v.style.display="block"; v.textContent="▼ หน้าบ้าน"; v.dataset.go="yard"; }
   else if(k==="yard"){ v.style.display="block"; v.textContent="▲ เข้าบ้าน"; v.dataset.go="home"; }
   else if(k==="friend"){ v.style.display="block"; v.textContent="🏠 กลับห้อง"; v.dataset.go="own"; }
@@ -4823,6 +5112,7 @@ $("#evoOk").onclick=()=>{ sfx.tap(); $("#evo").classList.remove("on"); refreshHu
 /* ---------- MENU / SAVE ---------- */
 function openMenu(){
   const s=G.stats;
+  if(typeof syncSoundBtns==="function") setTimeout(syncSoundBtns,0);
   $("#btnCloud").textContent = G.account.type==="google" ? "บัญชีที่เชื่อมไว้" : "เชื่อมบัญชี Google";
   $("#btnInstallApp").textContent = window.matchMedia("(display-mode: standalone)").matches ? "✓ ติดตั้งเป็นแอปแล้ว" : "📲 ติดตั้งเว็บแอป";
   $("#statList").innerHTML = `
@@ -4896,7 +5186,7 @@ $("#fileIn").onchange=e=>{
 };
 $("#btnOpenFriends").onclick=()=>{ sfx.tap(); openFriends(); };
 $("#btnOpenAlbum").onclick=()=>{ sfx.tap(); albumTab="forms"; openAlbum(); };
-$("#btnSound").onclick=e=>{ sndOn=!sndOn; e.target.textContent="เสียง: "+(sndOn?"เปิด":"ปิด"); if(sndOn) sfx.tap(); };
+$("#btnSound").onclick=e=>{ sndOn=!sndOn; e.target.textContent="เสียงเอฟเฟกต์: "+(sndOn?"เปิด":"ปิด"); if(sndOn) sfx.tap(); };
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;});
 window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;toast("ติดตั้ง SAMATI สำเร็จแล้ว");});
@@ -4907,6 +5197,15 @@ $("#btnInstallApp").onclick=async()=>{
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
   toast(ios?"บน iPhone/iPad: แตะปุ่มแชร์ แล้วเลือก ‘เพิ่มไปยังหน้าจอโฮม’":"เปิดเมนูเบราว์เซอร์ แล้วเลือก ‘ติดตั้งแอป’ หรือ ‘เพิ่มไปยังหน้าจอหลัก’",5200);
 };
+function syncSoundBtns(){
+  const o=opt();
+  const b1=$("#btnBgm"), b2=$("#btnRain");
+  if(b1) b1.textContent="เพลง Lo-Fi: "+(o.bgm?"เปิด":"ปิด");
+  if(b2) b2.textContent="เสียงฝน: "+(o.rain?"เปิด":"ปิด");
+}
+$("#btnBgm").onclick=()=>{ const o=opt(); o.bgm=!o.bgm; sfx.tap(); audioKick(); audioSync(); syncSoundBtns(); save(); };
+$("#btnRain").onclick=()=>{ const o=opt(); o.rain=!o.rain; sfx.tap(); audioKick(); audioSync(); syncSoundBtns();
+  if(o.rain && !isWet()) toast("เปิดแล้ว · เสียงฝนจะดังเมื่ออากาศในเกมเป็นฝนตก"); save(); };
 $("#btnReset").onclick=async()=>{
   if(!confirm("ลบไฟล์เซฟของผู้เล่นและสัตว์เลี้ยงทั้งหมด แล้วกลับไปหน้าเข้าสู่ระบบเพื่อสร้างตัวละครใหม่?\n\nแนะนำให้กด “ส่งออก” เก็บรหัสเซฟไว้ก่อน")) return;
   await Store.del(SAVE_KEY);
@@ -4957,22 +5256,31 @@ window.SamatiGuard = {
   }
 };
 window.SamatiNet = {
-  room:null,members:[],heartbeat:null,misses:0,
+  room:null,members:[],house:null,messages:[],lastMessage:0,heartbeat:null,misses:0,
   async lookup(code){try{return(await SamatiCloud.request("/api/friends/"+encodeURIComponent(code))).friend}catch(e){return null}},
-  async peek(code){if(!SamatiCloud.user)return[];return (await SamatiCloud.request("/api/rooms/"+encodeURIComponent(String(code).toUpperCase())+"/presence")).members||[]},
+  async search(name){if(!SamatiCloud.user)return[];return (await SamatiCloud.request("/api/friends?name="+encodeURIComponent(name))).friends||[]},
+  async peekState(code){if(!SamatiCloud.user)return{members:[]};return SamatiCloud.request("/api/rooms/"+encodeURIComponent(String(code).toUpperCase())+"/presence?after="+this.lastMessage)},
+  async peek(code){return (await this.peekState(code)).members||[]},
   async enter(code){
     if(!SamatiCloud.user||!G)return[]; code=String(code).toUpperCase();
     if(this.room&&this.room!==code)await this.leave(); this.room=code; clearInterval(this.heartbeat);
-    const ping=async()=>{if(!this.room)return[];const room=this.room;const out=await SamatiCloud.request("/api/rooms/"+room+"/presence",{method:"PUT",body:JSON.stringify({profile:this.serialize()})});if(room!==this.room)return[];this.members=out.members||[];
+    const ping=async()=>{if(!this.room)return[];const room=this.room;const out=await SamatiCloud.request("/api/rooms/"+room+"/presence",{method:"PUT",body:JSON.stringify({profile:this.serialize(),after:this.lastMessage})});if(room!==this.room)return[];this.members=out.members||[];this.house=out.house||this.house;if(out.messages?.length){this.messages.push(...out.messages);this.messages=this.messages.slice(-50);this.lastMessage=Math.max(this.lastMessage,...out.messages.map(x=>Number(x.id)||0));HouseChat.render();}
       if(G.area==="friend"&&G.visiting){const owner=this.members.find(m=>m&&m.code===G.visiting.code);if(owner){this.misses=0;G.visiting={code:owner.code,name:owner.name,petName:owner.pet?.name||"Mori",petForm:owner.pet?.form||"seed"};}else if(++this.misses>=2){this.misses=0;toast("🏠 เพื่อนไม่อยู่บ้านแล้ว");setTimeout(()=>goOwnRoom(),700);}}
       return this.members;};
-    await ping();this.heartbeat=setInterval(()=>ping().catch(()=>{}),2500);return this.members;
+    try{await ping();}catch(e){this.room=null;throw e;}this.heartbeat=setInterval(()=>ping().catch(()=>{}),2500);return this.members;
   },
   async join(code){return this.enter(code)},
   async host(){return this.enter(G.account.code)},
-  async leave(){if(this.heartbeat)clearInterval(this.heartbeat);if(this.room&&SamatiCloud.user)await SamatiCloud.request("/api/rooms/"+this.room+"/presence",{method:"DELETE",body:"{}"}).catch(()=>{});this.room=null;this.members=[];},
+  async chat(message){message=String(message||"").trim();if(!message||!this.room)return;await SamatiCloud.request("/api/rooms/"+this.room+"/chat",{method:"POST",body:JSON.stringify({message})});},
+  async leave(){if(this.heartbeat)clearInterval(this.heartbeat);if(this.room&&SamatiCloud.user)await SamatiCloud.request("/api/rooms/"+this.room+"/presence",{method:"DELETE",body:"{}"}).catch(()=>{});this.room=null;this.members=[];this.house=null;this.messages=[];this.lastMessage=0;},
   serialize(){ return { code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:Math.round(Ply.x),dir:Ply.dir,state:Ply.state,focus:!!FS.on,at:now() }; }
 };
+window.HouseChat={
+  open(){if(!SamatiNet.room){toast("ยังไม่ได้อยู่ในบ้านออนไลน์");return;}this.render();openPanel("#p-housechat");setTimeout(()=>$("#houseChatInput").focus(),100);},
+  render(){const log=$("#houseChatLog");if(!log)return;log.innerHTML="";(SamatiNet.messages||[]).forEach(m=>{const row=document.createElement("div"),n=document.createElement("b");n.style.color="#f0c766";n.textContent=(m.name||"ผู้เล่น")+": ";row.append(n,document.createTextNode(m.message||""));log.appendChild(row);});log.scrollTop=log.scrollHeight;const c=$("#houseChatCount");if(c)c.textContent=(SamatiNet.members?.length||0)+"/5 คน";},
+  async send(){const i=$("#houseChatInput"),v=i.value.trim();if(!v)return;try{await SamatiNet.chat(v);i.value="";setTimeout(()=>SamatiNet.peekState(SamatiNet.room).then(o=>{if(o.messages?.length){SamatiNet.messages.push(...o.messages);SamatiNet.messages=SamatiNet.messages.slice(-50);SamatiNet.lastMessage=Math.max(SamatiNet.lastMessage,...o.messages.map(x=>Number(x.id)||0));this.render();}}),250);}catch(e){sfx.bad();toast(e.message==="too many requests"?"ส่งข้อความเร็วเกินไป":"ส่งข้อความไม่สำเร็จ");}}
+};
+$("#houseChatQuick").onclick=()=>HouseChat.open();$("#houseChatSend").onclick=()=>HouseChat.send();$("#houseChatInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();HouseChat.send();}});
 window.CentralPlaza = {
   channel:0,members:[],messages:[],timer:null,anim:null,x:50,y:72,lastMessage:0,busy:false,
   profile(){return{code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:this.x,y:this.y,dir:Ply.dir}},
@@ -5383,16 +5691,19 @@ function openFriends(){
   const b=$("#friendsBody"); b.innerHTML="";
   b.insertAdjacentHTML("beforeend",
     `<p class="hint">โฟกัสพร้อมกันได้สูงสุด 5 คน และต้องโฟกัส<b>ภายในบ้าน</b>เท่านั้น ยิ่งคนเยอะและยิ่งสนิท ยิ่งได้ค่าประสบการณ์และโอกาสดรอปมากขึ้น</p>
-     <div class="sec">รหัสห้องของคุณ</div>
+     <div class="sec">รหัสบ้านของคุณ</div>
      <div class="codeBox">${G.account.code}</div>
-     <div class="row"><button class="btn ghost" id="btnCopyCode">คัดลอกรหัสห้อง</button>
+     <div class="row"><button class="btn ghost" id="btnCopyCode">คัดลอกรหัสบ้าน</button>
        <button class="btn" id="btnInvite">คัดลอกลิงก์ชวนเพื่อน</button></div>
-     <div class="sec">ไปห้องเพื่อน</div>
-     <div class="row"><input class="field" id="inRoom" style="flex:1;margin:0" maxlength="8" placeholder="รหัสห้องเพื่อน">
-       <button class="btn" id="btnGoRoom" style="flex:0 0 auto">ไปห้องเพื่อน</button></div>
+     <div class="sec">ค้นหาเพื่อนด้วยชื่อ</div>
+     <div class="row"><input class="field" id="inFriendName" style="flex:1;margin:0" maxlength="24" placeholder="ชื่อผู้เล่น อย่างน้อย 2 ตัวอักษร">
+       <button class="btn" id="btnSearchFriend" style="flex:0 0 auto">ค้นหา</button></div><div id="friendSearchResults"></div>
+     <div class="sec">วาร์ปไปบ้านเพื่อน</div>
+     <div class="row"><input class="field" id="inRoom" style="flex:1;margin:0" maxlength="8" placeholder="รหัสบ้านเพื่อน">
+       <button class="btn" id="btnGoRoom" style="flex:0 0 auto">วาร์ป</button></div>
      ${G.visiting ? `<p class="hint">🟢 ตอนนี้อยู่ที่ห้องของ <b>${G.visiting.name}</b> · แตะตัวผู้เล่นในห้องเพื่อเพิ่มเพื่อน</p>
         <button class="btn ghost" id="btnOwnRoom" style="margin-top:6px">🏠 กลับห้องตัวเอง</button>` :
-        `<p class="hint">ใส่รหัสห้องเพื่อไปเยี่ยมแบบเรียลไทม์ หากเจ้าของห้องออฟไลน์ ระบบจะแจ้งว่า “เพื่อนไม่อยู่บ้าน”</p>`}
+        `<p class="hint">ใส่รหัสบ้านเพื่อวาร์ปไปเยี่ยมแบบเรียลไทม์ บ้านหนึ่งหลังรองรับรวมสูงสุด 5 คน หากเจ้าของบ้านออฟไลน์ ระบบจะแจ้งว่า “เพื่อนไม่อยู่บ้าน”</p>`}
      <div class="sec">วิธีเพิ่มเพื่อน</div>
      <p class="hint">ต้องพบกันในห้องขณะที่ออนไลน์ แล้วแตะที่ตัวผู้เล่นเพื่อเพิ่มเพื่อนเท่านั้น</p>
      <div class="sec">รายชื่อเพื่อน (${G.friends.length})</div>`);
@@ -5413,6 +5724,7 @@ function openFriends(){
         <div class="fp">เลี้ยง ${f.petName} · ${FORMS[f.petForm].name}</div>
         <div class="fbar"><i style="width:${clamp(f.close,0,100)}%"></i></div>`;
       row.appendChild(info);
+      const home=document.createElement("button");home.className="chk";home.textContent="🏠";home.title="วาร์ปไปบ้าน";home.onclick=()=>visitFriend(f.code);row.appendChild(home);
       const chk=document.createElement("button");
       chk.className="chk"+(party.includes(f.code)?" on":"");
       chk.textContent = party.includes(f.code) ? "✓" : "+";
@@ -5428,18 +5740,24 @@ function openFriends(){
       `<p class="hint" style="margin-top:8px">เลือกไว้ ${party.length} คน · ปาร์ตี้ ${partySize()} คน · ✦ +${(partyXpBonus()*100).toFixed(2)}% · ดรอป +${(partyDropBonus()*100).toFixed(2)}%</p>`);
   }
   b.appendChild(list);
-  $("#btnCopyCode").onclick=()=>copyText(G.account.code,"คัดลอกรหัสห้องแล้ว");
+  $("#btnCopyCode").onclick=()=>copyText(G.account.code,"คัดลอกรหัสบ้านแล้ว");
   $("#btnGoRoom").onclick=()=>visitFriend($("#inRoom").value);
+  $("#btnSearchFriend").onclick=()=>searchFriendsByName($("#inFriendName").value);
+  $("#inFriendName").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchFriendsByName(e.target.value);}});
   const orb=$("#btnOwnRoom"); if(orb) orb.onclick=()=>{ sfx.tap(); goOwnRoom(); };
   $("#btnInvite").onclick=()=>copyText(inviteLink(),"คัดลอกลิงก์ชวนเพื่อนแล้ว · ส่งให้เพื่อนได้เลย");
   openPanel("#p-friends");
 }
-async function addFriend(code,profile=null){
+async function searchFriendsByName(name){
+  const box=$("#friendSearchResults");name=String(name||"").trim();if(name.length<2){box.innerHTML='<p class="hint warn">กรอกชื่ออย่างน้อย 2 ตัวอักษร</p>';return;}if(!SamatiCloud.user){box.innerHTML='<p class="hint warn">ต้องเข้าสู่ระบบ Google ก่อนค้นหาเพื่อน</p>';return;}
+  box.innerHTML='<p class="hint">กำลังค้นหา…</p>';try{const rows=await SamatiNet.search(name);box.innerHTML="";if(!rows.length){box.innerHTML='<p class="hint">ไม่พบผู้เล่นชื่อนี้</p>';return;}rows.forEach(f=>{if(f.code===G.account.code)return;const row=document.createElement("div");row.className="frow";const info=document.createElement("div");info.className="fi";const title=document.createElement("div");title.className="fn";title.textContent=f.name+" · "+f.code;const pet=document.createElement("div");pet.className="fp";pet.textContent=`เลี้ยง ${f.petName} · Lv.${f.petLv||1}`;info.append(title,pet);const add=document.createElement("button");add.className="chk";add.textContent=G.friends.some(x=>x.code===f.code)?"✓":"+";add.disabled=G.friends.some(x=>x.code===f.code);add.onclick=()=>addFriend(f.code,{code:f.code,name:f.name,pet:{name:f.petName,form:f.petForm,lv:f.petLv}},true);const go=document.createElement("button");go.className="chk";go.textContent="🏠";go.onclick=()=>visitFriend(f.code);row.append(info,add,go);box.appendChild(row);});}catch(e){box.innerHTML='<p class="hint warn">ค้นหาไม่สำเร็จ ลองใหม่อีกครั้ง</p>';}
+}
+async function addFriend(code,profile=null,verifiedSearch=false){
   if(code===G.account.code){ sfx.bad(); toast("นั่นคือรหัสของคุณเอง"); return; }
   if(G.friends.some(f=>f.code===code)){ toast("มีเพื่อนคนนี้อยู่แล้ว"); return; }
   const metAtHome=G.area==="friend"&&SamatiNet.members.some(m=>m&&m.code===code);
   const metAtPlaza=CentralPlaza.channel&&CentralPlaza.members.some(m=>m&&m.code===code);
-  if(!metAtHome&&!metAtPlaza){sfx.bad();toast("ต้องไปพบและแตะตัวเพื่อนขณะที่ออนไลน์ก่อน");return;}
+  if(!verifiedSearch&&!metAtHome&&!metAtPlaza){sfx.bad();toast("ต้องค้นหาด้วยชื่อ หรือพบและแตะตัวเพื่อนขณะที่ออนไลน์ก่อน");return;}
   const m=profile||SamatiNet.members.find(x=>x&&x.code===code)||CentralPlaza.members.find(x=>x&&x.code===code);
   const f={code:m.code,name:m.name||"เพื่อน",petName:m.pet?.name||"Mori",petForm:m.pet?.form||"seed",close:0,sessions:0};
   G.friends.push(f); sfx.ok(); toast("เพิ่มเพื่อน "+f.name+" แล้ว");
@@ -6618,6 +6936,7 @@ function adminTools(b){
   const fields=[
     ["เลเวลสัตว์เลี้ยง", ()=>G.pet.lv, v=>{ G.pet.lv=clamp(Math.round(v),1,99); G.pet.xp=0; }],
     ["เหรียญ", ()=>G.coins, v=>{ G.coins=clamp(Math.round(v),0,9999999); }],
+    ["ผลึกสมาธิ 💠", ()=>G.crystal||0, v=>{ G.crystal=clamp(Math.round(v),0,9999999); }],
     ["ความหิว", ()=>Math.round(G.pet.hun), v=>{ G.pet.hun=clamp(v,0,100); }],
     ["อารมณ์", ()=>Math.round(G.pet.moo), v=>{ G.pet.moo=clamp(v,0,100); }],
     ["ความสนิท", ()=>Math.round(G.pet.bon), v=>{ G.pet.bon=clamp(v,0,100); }],
@@ -6645,6 +6964,32 @@ function adminTools(b){
     });
     b.appendChild(row);
   });
+  const quick=document.createElement("div"); quick.className="row"; quick.style.marginTop="8px";
+  [["🪙 +1000",()=>{G.coins=clamp(G.coins+1000,0,9999999);}],
+   ["🪙 +10000",()=>{G.coins=clamp(G.coins+10000,0,9999999);}],
+   ["💠 +100",()=>{G.crystal=clamp((G.crystal||0)+100,0,9999999);}]].forEach(([n,fn])=>{
+    const bt=document.createElement("button"); bt.className="btn ghost"; bt.textContent=n;
+    bt.onclick=()=>{ fn(); if(typeof noteAdminGrant==="function") noteAdminGrant();
+      save(); refreshHud(); toast("เพิ่มให้แล้ว"); openAdmin(); };
+    quick.appendChild(bt);
+  });
+  b.appendChild(quick);
+  b.insertAdjacentHTML("beforeend",'<div class="sec">เปลี่ยนร่างสัตว์เลี้ยงปัจจุบัน (สำหรับโปรโมท)</div>');
+  const sel=document.createElement("select"); sel.className="field"; sel.style.marginBottom="6px";
+  Object.keys(FORMS).forEach(k=>{
+    const op=document.createElement("option"); op.value=k;
+    op.textContent=FORMS[k].name+" · "+STAGE_LABEL[FORMS[k].stage];
+    if(k===G.pet.form) op.selected=true;
+    sel.appendChild(op);
+  });
+  b.appendChild(sel);
+  const apply=document.createElement("button"); apply.className="btn"; apply.textContent="เปลี่ยนร่างทันที";
+  apply.onclick=()=>{
+    G.pet.form=sel.value; G.pet.seen[sel.value]=1; albumUnlock(sel.value);
+    G.pet.hp=maxHp(); Pet.state="happy"; Pet.stateT=2;
+    sfx.ok(); save(); refreshHud(); toast("เปลี่ยนร่างเป็น "+FORMS[sel.value].name); openAdmin();
+  };
+  b.appendChild(apply);
   const un=document.createElement("button"); un.className="btn ghost"; un.style.marginTop="8px";
   un.textContent="ปลดล็อกการ์ดทุกใบ (สำหรับทำสื่อ)";
   un.onclick=()=>{ Object.keys(FORMS).forEach(albumUnlock); save(); toast("ปลดล็อกการ์ดทั้งหมดแล้ว"); openAdmin(); };
@@ -6714,6 +7059,265 @@ function auditEconomy(){
   return { ok: bad.length===0, bad };
 }
 
+/* =====================================================================
+   เสียง: เพลงพื้นหลัง Lo-Fi 6-bit · เสียงฝน · เพลงวิวัฒนาการ
+===================================================================== */
+const Aud = { master:null, bgmGain:null, rainGain:null, rainSrc:null, bgmTimer:null,
+              bar:0, started:false };
+function AC2(){
+  try{ AC = AC || new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+  if(AC && AC.state==="suspended") AC.resume().catch(()=>{});
+  if(AC && !Aud.master){
+    Aud.master=AC.createGain(); Aud.master.gain.value=0.9; Aud.master.connect(AC.destination);
+    Aud.bgmGain=AC.createGain(); Aud.bgmGain.gain.value=0; Aud.bgmGain.connect(Aud.master);
+    Aud.rainGain=AC.createGain(); Aud.rainGain.gain.value=0; Aud.rainGain.connect(Aud.master);
+  }
+  return AC;
+}
+function opt(){ if(G && !G.opt) G.opt={bgm:true,rain:true}; return (G&&G.opt)||{bgm:true,rain:true}; }
+/* ---------- โน้ตพื้นฐาน ---------- */
+const NOTE = { C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196.00,A3:220.00,B3:246.94,
+               C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,
+               C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99,A5:880.00 };
+function tone(freq, start, dur, type, vol, dest){
+  const c=AC2(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type||"square"; o.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(vol||0.06, start+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, start+dur);
+  o.connect(g); g.connect(dest||Aud.bgmGain||c.destination);
+  o.start(start); o.stop(start+dur+0.05);
+}
+/* ---------- เพลงพื้นหลัง Lo-Fi (แต่งขึ้นเองสำหรับเกมนี้) ---------- */
+const LOFI_CHORDS = [
+  ["C3","E3","G3","B3"], ["A3","C4","E4","G4"],
+  ["F3","A3","C4","E4"], ["G3","B3","D4","F4"]
+];
+const LOFI_MEL = [
+  ["E4","G4","C5","G4"], ["C4","E4","A4","E4"],
+  ["A4","F4","C5","A4"], ["B4","D5","G4","B4"]
+];
+function bgmBar(){
+  const c=AC2(); if(!c || !opt().bgm) return;
+  const t0=c.currentTime+0.05, beat=0.5;
+  const ch=LOFI_CHORDS[Aud.bar%4], me=LOFI_MEL[Aud.bar%4];
+  /* เบสนุ่ม */
+  tone(NOTE[ch[0]]/2, t0, beat*1.6, "triangle", 0.055);
+  tone(NOTE[ch[0]]/2, t0+beat*2, beat*1.4, "triangle", 0.045);
+  /* คอร์ดอาร์เพจจิโอเบาๆ */
+  ch.forEach((n,i)=> tone(NOTE[n], t0+i*beat*0.5, beat*0.7, "sine", 0.030));
+  /* เมโลดี้ 6-bit */
+  me.forEach((n,i)=>{
+    if(Math.random()<0.18) return;
+    tone(NOTE[n], t0+beat*(i*1.0)+beat*0.25, beat*0.55, "square", 0.028);
+  });
+  /* จังหวะเบาๆ */
+  for(let i=0;i<4;i++) if(i%2===1) tone(90, t0+i*beat, 0.06, "triangle", 0.03);
+  Aud.bar++;
+}
+function bgmSet(on){
+  const c=AC2(); if(!c) return;
+  if(on){
+    Aud.bgmGain.gain.cancelScheduledValues(c.currentTime);
+    Aud.bgmGain.gain.linearRampToValueAtTime(0.5, c.currentTime+1.2);
+    if(!Aud.bgmTimer){ bgmBar(); Aud.bgmTimer=setInterval(bgmBar, 2000); }
+  } else {
+    Aud.bgmGain.gain.linearRampToValueAtTime(0.0001, c.currentTime+0.6);
+    clearInterval(Aud.bgmTimer); Aud.bgmTimer=null;
+  }
+}
+/* ---------- เสียงฝน ---------- */
+function rainStart(){
+  const c=AC2(); if(!c || Aud.rainSrc) return;
+  const len=2*c.sampleRate;
+  const buf=c.createBuffer(1,len,c.sampleRate);
+  const d=buf.getChannelData(0);
+  let last=0;
+  for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.2; }
+  const src=c.createBufferSource(); src.buffer=buf; src.loop=true;
+  const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1400;
+  const hp=c.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=380;
+  src.connect(hp); hp.connect(lp); lp.connect(Aud.rainGain);
+  src.start(); Aud.rainSrc=src;
+}
+function rainSet(on){
+  const c=AC2(); if(!c) return;
+  rainStart();
+  if(!Aud.rainGain) return;
+  Aud.rainGain.gain.cancelScheduledValues(c.currentTime);
+  Aud.rainGain.gain.linearRampToValueAtTime(on?0.22:0.0001, c.currentTime+1.4);
+}
+function audioSync(){
+  if(!Aud.started) return;
+  bgmSet(!!opt().bgm);
+  const wantRain = !!opt().rain && typeof isWet==="function" && isWet();
+  rainSet(wantRain);
+}
+setInterval(()=>{ if(Aud.started) audioSync(); }, 8000);
+function audioKick(){
+  if(Aud.started) return;
+  if(!AC2()) return;
+  Aud.started=true; audioSync();
+}
+["pointerdown","keydown"].forEach(ev=>window.addEventListener(ev, audioKick, {once:false}));
+/* ---------- เสียงพิเศษ ---------- */
+function sfxCountdown(n){
+  const c=AC2(); if(!c) return;
+  const t0=c.currentTime;
+  tone(n===1?880:520, t0, 0.16, "square", 0.10, Aud.master);
+  tone(n===1?1320:780, t0+0.02, 0.14, "triangle", 0.06, Aud.master);
+}
+function sfxEvoRise(){
+  const c=AC2(); if(!c) return;
+  const t0=c.currentTime;
+  for(let i=0;i<16;i++)
+    tone(220*Math.pow(2, i/12), t0+i*0.055, 0.10, "square", 0.05, Aud.master);
+}
+function sfxEvoFanfare(){
+  const c=AC2(); if(!c) return;
+  const t0=c.currentTime;
+  const line=[["C4",0,.18],["E4",.16,.18],["G4",.32,.18],["C5",.48,.34],
+              ["B4",.84,.16],["C5",1.0,.5],["G4",1.0,.5],["E4",1.0,.5]];
+  line.forEach(([n,d,l])=>{
+    tone(NOTE[n], t0+d, l, "square", 0.075, Aud.master);
+    tone(NOTE[n]*2, t0+d, l*0.7, "triangle", 0.035, Aud.master);
+  });
+  tone(NOTE.C3/2, t0, 1.5, "triangle", 0.06, Aud.master);
+}
+
+/* =====================================================================
+   อนิเมชันวิวัฒนาการ
+===================================================================== */
+const Evo = { on:false, t:0, from:null, to:null, done:null, cd:3, ring:[], bits:[] };
+function startEvoAnim(from,to,done){
+  Evo.on=true; Evo.t=0; Evo.from=from; Evo.to=to; Evo.done=done; Evo.cd=3;
+  Evo.ring=[]; Evo.bits=[];
+  for(let i=0;i<26;i++) Evo.bits.push({a:Math.random()*6.283, r:26+Math.random()*40,
+    s:0.6+Math.random()*1.4, y:Math.random()*40-20, c:Math.random()<0.5?"#bfe9ff":"#fff6c8"});
+  sfxCountdown(3);
+}
+function drawEvoAnim(c,dt){
+  Evo.t += dt;
+  const T=Evo.t;
+  const cx=W/2, cy=FLOOR-4;
+  /* ฉากมืดลง */
+  const dark = clamp((T-0.2)/1.2, 0, 1)*0.86;
+  c.fillStyle="rgba(6,8,18,"+dark.toFixed(2)+")"; c.fillRect(0,0,W,H);
+  /* ---- ช่วงนับถอยหลัง 0–2.1 ---- */
+  if(T<2.1){
+    const n = 3 - Math.floor(T/0.7);
+    if(n!==Evo.cd && n>=1){ Evo.cd=n; sfxCountdown(n); }
+    const k = (T%0.7)/0.7;
+    const sc = 3 - k*1.4, alpha=1-k*0.55;
+    c.save(); c.globalAlpha=alpha;
+    const col = n===1 ? "#ffe08a" : "#dff2ff";
+    drawBigDigit(c, cx, cy-26, Math.max(1,n), sc, col);
+    c.restore();
+    for(let i=0;i<8;i++){
+      const a=i*0.785+T*2, r=30+k*26;
+      px(c, cx+Math.round(Math.cos(a)*r), cy-26+Math.round(Math.sin(a)*r*0.6), "rgba(200,235,255,.7)");
+    }
+    drawPetGhost(c, cx, cy, Evo.from, 1, "rgba(255,255,255,.12)");
+    return;
+  }
+  /* ---- แฟลชเข้าฉาก 2.1–2.5 ---- */
+  if(T<2.5){
+    if(!Evo._rise){ Evo._rise=true; sfxEvoRise(); }
+    const k=(T-2.1)/0.4;
+    c.fillStyle="rgba(255,255,255,"+(1-Math.abs(k-0.5)*2).toFixed(2)+")"; c.fillRect(0,0,W,H);
+    return;
+  }
+  /* ---- ช่วงมอร์ฟ 2.5–5.2 ---- */
+  if(T<5.2){
+    const k=(T-2.5)/2.7;
+    /* ลำแสงพุ่งขึ้น */
+    for(let i=0;i<10;i++){
+      const x=cx-40+i*9, h=20+Math.sin(T*6+i)*14+k*40;
+      rect(c,x,cy-h,1,h,"rgba(150,220,255,"+(0.10+0.2*Math.abs(Math.sin(T*4+i))).toFixed(2)+")");
+    }
+    /* วงแหวนข้อมูล */
+    for(let r=0;r<4;r++){
+      const rr=((T*46+r*22)%80);
+      const a=(1-rr/80)*0.55;
+      ringEllipse(c,cx,cy-14,rr,Math.max(1,rr*0.32),"rgba(190,235,255,"+a.toFixed(2)+")");
+    }
+    /* เศษข้อมูลหมุนเข้า */
+    Evo.bits.forEach(b=>{
+      b.a += dt*b.s*2.2; b.r = Math.max(3, b.r - dt*14);
+      px(c, cx+Math.round(Math.cos(b.a)*b.r), cy-16+Math.round(Math.sin(b.a)*b.r*0.55)+Math.round(b.y*0.2), b.c);
+    });
+    /* สลับเงาขาวระหว่างร่างเก่ากับร่างใหม่ */
+    const speed = 6 + k*22;
+    const showNew = Math.floor(T*speed)%2===1;
+    const grow = 1 + k*0.5;
+    drawPetGhost(c, cx, cy, showNew?Evo.to:Evo.from, grow, "#ffffff");
+    /* ประกายรอบตัว */
+    for(let i=0;i<6;i++){
+      const a=T*3+i, r=18+Math.sin(T*5+i)*8;
+      if(Math.sin(T*9+i)>0.2) star(c, cx+Math.round(Math.cos(a)*r), cy-18+Math.round(Math.sin(a)*r*0.6), 1, "#fff6c8");
+    }
+    return;
+  }
+  /* ---- ระเบิดแสง 5.2–5.7 ---- */
+  if(T<5.7){
+    if(!Evo._burst){ Evo._burst=true; sfxEvoFanfare(); }
+    const k=(T-5.2)/0.5;
+    c.fillStyle="rgba(255,255,255,"+(1-k).toFixed(2)+")"; c.fillRect(0,0,W,H);
+    ringEllipse(c,cx,cy-14, 10+k*120, (10+k*120)*0.4, "rgba(255,240,190,"+(1-k).toFixed(2)+")");
+    return;
+  }
+  /* ---- เผยร่างใหม่ 5.7–7.6 ---- */
+  const k=(T-5.7)/1.9;
+  c.save();
+  c.translate(cx, cy); c.scale(-1,1);
+  drawPet(c, Evo.to, {t:T, state:"happy"});
+  c.restore();
+  for(let i=0;i<14;i++){
+    const a=i*0.45+T*1.2, r=14+((T*30+i*7)%46);
+    if(r<44) star(c, cx+Math.round(Math.cos(a)*r), cy-18+Math.round(Math.sin(a)*r*0.6), 1,
+      i%2?"#fff6c8":"#bfe9ff");
+  }
+  const glow=(1-k)*0.45;
+  if(glow>0){ c.fillStyle="rgba(255,255,255,"+glow.toFixed(2)+")"; c.fillRect(0,0,W,H); }
+  if(T>7.6){
+    Evo.on=false; Evo._rise=false; Evo._burst=false;
+    if(Evo.done) Evo.done();
+  }
+}
+function ringEllipse(c,cx,cy,rx,ry,col){
+  if(rx<1) return;
+  for(let a=0;a<6.283;a+=0.1){
+    px(c, cx+Math.round(Math.cos(a)*rx), cy+Math.round(Math.sin(a)*ry), col);
+  }
+}
+function drawPetGhost(c,cx,cy,key,scale,col){
+  const f=FORMS[key]; if(!f) return;
+  const W2=(f.w+18)*2, H2=f.h*2+50;
+  const off=document.createElement("canvas"); off.width=W2; off.height=H2;
+  const oc=off.getContext("2d"); oc.imageSmoothingEnabled=false;
+  oc.save(); oc.translate(Math.round(W2/2), H2-8);
+  drawPet(oc,key,{t:1.2,state:"idle"});
+  oc.restore();
+  oc.globalCompositeOperation="source-in";
+  oc.fillStyle=col; oc.fillRect(0,0,W2,H2);
+  const dw=Math.round(W2*scale), dh=Math.round(H2*scale);
+  c.imageSmoothingEnabled=false;
+  c.drawImage(off, Math.round(cx-dw/2), Math.round(cy-dh+8*scale), dw, dh);
+}
+const DIGITS={
+ 1:["001","011","001","001","111"],
+ 2:["111","001","111","100","111"],
+ 3:["111","001","111","001","111"]
+};
+function drawBigDigit(c,cx,cy,n,scale,col){
+  const g2=DIGITS[n]||DIGITS[3];
+  const px2=Math.max(2,Math.round(3*scale));
+  const w=3*px2, h=5*px2;
+  g2.forEach((row,y)=>{ for(let x=0;x<3;x++) if(row[x]==="1")
+    rect(c, cx-w/2+x*px2, cy-h/2+y*px2, px2, px2, col); });
+}
+
 function migrate(o){
   const base=newGame();
   const s=Object.assign(base,o);
@@ -6753,6 +7357,9 @@ function migrate(o){
   s.wardrobe = Object.assign({hair:[],shirt:[],hat:[],glass:[],scarf:[],acc:[]}, o.wardrobe||{});
   s.visiting = (o.visiting && FORMS[o.visiting.petForm]) ? o.visiting : null;
   s.cheers = clamp(Math.round(o.cheers||0),0,999);
+  s.crystal = clamp(Math.round(o.crystal||0),0,9999999);
+  s.opt = Object.assign({bgm:true,rain:true}, o.opt||{});
+  s.vip = Object.assign({floor:null,wall:null,house:null,fairy:null,poses:[]}, o.vip||{});
   s.storage = Array.isArray(o.storage) ? o.storage.filter(x=>x&&FORMS[x.form]).slice(0,FREEZER_MAX) : [];
   s.pet.pettedAt = +((o.pet&&o.pet.pettedAt)||0);
   if(AREAS[s.area] && AREAS[s.area].ghost) s.area="home";
@@ -6774,7 +7381,7 @@ function migrate(o){
   if(G && SamatiCloud.user){ G.account={...G.account,type:"google",email:SamatiCloud.user.email,linked:true}; SamatiCloud.push(G).catch(()=>{}); }
   if(G){
     tickDecay(); refreshHud(); closePanels();
-    $("#envA").textContent = (G.area==="friend"&&G.visiting) ? ("ห้องของ "+G.visiting.name) : AREAS[area()].n;
+    $("#envA").textContent = (G.area==="friend"&&G.visiting) ? ("บ้านของ "+G.visiting.name) : AREAS[area()].n;
     updateMoveBar();
     Ply.x = 64; Pet.x = 110;
     if(G.pet.injured) setTimeout(()=>toast("🤕 "+G.pet.name+" ยังบาดเจ็บ · ต้องโฟกัสฟื้นฟูให้หายก่อน"),1400);
