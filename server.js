@@ -284,6 +284,118 @@ app.post("/api/friends/:code/cheer", rateLimit("friend-cheer", 20), requireUser,
     await db.query("COMMIT");res.json({ok:true,cheers:state.cheers});
   }catch(error){await db.query("ROLLBACK").catch(()=>{});throw error;}finally{db.release();}
 });
+
+const friendPair = (a, b) => String(a) < String(b) ? [a, b] : [b, a];
+async function isOnline(sub, db = pool) {
+  const result = await db.query(`SELECT EXISTS(
+    SELECT 1 FROM room_presence WHERE google_sub=$1 AND seen_at>NOW()-INTERVAL '25 seconds'
+    UNION ALL SELECT 1 FROM plaza_presence WHERE google_sub=$1 AND seen_at>NOW()-INTERVAL '25 seconds'
+    UNION ALL SELECT 1 FROM account_activity WHERE google_sub=$1 AND last_seen>NOW()-INTERVAL '90 seconds'
+  ) AS online`, [sub]);
+  return Boolean(result.rows[0]?.online);
+}
+async function importLegacyFriends(sub, state) {
+  const codes = [...new Set((Array.isArray(state?.friends) ? state.friends : []).map(f => String(f?.code || "").toUpperCase()).filter(Boolean))].slice(0, 100);
+  for (const code of codes) {
+    const target = await pool.query("SELECT google_sub FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 AND google_sub<>$2 LIMIT 1", [code, sub]);
+    if (!target.rows[0]) continue;
+    const [a,b] = friendPair(sub, target.rows[0].google_sub);
+    await pool.query("INSERT INTO friendships(user_a,user_b) VALUES($1,$2) ON CONFLICT DO NOTHING", [a,b]);
+  }
+}
+function publicFriend(row) {
+  const state = row.state || {};
+  return {
+    code: String(state.account?.code || "").toUpperCase(), name: state.player?.name || "ผู้เล่น",
+    petName: state.pet?.name || "Mori", petForm: state.pet?.form || "seed", petLv: clamp(Math.round(num(state.pet?.lv,1)),1,100),
+    online: Boolean(row.online), warpEnabled: row.warp_enabled !== false, cheeredToday: Boolean(row.cheered_today)
+  };
+}
+app.get("/api/friend-system", rateLimit("friend-system", 40), requireUser, async (req,res) => {
+  const own = await pool.query("SELECT state FROM game_saves WHERE google_sub=$1", [req.user.sub]);
+  if (!own.rows[0]) return res.status(409).json({error:"save must exist"});
+  await importLegacyFriends(req.user.sub, own.rows[0].state);
+  await pool.query("INSERT INTO friend_settings(google_sub) VALUES($1) ON CONFLICT DO NOTHING", [req.user.sub]);
+  const [settings, friends, incoming, outgoing] = await Promise.all([
+    pool.query("SELECT searchable,warp_enabled FROM friend_settings WHERE google_sub=$1",[req.user.sub]),
+    pool.query(`SELECT g.state,fs.warp_enabled,
+      (EXISTS(SELECT 1 FROM room_presence rp WHERE rp.google_sub=g.google_sub AND rp.seen_at>NOW()-INTERVAL '25 seconds') OR
+       EXISTS(SELECT 1 FROM plaza_presence pp WHERE pp.google_sub=g.google_sub AND pp.seen_at>NOW()-INTERVAL '25 seconds') OR
+       EXISTS(SELECT 1 FROM account_activity aa WHERE aa.google_sub=g.google_sub AND aa.last_seen>NOW()-INTERVAL '90 seconds')) AS online,
+      EXISTS(SELECT 1 FROM friend_cheers fc WHERE fc.sender_sub=$1 AND fc.target_sub=g.google_sub AND fc.sent_on=(NOW() AT TIME ZONE 'Asia/Bangkok')::date) AS cheered_today
+      FROM friendships f JOIN game_saves g ON g.google_sub=CASE WHEN f.user_a=$1 THEN f.user_b ELSE f.user_a END
+      LEFT JOIN friend_settings fs ON fs.google_sub=g.google_sub WHERE f.user_a=$1 OR f.user_b=$1 ORDER BY g.state->'player'->>'name'`,[req.user.sub]),
+    pool.query(`SELECT r.id,g.state,r.created_at FROM friend_requests r JOIN game_saves g ON g.google_sub=r.sender_sub
+      WHERE r.receiver_sub=$1 AND r.status='pending' ORDER BY r.created_at DESC`,[req.user.sub]),
+    pool.query(`SELECT r.id,g.state,r.created_at FROM friend_requests r JOIN game_saves g ON g.google_sub=r.receiver_sub
+      WHERE r.sender_sub=$1 AND r.status='pending' ORDER BY r.created_at DESC`,[req.user.sub])
+  ]);
+  const requestView = r => ({id:r.id,code:String(r.state?.account?.code||"").toUpperCase(),name:r.state?.player?.name||"ผู้เล่น",petName:r.state?.pet?.name||"Mori",createdAt:r.created_at});
+  res.json({settings:settings.rows[0]||{searchable:true,warp_enabled:true},friends:friends.rows.map(publicFriend).filter(f=>f.code),incoming:incoming.rows.map(requestView),outgoing:outgoing.rows.map(requestView)});
+});
+app.put("/api/friend-system/settings", rateLimit("friend-settings",20), requireUser, async(req,res)=>{
+  const searchable=req.body?.searchable!==false, warp=req.body?.warpEnabled!==false;
+  await pool.query(`INSERT INTO friend_settings(google_sub,searchable,warp_enabled,updated_at) VALUES($1,$2,$3,NOW())
+    ON CONFLICT(google_sub) DO UPDATE SET searchable=EXCLUDED.searchable,warp_enabled=EXCLUDED.warp_enabled,updated_at=NOW()`,[req.user.sub,searchable,warp]);
+  res.json({ok:true,settings:{searchable,warpEnabled:warp}});
+});
+app.get("/api/friend-system/search", rateLimit("friend-name-search",20), requireUser, async(req,res)=>{
+  const name=String(req.query.name||"").trim().replace(/[%_]/g,"").slice(0,24);
+  if(name.length<2)return res.status(400).json({error:"name too short"});
+  const result=await pool.query(`SELECT g.google_sub,g.state,
+    EXISTS(SELECT 1 FROM friendships f WHERE (f.user_a=$1 AND f.user_b=g.google_sub) OR (f.user_b=$1 AND f.user_a=g.google_sub)) AS already_friend,
+    EXISTS(SELECT 1 FROM friend_requests r WHERE r.sender_sub=$1 AND r.receiver_sub=g.google_sub AND r.status='pending') AS requested
+    FROM game_saves g LEFT JOIN friend_settings s ON s.google_sub=g.google_sub
+    WHERE g.google_sub<>$1 AND COALESCE(s.searchable,TRUE)=TRUE AND LOWER(g.state->'player'->>'name')=LOWER($2) AND (
+      EXISTS(SELECT 1 FROM room_presence rp WHERE rp.google_sub=g.google_sub AND rp.seen_at>NOW()-INTERVAL '25 seconds') OR
+      EXISTS(SELECT 1 FROM plaza_presence pp WHERE pp.google_sub=g.google_sub AND pp.seen_at>NOW()-INTERVAL '25 seconds') OR
+      EXISTS(SELECT 1 FROM account_activity aa WHERE aa.google_sub=g.google_sub AND aa.last_seen>NOW()-INTERVAL '90 seconds')) LIMIT 10`,[req.user.sub,name]);
+  res.json({results:result.rows.map(r=>({...publicFriend({state:r.state,online:true}),alreadyFriend:r.already_friend,requested:r.requested}))});
+});
+app.post("/api/friend-system/requests/:code", rateLimit("friend-request",12), requireUser, async(req,res)=>{
+  const code=String(req.params.code||"").toUpperCase();
+  const target=await pool.query(`SELECT g.google_sub FROM game_saves g LEFT JOIN friend_settings s ON s.google_sub=g.google_sub
+    WHERE UPPER(g.state->'account'->>'code')=$1 AND COALESCE(s.searchable,TRUE)=TRUE LIMIT 1`,[code]);
+  const targetSub=target.rows[0]?.google_sub;if(!targetSub||targetSub===req.user.sub)return res.status(404).json({error:"player not found"});
+  if(!await isOnline(targetSub))return res.status(409).json({error:"player offline"});
+  const [a,b]=friendPair(req.user.sub,targetSub);const exists=await pool.query("SELECT 1 FROM friendships WHERE user_a=$1 AND user_b=$2",[a,b]);
+  if(exists.rowCount)return res.status(409).json({error:"already friends"});
+  await pool.query(`INSERT INTO friend_requests(sender_sub,receiver_sub,status,created_at,responded_at) VALUES($1,$2,'pending',NOW(),NULL)
+    ON CONFLICT(sender_sub,receiver_sub) DO UPDATE SET status='pending',created_at=NOW(),responded_at=NULL`,[req.user.sub,targetSub]);
+  res.json({ok:true});
+});
+app.post("/api/friend-system/requests/:id/respond", rateLimit("friend-respond",20), requireUser, async(req,res)=>{
+  const id=Number(req.params.id), accept=req.body?.accept===true, db=await pool.connect();
+  try{await db.query("BEGIN");const found=await db.query("SELECT sender_sub,receiver_sub FROM friend_requests WHERE id=$1 AND receiver_sub=$2 AND status='pending' FOR UPDATE",[id,req.user.sub]);
+    if(!found.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"request not found"});}
+    await db.query("UPDATE friend_requests SET status=$2,responded_at=NOW() WHERE id=$1",[id,accept?"accepted":"rejected"]);
+    if(accept){const [a,b]=friendPair(found.rows[0].sender_sub,found.rows[0].receiver_sub);await db.query("INSERT INTO friendships(user_a,user_b) VALUES($1,$2) ON CONFLICT DO NOTHING",[a,b]);}
+    await db.query("COMMIT");res.json({ok:true,accepted:accept});
+  }catch(error){await db.query("ROLLBACK").catch(()=>{});throw error;}finally{db.release();}
+});
+app.post("/api/friend-system/friends/:code/cheer", rateLimit("mutual-cheer",20), requireUser, async(req,res)=>{
+  const code=String(req.params.code||"").toUpperCase(),db=await pool.connect();
+  try{await db.query("BEGIN");const target=await db.query("SELECT google_sub,state FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 FOR UPDATE",[code]);
+    const t=target.rows[0];if(!t){await db.query("ROLLBACK");return res.status(404).json({error:"friend not found"});}const [a,b]=friendPair(req.user.sub,t.google_sub);
+    if(!(await db.query("SELECT 1 FROM friendships WHERE user_a=$1 AND user_b=$2",[a,b])).rowCount){await db.query("ROLLBACK");return res.status(403).json({error:"not friends"});}
+    const ins=await db.query(`INSERT INTO friend_cheers(sender_sub,target_sub,sent_on) VALUES($1,$2,(NOW() AT TIME ZONE 'Asia/Bangkok')::date) ON CONFLICT DO NOTHING RETURNING sender_sub`,[req.user.sub,t.google_sub]);
+    if(!ins.rowCount){await db.query("ROLLBACK");return res.status(409).json({error:"already cheered today"});}
+    const own=await db.query("SELECT state FROM game_saves WHERE google_sub=$1 FOR UPDATE",[req.user.sub]);for(const [sub,state] of [[req.user.sub,own.rows[0].state],[t.google_sub,t.state]]){state.cheers=clamp(Math.round(num(state.cheers,0))+1,0,999999);await db.query("UPDATE game_saves SET state=$2,updated_at=NOW() WHERE google_sub=$1",[sub,state]);}
+    await db.query("COMMIT");res.json({ok:true});
+  }catch(error){await db.query("ROLLBACK").catch(()=>{});throw error;}finally{db.release();}
+});
+app.post("/api/friend-system/meet/:code", rateLimit("friend-meet",20), requireUser, async(req,res)=>{
+  const code=String(req.params.code||"").toUpperCase(), target=await pool.query("SELECT google_sub FROM game_saves WHERE UPPER(state->'account'->>'code')=$1",[code]);
+  const t=target.rows[0]?.google_sub;if(!t)return res.status(404).json({error:"friend not found"});const [a,b]=friendPair(req.user.sub,t);
+  if(!(await pool.query("SELECT 1 FROM friendships WHERE user_a=$1 AND user_b=$2",[a,b])).rowCount)return res.status(403).json({error:"not friends"});
+  const together=await pool.query(`SELECT 1 FROM room_presence x JOIN room_presence y ON y.room_code=x.room_code
+    WHERE x.google_sub=$1 AND y.google_sub=$2 AND x.seen_at>NOW()-INTERVAL '25 seconds' AND y.seen_at>NOW()-INTERVAL '25 seconds'`,[req.user.sub,t]);
+  if(!together.rowCount)return res.status(409).json({error:"not together"});
+  const ins=await pool.query(`INSERT INTO friend_meet_cheers(sender_sub,target_sub,met_on) VALUES($1,$2,(NOW() AT TIME ZONE 'Asia/Bangkok')::date) ON CONFLICT DO NOTHING RETURNING sender_sub`,[req.user.sub,t]);
+  if(!ins.rowCount)return res.status(409).json({error:"already met today"});
+  await pool.query("UPDATE game_saves SET state=jsonb_set(state,'{cheers}',to_jsonb(COALESCE((state->>'cheers')::int,0)+1)),updated_at=NOW() WHERE google_sub IN ($1,$2)",[req.user.sub,t]);
+  res.json({ok:true});
+});
 app.get("/api/admin/security", rateLimit("admin-security", 30), requireAdmin, async (_req, res) => {
   const [events, counts] = await Promise.all([
     pool.query(`SELECT email,kind,severity,details,created_at FROM security_events
@@ -380,7 +492,15 @@ app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, asy
     const owner=await db.query("SELECT google_sub,state FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1",[code]);
     if(!owner.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"house not found"});}
     if(owner.rows[0].google_sub===req.user.sub) profile.house=cleanHouse(raw.house,owner.rows[0].state);
-    if(owner.rows[0].google_sub!==req.user.sub){if(owner.rows[0].state?.houseLocked){await db.query("ROLLBACK");return res.status(423).json({error:"house locked"});}const online=await db.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount||!["home","yard","garden"].includes(online.rows[0].profile?.zone)){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
+    if(owner.rows[0].google_sub!==req.user.sub){
+      if(owner.rows[0].state?.houseLocked){await db.query("ROLLBACK");return res.status(423).json({error:"house locked"});}
+      const [a,b]=friendPair(req.user.sub,owner.rows[0].google_sub);
+      const access=await db.query(`SELECT 1 FROM friendships f LEFT JOIN friend_settings s ON s.google_sub=$3
+        WHERE f.user_a=$1 AND f.user_b=$2 AND COALESCE(s.warp_enabled,TRUE)=TRUE`,[a,b,owner.rows[0].google_sub]);
+      if(!access.rowCount){await db.query("ROLLBACK");return res.status(403).json({error:"warp disabled"});}
+      const online=await db.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);
+      if(!online.rowCount||!["home","yard","garden"].includes(online.rows[0].profile?.zone)){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}
+    }
     const count=await db.query("SELECT COUNT(*)::int AS n FROM room_presence WHERE room_code=$1 AND google_sub<>$2",[code,req.user.sub]);
     if(count.rows[0].n>=5){await db.query("ROLLBACK");return res.status(409).json({error:"house full"});}
     await db.query("DELETE FROM room_presence WHERE google_sub=$1",[req.user.sub]);
@@ -576,6 +696,23 @@ await pool.query(`CREATE TABLE IF NOT EXISTS friend_cheers (
   sent_on DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (sender_sub,target_sub,sent_on)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS friend_settings (
+  google_sub TEXT PRIMARY KEY, searchable BOOLEAN NOT NULL DEFAULT TRUE,
+  warp_enabled BOOLEAN NOT NULL DEFAULT TRUE, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS friend_requests (
+  id BIGSERIAL PRIMARY KEY, sender_sub TEXT NOT NULL, receiver_sub TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), responded_at TIMESTAMPTZ,
+  UNIQUE(sender_sub,receiver_sub)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS friendships (
+  user_a TEXT NOT NULL, user_b TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(user_a,user_b), CHECK(user_a<user_b)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS friend_meet_cheers (
+  sender_sub TEXT NOT NULL,target_sub TEXT NOT NULL,met_on DATE NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(sender_sub,target_sub,met_on)
 )`);
 await pool.query(`CREATE TABLE IF NOT EXISTS collectible_ids (
   id VARCHAR(13) PRIMARY KEY, google_sub TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL,
