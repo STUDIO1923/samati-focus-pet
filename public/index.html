@@ -7920,9 +7920,9 @@ canvas{width:100%;height:150px;display:block}
 async function act(kind,code,val){
   if(!window.opener||!window.opener.adminAction){ alert("กรุณาเปิดห้องควบคุมจากในเกมอีกครั้ง"); return; }
   const labels={
-    coins:`เพิ่ม 1,000 เหรียญให้บัญชีนี้หรือไม่?`,
-    crystal:`เพิ่ม 100 ผลึกสมาธิให้บัญชีนี้หรือไม่?`,
-    unblockip:`ปลดบล็อก IP ${code} หรือไม่?`
+    coins:"เพิ่ม 1,000 เหรียญให้บัญชีนี้หรือไม่?",
+    crystal:"เพิ่ม 100 ผลึกสมาธิให้บัญชีนี้หรือไม่?",
+    unblockip:"ปลดบล็อก IP "+code+" หรือไม่?"
   };
   if(labels[kind]&&!confirm(labels[kind])) return;
   try{
