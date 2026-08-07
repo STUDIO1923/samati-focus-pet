@@ -66,10 +66,25 @@ function readSession(req) {
   if (!sig || sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   try { const user = JSON.parse(Buffer.from(body, "base64url")); return user.exp > Date.now() ? user : null; } catch { return null; }
 }
-function requireUser(req, res, next) {
+function getClientIp(req) {
+  const raw = String(req.ip || req.socket?.remoteAddress || "").trim();
+  return raw.replace(/^::ffff:/, "").replace(/^\[|\]$/g, "").slice(0, 64);
+}
+async function requireUser(req, res, next) {
   req.user = readSession(req);
   if (!req.user) return res.status(401).json({ error: "unauthorized" });
-  next();
+  req.clientIp = getClientIp(req);
+  try {
+    if (!adminEmails.has(String(req.user.email || "").toLowerCase())) {
+      const blocked = await pool.query("SELECT 1 FROM ip_blocks WHERE ip=$1", [req.clientIp]);
+      if (blocked.rows[0]) return res.status(403).json({ error: "ip blocked" });
+    }
+    await pool.query(`INSERT INTO account_activity (google_sub,email,last_ip,last_seen)
+      VALUES ($1,$2,$3,NOW()) ON CONFLICT (google_sub) DO UPDATE
+      SET email=EXCLUDED.email,last_ip=EXCLUDED.last_ip,last_seen=NOW()`,
+      [req.user.sub, req.user.email, req.clientIp]);
+    next();
+  } catch (error) { next(error); }
 }
 function requireAdmin(req, res, next) {
   req.user = readSession(req);
@@ -117,6 +132,14 @@ app.post("/api/auth/google", async (req, res) => {
     const p = ticket.getPayload();
     if (!p?.sub || !p.email_verified) return res.status(401).json({ error: "invalid Google account" });
     const user = { sub: p.sub, email: p.email, name: p.name || p.email, picture: p.picture || "" };
+    const ip = getClientIp(req);
+    if (!adminEmails.has(String(user.email || "").toLowerCase())) {
+      const blocked = await pool.query("SELECT 1 FROM ip_blocks WHERE ip=$1", [ip]);
+      if (blocked.rows[0]) return res.status(403).json({ error: "ip blocked" });
+    }
+    await pool.query(`INSERT INTO account_activity (google_sub,email,last_ip,last_seen)
+      VALUES ($1,$2,$3,NOW()) ON CONFLICT (google_sub) DO UPDATE
+      SET email=EXCLUDED.email,last_ip=EXCLUDED.last_ip,last_seen=NOW()`, [user.sub, user.email, ip]);
     res.cookie("samati_session", signSession(user), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 30 * 864e5, path: "/" });
     res.json({ user: publicUser(user) });
   } catch { res.status(401).json({ error: "invalid Google token" }); }
@@ -181,7 +204,10 @@ app.put("/api/save", rateLimit("save", 20), requireUser, async (req, res) => {
     const prior = await db.query("SELECT state, updated_at FROM game_saves WHERE google_sub=$1 FOR UPDATE", [req.user.sub]);
     const previous = prior.rows[0]?.state || null;
     const elapsedMinutes = prior.rows[0] ? Math.max(0, (Date.now() - new Date(prior.rows[0].updated_at).getTime()) / 60000) : 0;
-    const checked = normalizeEconomyState(state, previous, elapsedMinutes);
+    const adminSave = adminEmails.has(String(req.user.email || "").toLowerCase());
+    const checked = adminSave
+      ? { state: structuredClone(state), suspicious: false, claimedCoins: num(state.coins), trustedCoins: num(previous?.coins), maxEarn: 0 }
+      : normalizeEconomyState(state, previous, elapsedMinutes);
     if (checked.suspicious) await db.query(`INSERT INTO security_events (google_sub,email,kind,severity,details)
       VALUES ($1,$2,'coin_inflation',8,$3)`, [req.user.sub, req.user.email, {
       claimed: checked.claimedCoins, trusted: checked.trustedCoins, allowedIncrease: checked.maxEarn
@@ -224,6 +250,58 @@ app.get("/api/admin/security", rateLimit("admin-security", 30), requireAdmin, as
       WHERE created_at > NOW()-INTERVAL '24 hours' GROUP BY kind ORDER BY count DESC`)
   ]);
   res.json({ events: events.rows, counts: counts.rows });
+});
+app.get("/api/admin/players", rateLimit("admin-players", 30), requireAdmin, async (_req, res) => {
+  const result = await pool.query(`SELECT g.google_sub,g.email,g.state,g.updated_at,
+      a.last_ip,a.last_seen,EXISTS(SELECT 1 FROM ip_blocks b WHERE b.ip=a.last_ip) AS ip_blocked
+    FROM game_saves g LEFT JOIN account_activity a ON a.google_sub=g.google_sub
+    ORDER BY COALESCE(a.last_seen,g.updated_at) DESC LIMIT 500`);
+  res.json({ players: result.rows.map(r => ({
+    sub: r.google_sub, email: r.email, state: r.state, ip: r.last_ip || "ไม่ทราบ",
+    lastSeen: r.last_seen || r.updated_at, online: Date.now()-new Date(r.last_seen || r.updated_at).getTime()<120000,
+    ipBlocked: Boolean(r.ip_blocked)
+  })) });
+});
+app.post("/api/admin/players/:sub/grant", rateLimit("admin-grant", 60), requireAdmin, async (req, res) => {
+  const field = req.body?.field === "crystal" ? "crystal" : req.body?.field === "coins" ? "coins" : "";
+  const amount = clamp(Math.round(num(req.body?.amount)), -1_000_000, 1_000_000);
+  if (!field || !amount) return res.status(400).json({ error: "invalid grant" });
+  const found = await pool.query("SELECT state FROM game_saves WHERE google_sub=$1", [req.params.sub]);
+  if (!found.rows[0]) return res.status(404).json({ error: "account not found" });
+  const state = found.rows[0].state;
+  state[field] = clamp(Math.round(num(state[field])) + amount, 0, 9_999_999);
+  await pool.query("UPDATE game_saves SET state=$2,updated_at=NOW() WHERE google_sub=$1", [req.params.sub, state]);
+  await pool.query(`INSERT INTO economy_events (google_sub,kind,amount,reference,details)
+    VALUES ($1,'admin_grant',$2,$3,$4)`, [req.params.sub, amount, crypto.randomUUID(), { field, by: req.user.email }]);
+  res.json({ ok: true, value: state[field] });
+});
+app.post("/api/admin/ip-blocks", rateLimit("admin-ip", 30), requireAdmin, async (req, res) => {
+  const ip = String(req.body?.ip || "").trim().replace(/^::ffff:/, "").slice(0,64);
+  if (!ip || ip === "ไม่ทราบ") return res.status(400).json({ error: "invalid ip" });
+  await pool.query(`INSERT INTO ip_blocks (ip,reason,created_by) VALUES ($1,$2,$3)
+    ON CONFLICT (ip) DO UPDATE SET reason=EXCLUDED.reason,created_by=EXCLUDED.created_by,created_at=NOW()`,
+    [ip, String(req.body?.reason || "บล็อกโดยผู้ดูแล").slice(0,200), req.user.email]);
+  res.json({ ok:true });
+});
+app.delete("/api/admin/ip-blocks/:ip", rateLimit("admin-ip", 30), requireAdmin, async (req, res) => {
+  await pool.query("DELETE FROM ip_blocks WHERE ip=$1", [String(req.params.ip).replace(/^::ffff:/, "")]);
+  res.json({ ok:true });
+});
+app.delete("/api/admin/players/:sub", rateLimit("admin-delete", 20), requireAdmin, async (req, res) => {
+  const target = await pool.query("SELECT email FROM game_saves WHERE google_sub=$1", [req.params.sub]);
+  if (!target.rows[0]) return res.status(404).json({ error: "account not found" });
+  if (adminEmails.has(String(target.rows[0].email || "").toLowerCase())) return res.status(403).json({ error: "cannot delete admin" });
+  const db=await pool.connect();
+  try {
+    await db.query("BEGIN");
+    await db.query("DELETE FROM room_presence WHERE google_sub=$1", [req.params.sub]);
+    await db.query("DELETE FROM plaza_presence WHERE google_sub=$1", [req.params.sub]);
+    await db.query("DELETE FROM game_saves WHERE google_sub=$1", [req.params.sub]);
+    await db.query("DELETE FROM account_activity WHERE google_sub=$1", [req.params.sub]);
+    await db.query("COMMIT");
+    res.json({ ok:true });
+  } catch(error){ await db.query("ROLLBACK").catch(()=>{}); throw error; }
+  finally { db.release(); }
 });
 async function roomState(code, after = 0) {
   await pool.query("DELETE FROM room_presence WHERE seen_at < NOW() - INTERVAL '20 seconds'");
@@ -426,5 +504,17 @@ await pool.query(`CREATE TABLE IF NOT EXISTS economy_events (
   details JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (google_sub, kind, reference)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS account_activity (
+  google_sub TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  last_ip TEXT,
+  last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS ip_blocks (
+  ip TEXT PRIMARY KEY,
+  reason TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`);
 app.listen(port, "0.0.0.0", () => console.log(`SAMATI listening on ${port}`));
