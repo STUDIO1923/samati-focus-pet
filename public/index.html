@@ -5253,12 +5253,15 @@ $("#evoOk").onclick=()=>{ sfx.tap(); $("#evo").classList.remove("on"); refreshHu
 /* ---------- MENU / SAVE ---------- */
 function openMenu(){
   const s=G.stats;
+  const cloudUser=SamatiCloud.user;
+  const cloudConnected=!!cloudUser;
   if(typeof syncSoundBtns==="function") setTimeout(syncSoundBtns,0);
-  $("#btnCloud").textContent = G.account.type==="google" ? "บัญชีที่เชื่อมไว้" : "เชื่อมบัญชี Google";
+  $("#btnCloud").textContent = cloudConnected ? "รีเฟรชบัญชี Google" : "เชื่อมบัญชี Google";
   $("#btnInstallApp").textContent = window.matchMedia("(display-mode: standalone)").matches ? "✓ ติดตั้งเป็นแอปแล้ว" : "📲 ติดตั้งเว็บแอป";
   $("#statList").innerHTML = `
     <div class="kv"><span>ผู้เล่น</span><b>${G.player.name}</b></div>
-    <div class="kv"><span>บัญชี</span><b>${G.account.type==="google" ? "Google · "+G.account.email : "Guest"}</b></div>
+    <div class="kv"><span>บัญชี</span><b>${cloudConnected ? "Google · "+cloudUser.email : "ยังไม่ได้เชื่อม Google"}</b></div>
+    <div class="kv"><span>สถานะบัญชี</span><b>${cloudConnected ? (cloudUser.admin===true ? "เชื่อมแล้ว · ผู้ดูแลระบบ" : "เชื่อมแล้ว · ผู้เล่น") : "Guest · กดเชื่อมบัญชีอีกครั้ง"}</b></div>
     <div class="kv"><span>รหัสเพื่อนของคุณ</span><b style="font-family:var(--mono)">${G.account.code}</b></div>
     <div class="kv"><span>เพื่อน / โฟกัสร่วมกัน</span><b>${G.friends.length} คน · ${s.coFocus||0} รอบ</b></div>
     <div class="kv"><span>ไม่สบายจากความหิว</span><b>${s.sick||0} ครั้ง</b></div>
@@ -5286,7 +5289,11 @@ window.addEventListener("pagehide", save);
 $("#btnSaveNow").onclick=async()=>{ sfx.tap(); await save(); toast("บันทึกแล้ว"); };
 $("#btnCloud").onclick=async()=>{
   sfx.tap();
-  if(SamatiCloud.user){ await SamatiCloud.signOut(); toast("ออกจากบัญชี Google แล้ว"); openMenu(); return; }
+  if(SamatiCloud.user){
+    await SamatiCloud.refreshUser();
+    toast(SamatiCloud.user ? "รีเฟรชข้อมูลบัญชี Google แล้ว" : "เซสชันหมดอายุ · กรุณาเชื่อม Google อีกครั้ง");
+    openMenu(); return;
+  }
   const box=$("#menuGoogleSignIn"); box.style.display="flex";
   $("#cloudHint").textContent="เลือกบัญชี Google เพื่อเชื่อมเซฟนี้"; SamatiCloud.renderButton(box);
 };
@@ -5369,6 +5376,7 @@ function cloudLoading(on,text="กำลังโหลดเซฟล่าส�
   el.classList.toggle("on",!!on);
 }
 async function enterCloudGame(){
+  await SamatiCloud.refreshUser().catch(()=>null);
   hideCover();
   tickDecay(); refreshHud(); closePanels(); updateMoveBar();
   const env=$("#envA"); if(env)env.textContent=(G.area==="friend"&&G.visiting)?("บ้านของ "+G.visiting.name):AREAS[area()].n;
@@ -5380,7 +5388,20 @@ async function enterCloudGame(){
 window.SamatiCloud = {
   user:null, clientId:"", ready:false, signingIn:false,
   async request(path,opt={}){const r=await fetch(path,{credentials:"same-origin",headers:{"Content-Type":"application/json",...(opt.headers||{})},...opt});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||"server error");return r.json()},
-  async init(){try{const [cfg,me]=await Promise.all([this.request("/api/config"),this.request("/api/me")]);this.clientId=cfg.googleClientId||"";this.user=me.user||null}catch(e){}return this.user},
+  async refreshUser(){
+    try{
+      const me=await this.request("/api/me");
+      this.user=me.user||null;
+    }catch(e){ this.user=null; }
+    if(G){
+      G.account=this.user
+        ? {...G.account,type:"google",email:this.user.email,linked:true}
+        : {...G.account,type:"guest",email:"",linked:false};
+      refreshHud();
+    }
+    return this.user;
+  },
+  async init(){try{const cfg=await this.request("/api/config");this.clientId=cfg.googleClientId||"";await this.refreshUser()}catch(e){this.user=null}return this.user},
   renderButton(box=$("#googleSignIn")){ if(!this.clientId){toast("Google Login ยังไม่พร้อม");return;} if(!window.google?.accounts?.id){setTimeout(()=>this.renderButton(box),250);return;} box.innerHTML=""; if(!this.ready){google.accounts.id.initialize({client_id:this.clientId,callback:r=>this.signIn(r.credential),auto_select:false});this.ready=true;} google.accounts.id.renderButton(box,{theme:"outline",size:"large",shape:"pill",text:"continue_with",width:280}); },
   async signIn(credential){
     if(this.signingIn)return;
@@ -5388,6 +5409,7 @@ window.SamatiCloud = {
     try{
       const out=await this.request("/api/auth/google",{method:"POST",body:JSON.stringify({credential})});
       this.user=out.user;
+      await this.refreshUser();
       const remote=await this.pull();
       const remoteTick=Number(remote?.lastTick||0), localTick=Number(G?.lastTick||0);
       let useRemote=!!remote && (!G || remoteTick>=localTick);
