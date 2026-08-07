@@ -201,6 +201,16 @@ app.get("/api/friends/:code", requireUser, async (req, res) => {
     petName: state.pet?.name || "Mori", petForm: state.pet?.form || "seed"
   }});
 });
+app.get("/api/friends", rateLimit("friend-search", 30), requireUser, async (req, res) => {
+  const name = String(req.query.name || "").trim().replace(/[%_]/g, "").slice(0, 24);
+  if (name.length < 2) return res.status(400).json({ error: "name too short" });
+  const result = await pool.query(`SELECT state FROM game_saves
+    WHERE state->'player'->>'name' ILIKE $1 ORDER BY updated_at DESC LIMIT 10`, [`%${name}%`]);
+  res.json({ friends: result.rows.map(({ state }) => ({
+    code: String(state.account?.code || "").toUpperCase(), name: state.player?.name || "ผู้เล่น",
+    petName: state.pet?.name || "Mori", petForm: state.pet?.form || "seed", petLv: clamp(Math.round(num(state.pet?.lv, 1)), 1, 100)
+  })).filter(v => v.code) });
+});
 app.get("/api/admin/security", rateLimit("admin-security", 30), requireAdmin, async (_req, res) => {
   const [events, counts] = await Promise.all([
     pool.query(`SELECT email,kind,severity,details,created_at FROM security_events
@@ -210,30 +220,51 @@ app.get("/api/admin/security", rateLimit("admin-security", 30), requireAdmin, as
   ]);
   res.json({ events: events.rows, counts: counts.rows });
 });
+async function roomState(code, after = 0) {
+  await pool.query("DELETE FROM room_presence WHERE seen_at < NOW() - INTERVAL '20 seconds'");
+  const [members, owner, messages] = await Promise.all([
+    pool.query("SELECT profile FROM room_presence WHERE room_code=$1 ORDER BY seen_at DESC LIMIT 5", [code]),
+    pool.query("SELECT state FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1", [code]),
+    pool.query("SELECT id,name,message,created_at FROM room_messages WHERE room_code=$1 AND id>$2 ORDER BY id DESC LIMIT 50", [code, Math.max(0, Number(after) || 0)])
+  ]);
+  const s = owner.rows[0]?.state;
+  const house = s ? { code, name: s.player?.name || "ผู้เล่น", player: s.player || {}, pet: s.pet || {}, place: Array.isArray(s.place?.home) ? s.place.home.slice(0, 300) : [], vip: s.vip || {} } : null;
+  return { members: members.rows.map(r => r.profile), house, messages: messages.rows.reverse(), capacity: 5 };
+}
 app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, async (req, res) => {
   const code = String(req.params.code || "").toUpperCase();
   if (!/^[A-Z0-9]{4,10}$/.test(code)) return res.status(400).json({ error: "invalid room" });
-  const raw = req.body?.profile || {};
+  const trusted = await pool.query("SELECT state FROM game_saves WHERE google_sub=$1", [req.user.sub]);
+  if (!trusted.rows[0]) return res.status(409).json({ error: "save must exist before joining house" });
+  const state = trusted.rows[0].state, raw = req.body?.profile || {};
   const profile = {
-    code: String(raw.code || "").slice(0, 10), name: String(raw.name || "ผู้เล่น").slice(0, 24),
-    x: clamp(num(raw.x, 100), 0, 216), dir: num(raw.dir, 1) < 0 ? -1 : 1,
-    state: ["idle", "walk", "sit", "focus"].includes(raw.state) ? raw.state : "idle",
-    focus: Boolean(raw.focus), look: raw.look && typeof raw.look === "object" ? raw.look : {},
-    pet: { name: String(raw.pet?.name || "Mori").slice(0, 24), form: String(raw.pet?.form || "seed").slice(0, 24), lv: clamp(Math.round(num(raw.pet?.lv, 1)), 1, 100) }
+    code: String(state.account?.code || "").slice(0,10).toUpperCase(), name: String(state.player?.name || "ผู้เล่น").slice(0,24),
+    x: clamp(num(raw.x,100),0,216), dir: num(raw.dir,1)<0?-1:1,
+    state: ["idle","walk","sit","focus"].includes(raw.state)?raw.state:"idle", focus:Boolean(raw.focus), look:state.player||{},
+    pet:{name:String(state.pet?.name||"Mori").slice(0,24),form:String(state.pet?.form||"seed").slice(0,24),lv:clamp(Math.round(num(state.pet?.lv,1)),1,100)}
   };
-  await pool.query(`INSERT INTO room_presence (room_code, google_sub, profile, seen_at)
-    VALUES ($1,$2,$3,NOW()) ON CONFLICT (room_code,google_sub)
-    DO UPDATE SET profile=EXCLUDED.profile, seen_at=NOW()`, [code, req.user.sub, profile]);
-  await pool.query("DELETE FROM room_presence WHERE seen_at < NOW() - INTERVAL '20 seconds'");
-  const members = await pool.query("SELECT profile FROM room_presence WHERE room_code=$1 ORDER BY seen_at DESC LIMIT 5", [code]);
-  res.json({ members: members.rows.map(r => r.profile) });
+  const db=await pool.connect();
+  try {
+    await db.query("BEGIN");await db.query("SELECT pg_advisory_xact_lock(hashtext($1))",[`house:${code}`]);
+    await db.query("DELETE FROM room_presence WHERE seen_at < NOW()-INTERVAL '20 seconds'");
+    const owner=await db.query("SELECT google_sub FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1",[code]);
+    if(!owner.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"house not found"});}
+    if(owner.rows[0].google_sub!==req.user.sub){const online=await db.query("SELECT 1 FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
+    const count=await db.query("SELECT COUNT(*)::int AS n FROM room_presence WHERE room_code=$1 AND google_sub<>$2",[code,req.user.sub]);
+    if(count.rows[0].n>=5){await db.query("ROLLBACK");return res.status(409).json({error:"house full"});}
+    await db.query("DELETE FROM room_presence WHERE google_sub=$1",[req.user.sub]);
+    await db.query("INSERT INTO room_presence(room_code,google_sub,profile,seen_at) VALUES($1,$2,$3,NOW()) ON CONFLICT(room_code,google_sub) DO UPDATE SET profile=EXCLUDED.profile,seen_at=NOW()",[code,req.user.sub,profile]);
+    await db.query("COMMIT");res.json(await roomState(code,req.body?.after));
+  }catch(error){await db.query("ROLLBACK").catch(()=>{});throw error;}finally{db.release();}
 });
 app.get("/api/rooms/:code/presence", requireUser, async (req, res) => {
-  const code = String(req.params.code || "").toUpperCase();
-  if (!/^[A-Z0-9]{4,10}$/.test(code)) return res.status(400).json({ error: "invalid room" });
-  await pool.query("DELETE FROM room_presence WHERE seen_at < NOW() - INTERVAL '20 seconds'");
-  const members = await pool.query("SELECT profile FROM room_presence WHERE room_code=$1 ORDER BY seen_at DESC LIMIT 5", [code]);
-  res.json({ members: members.rows.map(r => r.profile) });
+  const code=String(req.params.code||"").toUpperCase();if(!/^[A-Z0-9]{4,10}$/.test(code))return res.status(400).json({error:"invalid room"});
+  res.json(await roomState(code,req.query.after));
+});
+app.post("/api/rooms/:code/chat", rateLimit("house-chat",6,10_000), requireUser, async(req,res)=>{
+  const code=String(req.params.code||"").toUpperCase();const member=await pool.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2 AND seen_at>NOW()-INTERVAL '20 seconds'",[code,req.user.sub]);
+  if(!member.rows[0])return res.status(403).json({error:"not in house"});let message=String(req.body?.message||"").replace(/[<>\u0000-\u001f]/g,"").trim().slice(0,140).replace(/(ควย|เหี้ย|เย็ด|fuck|shit)/gi,"***");
+  if(!message)return res.status(400).json({error:"empty message"});await pool.query("INSERT INTO room_messages(room_code,google_sub,name,message) VALUES($1,$2,$3,$4)",[code,req.user.sub,member.rows[0].profile.name,message]);res.json({ok:true});
 });
 app.delete("/api/rooms/:code/presence", requireUser, async (req, res) => {
   await pool.query("DELETE FROM room_presence WHERE room_code=$1 AND google_sub=$2", [String(req.params.code || "").toUpperCase(), req.user.sub]);
@@ -333,6 +364,15 @@ await pool.query(`CREATE TABLE IF NOT EXISTS room_presence (
   seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (room_code, google_sub)
 )`);
+await pool.query(`CREATE TABLE IF NOT EXISTS room_messages (
+  id BIGSERIAL PRIMARY KEY,
+  room_code TEXT NOT NULL,
+  google_sub TEXT NOT NULL,
+  name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query("CREATE INDEX IF NOT EXISTS room_messages_room_id ON room_messages (room_code,id DESC)");
 await pool.query(`CREATE TABLE IF NOT EXISTS security_events (
   id BIGSERIAL PRIMARY KEY,
   google_sub TEXT NOT NULL,
