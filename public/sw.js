@@ -1,4 +1,4 @@
-const CACHE="samati-pwa-v15";
+const CACHE="samati-pwa-v16";
 const SHELL=["/","/manifest.webmanifest","/samati-icon-192.png","/samati-icon-512.png"];
 
 self.addEventListener("install",event=>{

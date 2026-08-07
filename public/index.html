@@ -314,10 +314,10 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 .envbar #envC{margin-left:auto;color:var(--brass-l);font-family:var(--mono)}
 .envbar #envX{color:#9fd7e8;font-family:var(--mono);box-shadow:inset 0 0 0 1px rgba(159,215,232,.35)}
 /* ---------- ปุ่มเดิน/นั่ง ---------- */
-.moverow{display:grid;grid-template-columns:1fr 1.15fr 1fr 1.15fr;gap:6px;padding:8px 2px 2px}
-.mv{font-size:12.5px}
+.moverow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:8px 2px 2px}
+.mv{font-size:11px;white-space:nowrap;min-width:0}
 .mv{border:0;border-radius:12px;padding:10px 4px;cursor:pointer;font-family:var(--ui);
-  font-size:14px;font-weight:700;color:#f2ead6;touch-action:none;
+  font-size:11px;font-weight:700;color:#f2ead6;touch-action:none;
   background:linear-gradient(180deg,#4a4270,#2e2851 60%,#211c3f);
   box-shadow:0 4px 0 #150f2c,0 6px 12px rgba(0,0,0,.4);transition:transform .06s,box-shadow .06s}
 .mv:active,.mv.hold{transform:translateY(4px);box-shadow:0 0 0 #150f2c,0 2px 6px rgba(0,0,0,.4)}
@@ -755,6 +755,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div class="row" style="margin-bottom:8px">
             <button class="opt on" data-shoptab="home">ของแต่งบ้าน</button>
             <button class="opt" data-shoptab="garden">ต้นไม้ & สวน</button>
+            <button class="opt" data-shoptab="wallcoin">⚽ ผนังฟุตบอล</button>
             <button class="opt" data-shoptab="seed">เมล็ดพันธุ์</button>
             <button class="opt" data-shoptab="fashion">แฟชั่น</button>
             <button class="opt" data-shoptab="item">ไอเท็ม</button>
@@ -1846,6 +1847,7 @@ function newGame(){
     crystal: 0,
     opt: { bgm:true, rain:true },
     vip: { floor:null, wall:null, house:null, fairy:null, poses:[] },
+    coinWalls: [],
     cheers: 0,
     storage: [],
     farm: [null,null,null,null,null,null],
@@ -1855,7 +1857,7 @@ function newGame(){
     houseLocked: false,
     album: { forms:{}, special:[], rebirths:0 },
     hints: {},
-    place: { home:[], garden:[] },
+    place: { home:[], yard:[], garden:[] },
     bag:{ berry:2, rice:1, rug:1, cushion:1 },
     stats:{ focusMin:0, sessions:0, breaks:0, wins:0, plays:0, feeds:0, fishBest:0,
             dayKey:"", playsToday:0, ko:0, sick:0, coFocus:0, rainTripDay:"", breakMark:0 }
@@ -2855,7 +2857,8 @@ function shaft(c,x0,y0,w,h,col){                     /* ลำแสงจาก
 /* ---------- ห้องในบ้าน ---------- */
 function drawHome(c,t){
   const sunny = !isWet() && Env.phase!=="night";
-  const WP = (G&&G.vip&&G.vip.wall!=null&&VIP_WALL[G.vip.wall]) ? VIP_WALL[G.vip.wall] : ["","#96ad70","#879d62","#9db474"];
+  const WP = (G&&G.vip&&G.vip.footballWall!=null&&FOOTBALL_WALL[G.vip.footballWall]) ? FOOTBALL_WALL[G.vip.footballWall]
+    : (G&&G.vip&&G.vip.wall!=null&&VIP_WALL[G.vip.wall]) ? VIP_WALL[G.vip.wall] : ["","#96ad70","#879d62","#9db474"];
   const FP = (G&&G.vip&&G.vip.floor!=null&&VIP_FLOOR[G.vip.floor]) ? VIP_FLOOR[G.vip.floor] : ["","#a8845c","#c49a6c","#96724f"];
   /* ผนัง 3 โทน + แผงไม้ */
   rect(c,0,0,W,FLOOR,WP[1]);
@@ -3306,7 +3309,8 @@ async function goOwnRoom(){
 function drawFriendRoom(c,t){
   const sunny = !isWet() && Env.phase!=="night";
   const hv=SamatiNet.house?.vip||{};
-  const WP=(hv.wall!=null&&VIP_WALL[hv.wall])?VIP_WALL[hv.wall]:["","#96ad70","#879d62","#9db474"];
+  const WP=(hv.footballWall!=null&&FOOTBALL_WALL[hv.footballWall])?FOOTBALL_WALL[hv.footballWall]
+    :(hv.wall!=null&&VIP_WALL[hv.wall])?VIP_WALL[hv.wall]:["","#96ad70","#879d62","#9db474"];
   const FP=(hv.floor!=null&&VIP_FLOOR[hv.floor])?VIP_FLOOR[hv.floor]:["","#a8845c","#c49a6c","#96724f"];
   rect(c,0,0,W,FLOOR,WP[1]);
   for(let x=0;x<W;x+=8){ rect(c,x,0,1,FLOOR,WP[2]); rect(c,x+1,0,1,FLOOR,WP[3]); }
@@ -3758,7 +3762,7 @@ const TINT = { dawn:"rgba(255,168,104,.12)", day:null, afternoon:"rgba(255,226,1
 const Shake = { t:0 };
 function placedList(){
   if(!G || !G.place) return [];
-  if(area()==="friend" && SamatiNet.house) return SamatiNet.friendZone==="home"&&Array.isArray(SamatiNet.house.place)?SamatiNet.house.place:[];
+  if(area()==="friend" && SamatiNet.house){const p=SamatiNet.house.place;if(Array.isArray(p))return SamatiNet.friendZone==="home"?p:[];return Array.isArray(p&&p[SamatiNet.friendZone])?p[SamatiNet.friendZone]:[];}
   return G.place[area()] || [];
 }
 function placedLightCount(){
@@ -4572,7 +4576,7 @@ function focusCoinsPerMin(){
   return 0.7 * DIFF[FS.diff||fDiff].mult * (m==="wild"?1.2:1);
 }
 function umbrellaReady(){
-  return (G.place.garden||[]).some(h=>h.id==="umbrella");
+  return [...(G.place.garden||[]),...(G.place.yard||[])].some(h=>h.id==="umbrella");
 }
 function buildFocusOpts(){
   const mode = focusMode();
@@ -4884,6 +4888,13 @@ function renderShop(){
     return;
   }
   if(shopTab==="vip"){ renderVipShop(b); return; }
+  if(shopTab==="wallcoin"){
+    b.insertAdjacentHTML("beforeend",`<p class="hint"><b>⚽ ผนังลายสโมสร</b> · ซื้อถาวรด้วยเหรียญ และเลือกใช้ได้ในเมนูจัดบ้าน<br>เป็นลายสีพิกเซลที่ได้รับแรงบันดาลใจจากทีมฟุตบอล โดยไม่ใช้ตราสโมสรทางการ</p>`);
+    const grid=document.createElement("div");grid.className="grid";
+    FOOTBALL_WALL.forEach((w,i)=>{const id="fw_"+i,owned=(G.coinWalls||[]).includes(id),c=document.createElement("button");
+      c.className="cell"+(G.coins<w[4]&&!owned?" poor":"");c.innerHTML=`<div class="e" style="color:${w[1]}">▥</div><div class="n">${w[0]}</div><div class="p">${owned?"✓ มีแล้ว":"🪙"+w[4]}</div>`;
+      c.onclick=()=>buyFootballWall(i);grid.appendChild(c);});b.appendChild(grid);return;
+  }
   if(shopTab==="fashion"){
     const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="8px";
     Object.keys(COS_CAT).forEach(cat=>{
@@ -4936,7 +4947,7 @@ function renderShop(){
   });
   b.appendChild(g2);
   b.insertAdjacentHTML("beforeend", zone==="garden"
-    ? '<p class="hint" style="margin-top:10px">ของสวนวางได้เฉพาะฝั่งสวนริมหน้าผา (เดินออกประตูซ้าย) · “ร่มใหญ่กันฝน” จำเป็นถ้าจะโฟกัสกลางแจ้งตอนฝนตก</p>'
+    ? '<p class="hint" style="margin-top:10px">ของสวนวางได้ทั้งสวนริมหน้าผาและสวนหน้าบ้าน · “ร่มใหญ่กันฝน” จำเป็นถ้าจะโฟกัสกลางแจ้งตอนฝนตก</p>'
     : '<p class="hint" style="margin-top:10px">ซื้อแล้วของจะเข้ากระเป๋าแท็บ “ของแต่งบ้าน” จากนั้นเลือกเพื่อวาง แล้วเลื่อนด้วยปุ่มทิศทาง</p>');
 }
 $$("#p-shop [data-shoptab]").forEach(b=>b.addEventListener("click",()=>{ sfx.tap(); shopTab=b.dataset.shoptab; renderShop(); }));
@@ -4946,6 +4957,12 @@ function buyFurni(k){
   G.coins -= f.price; addItem(k,1);
   sfx.ok(); toast("ซื้อ "+f.n+" แล้ว · อยู่ในกระเป๋า");
   renderShop(); refreshHud(); save();
+}
+function buyFootballWall(i){
+  const w=FOOTBALL_WALL[i],id="fw_"+i;if(!w)return;if(!G.coinWalls)G.coinWalls=[];
+  if(G.coinWalls.includes(id)){G.vip.footballWall=i;G.vip.wall=null;sfx.tap();toast("เลือกใช้ "+w[0]+" แล้ว");save();renderShop();return;}
+  if(G.coins<w[4]){sfx.bad();toast("เหรียญไม่พอ · ผนังสโมสรเป็นของสะสมราคาสูง");return;}
+  G.coins-=w[4];G.coinWalls.push(id);G.vip.footballWall=i;G.vip.wall=null;sfx.ok();toast("ซื้อและติดตั้ง "+w[0]+" แล้ว");save();refreshHud();renderShop();
 }
 function buySeed(k){
   const d=SEEDS[k];
@@ -4972,7 +4989,8 @@ function sellItem(k,n){
 
 /* ---------- วาง / ย้าย / เก็บของตกแต่ง (ใช้ตำแหน่งตัวละคร + ปุ่มทิศทาง) ---------- */
 const Place = { mode:"none", id:null, x:80, y:FLOOR+6, sel:-1, fromBag:false };
-function zoneOfArea(){ return area()==="garden" ? "garden" : area()==="home" ? "home" : null; }
+function zoneOfArea(){ return ["home","yard","garden"].includes(area()) ? area() : null; }
+function furniFitsZone(furniZone,zone){return furniZone===zone||(furniZone==="garden"&&zone==="yard");}
 function snapY(id, y){
   return FURNI[id].kind==="wall" ? clamp(y, 12, FLOOR-22) : clamp(y, FLOOR-4, H-8);
 }
@@ -4992,12 +5010,12 @@ function renderStyleRow(){
   row.innerHTML="";
   const k=area();
   const groups=[];
-  if(k==="home") groups.push(["wall","ผนัง",VIP_WALL,"wall"],["floor","พื้น",VIP_FLOOR,"floor"]);
+  if(k==="home") groups.push(["wall","ผนัง",VIP_WALL,"wall"],["football","ผนังฟุตบอล",FOOTBALL_WALL,"footballWall"],["floor","พื้น",VIP_FLOOR,"floor"]);
   if(k==="yard") groups.push(["house","แบบบ้าน",HOUSES,"house"]);
   if(!groups.length){ row.style.display="none"; return; }
   row.style.display="flex";
   groups.forEach(([type,label,table,field])=>{
-    const owned=ownedVipOf(type);
+    const owned=type==="football"?(G.coinWalls||[]):ownedVipOf(type);
     const head=document.createElement("div");
     head.className="trayEmpty"; head.style.cssText="flex:0 0 auto;padding:12px 6px 0;font-size:10px;opacity:.8";
     head.textContent=label+":";
@@ -5009,16 +5027,16 @@ function renderStyleRow(){
       cell.style.width="56px";
       cell.innerHTML=`<div style="width:34px;height:22px;margin:2px auto 0;border-radius:5px;background:${col};
         box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)"></div><div class="tn">${name}</div>`;
-      cell.onclick=()=>{ if(!G.vip) G.vip={}; G.vip[field]=idx; sfx.tap(); save(); renderStyleRow(); };
+      cell.onclick=()=>{ if(!G.vip) G.vip={}; G.vip[field]=idx;if(type==="football")G.vip.wall=null;if(type==="wall")G.vip.footballWall=null;sfx.tap(); save(); renderStyleRow(); };
       row.appendChild(cell);
     };
-    const defCol = type==="wall"?"#96ad70" : type==="floor"?"#a8845c" : "#c9a06e";
+    const defCol = type==="wall"?"#96ad70" : type==="football"?"#b22b35" : type==="floor"?"#a8845c" : "#c9a06e";
     mk(null,"ค่าเริ่มต้น",defCol);
-    owned.forEach(id=>{ const v=VIP[id]; mk(v.idx, table[v.idx][0], table[v.idx][1]); });
+    owned.forEach(id=>{ const v=type==="football"?{idx:+id.replace("fw_","")}:VIP[id];if(v&&table[v.idx])mk(v.idx,table[v.idx][0],table[v.idx][1]); });
     if(!owned.length){
       const info=document.createElement("div");
       info.className="trayEmpty"; info.style.cssText="flex:0 0 auto;padding:14px 8px 0;font-size:9.5px;opacity:.7";
-      info.textContent="(ปลดล็อกเพิ่มได้ที่ร้านค้า → 💠 ผลึกสมาธิ)";
+      info.textContent=type==="football"?"(ซื้อได้ที่ร้านค้า → ⚽ ผนังฟุตบอล)":"(ปลดล็อกเพิ่มได้ที่ร้านค้า → 💠 ผลึกสมาธิ)";
       row.appendChild(info);
     }
   });
@@ -5026,7 +5044,7 @@ function renderStyleRow(){
 function renderDecorTray(){
   const row=$("#trayRow"); if(!row) return;
   const zone=trayZone();
-  $("#trayTitle").textContent = zone==="garden" ? "ของแต่งสวนที่มี" : "ของแต่งบ้านที่มี";
+  $("#trayTitle").textContent = (zone==="garden"||zone==="yard") ? "ของแต่งสวนที่มี" : "ของแต่งบ้านที่มี";
   row.innerHTML="";
   renderStyleRow();
   if(!zone){
@@ -5035,7 +5053,7 @@ function renderDecorTray(){
       : '<div class="trayEmpty">จัดของได้เฉพาะในบ้าน สวนหน้าผา และสวนหน้าบ้าน</div>';
     return;
   }
-  const keys=Object.keys(G.bag).filter(k=>G.bag[k]>0 && FURNI[k] && (FURNI[k].zone||"home")===zone);
+  const keys=Object.keys(G.bag).filter(k=>G.bag[k]>0 && FURNI[k] && furniFitsZone(FURNI[k].zone||"home",zone));
   if(!keys.length){
     row.innerHTML='<div class="trayEmpty">ยังไม่มีของในกระเป๋าสำหรับพื้นที่นี้ · กดปุ่มร้านค้าเพื่อไปเลือกซื้อ</div>';
     return;
@@ -5060,14 +5078,14 @@ function renderDecorTray(){
   });
 }
 $("#trayShop").addEventListener("click",()=>{
-  sfx.tap(); shopTab = trayZone()==="garden" ? "garden" : "home";
+  sfx.tap(); shopTab = ["garden","yard"].includes(trayZone()) ? "garden" : "home";
   renderShop(); openPanel("#p-shop");
 });
 function placeHint(txt){ $("#placeBar").style.display = txt?"flex":"none"; if(txt) $("#placeMsg").innerHTML = txt; }
 function startPlacing(k){
   const zone = zoneOfArea();
   if(!zone){ toast("วางของได้เฉพาะในบ้านและสวน"); return; }
-  if((FURNI[k].zone||"home")!==zone){
+  if(!furniFitsZone(FURNI[k].zone||"home",zone)){
     toast(FURNI[k].zone==="garden" ? "ของชิ้นนี้วางได้เฉพาะในสวน" : "ของชิ้นนี้วางได้เฉพาะในบ้าน"); return; }
   closePanels();
   Place.mode="ghost"; Place.id=k; Place.fromBag=true; Place.sel=-1;
@@ -5325,7 +5343,7 @@ function openMenu(){
     <div class="kv"><span>ให้อาหาร</span><b>${s.feeds} ครั้ง</b></div>
     <div class="kv"><span>ตกปลาผ่านสูงสุด</span><b>ระดับ ${s.fishBest||0}</b></div>
     <div class="kv"><span>เหรียญ</span><b>🪙 ${G.coins}</b></div>
-    <div class="kv"><span>ของที่วางแล้ว</span><b>บ้าน ${G.place.home.length} · สวน ${G.place.garden.length}</b></div>
+    <div class="kv"><span>ของที่วางแล้ว</span><b>บ้าน ${G.place.home.length} · หน้าบ้าน ${(G.place.yard||[]).length} · สวน ${G.place.garden.length}</b></div>
     <div class="kv"><span>สลบจากการสำรวจ</span><b>${s.ko||0} ครั้ง</b></div>
     <div class="kv"><span>อากาศตอนนี้</span><b>${WEATHER_TH[Env.weather]} · ${PHASE_TH[Env.phase]}</b></div>
     <div class="kv"><span>ร่างที่ปลดล็อก</span><b>${Object.keys(G.pet.seen).length}/${Object.keys(FORMS).length}</b></div>
@@ -6011,6 +6029,7 @@ function openFriends(){
         <div class="fbar"><i style="width:${clamp(f.close,0,100)}%"></i></div>`;
       row.appendChild(info);
       const home=document.createElement("button");home.className="chk";home.textContent="🏠";home.title="วาร์ปไปบ้าน";home.onclick=()=>visitFriend(f.code);row.appendChild(home);
+      const today=dayKey(),cheered=f.cheerDay===today,heart=document.createElement("button");heart.className="chk"+(cheered?" on":"");heart.textContent=cheered?"💖":"💌";heart.title=cheered?"ส่งกำลังใจแล้ววันนี้":"ส่งกำลังใจ (วันละครั้ง)";heart.disabled=cheered;heart.onclick=()=>sendFriendCheer(f);row.appendChild(heart);
       const chk=document.createElement("button");
       chk.className="chk"+(party.includes(f.code)?" on":"");
       chk.textContent = party.includes(f.code) ? "✓" : "+";
@@ -6033,6 +6052,12 @@ function openFriends(){
   const orb=$("#btnOwnRoom"); if(orb) orb.onclick=()=>{ sfx.tap(); goOwnRoom(); };
   $("#btnInvite").onclick=()=>copyText(inviteLink(),"คัดลอกลิงก์ชวนเพื่อนแล้ว · ส่งให้เพื่อนได้เลย");
   openPanel("#p-friends");
+}
+async function sendFriendCheer(f){
+  const today=dayKey();if(f.cheerDay===today){toast("ส่งกำลังใจให้เพื่อนคนนี้แล้ววันนี้");return;}
+  if(!SamatiCloud.user){sfx.bad();toast("เชื่อมต่อบัญชี Google เพื่อส่งกำลังใจ");return;}
+  try{await SamatiCloud.request("/api/friends/"+encodeURIComponent(f.code)+"/cheer",{method:"POST",body:"{}"});f.cheerDay=today;f.close=clamp((f.close||0)+1,0,100);sfx.ok();toast("💖 ส่งกำลังใจให้ "+f.name+" แล้ว · ส่งได้อีกครั้งพรุ่งนี้");save();openFriends();}
+  catch(e){sfx.bad();toast(e.message==="already cheered today"?"ส่งกำลังใจให้เพื่อนคนนี้แล้ววันนี้":"ส่งกำลังใจไม่สำเร็จ");if(e.message==="already cheered today"){f.cheerDay=today;save();openFriends();}}
 }
 async function searchFriendsByName(name){
   const box=$("#friendSearchResults");name=String(name||"").trim();if(name.length<2){box.innerHTML='<p class="hint warn">กรอกชื่ออย่างน้อย 2 ตัวอักษร</p>';return;}if(!SamatiCloud.user){box.innerHTML='<p class="hint warn">ต้องเข้าสู่ระบบ Google ก่อนค้นหาเพื่อน</p>';return;}
@@ -7751,6 +7776,19 @@ const VIP_WALL=[
   ["พีชนุ่ม","#e8bfa0","#d6ad8f","#f4d2b6"],["มิ้นต์สดชื่น","#a0d8c4","#8fc7b3","#b6e6d6"],
   ["ลายจุดพาสเทล","#e4d0e8","#d4bfd8","#f0e0f2"],["กาแฟเข้ม","#6b5040","#5c4436","#7d6050"]
 ];
+/* ผนังฟุตบอลแบบพิกเซล — ลายสีแฟนคลับ ไม่มีตราสโมสรทางการ */
+const FOOTBALL_WALL=[
+  ["แมนเชสเตอร์ เรด","#b51f2e","#7e1420","#f2c84b",1200],
+  ["ลิเวอร์พูล เรด","#c8102e","#8d1024","#efe7d2",1250],
+  ["อาร์เซนอล แคนนอน","#db1f2d","#f4f1e8","#173b73",1350],
+  ["เชลซี บลู","#1746a2","#0e2f73","#f3d35a",1350],
+  ["แมนเชสเตอร์ ซิตี้","#7fc3e6","#ffffff","#263b75",1450],
+  ["ท็อตแนม ไวท์","#ececf0","#18244a","#b9c4d8",1400],
+  ["บาร์เซโลนา บลูกรานา","#243d8f","#a51d35","#e9bb3b",1700],
+  ["มาดริด รอยัลไวท์","#f2f0e8","#6e4aa8","#d8b54a",1800],
+  ["บาเยิร์น เรดไดมอนด์","#ce243b","#f3f3f3","#2462a8",1650],
+  ["มิลาน รอสโซเนรี","#b51f2e","#171717","#e6d4a5",1550]
+];
 const VIP_FLOOR=[
   ["ไม้คลาสสิก","#a8845c","#c49a6c","#96724f"],["ไม้โอ๊คเข้ม","#8a5f3a","#a8763f","#6d4326"],
   ["ไม้ขาว","#d8c9b0","#e8dcc4","#c3b49c"],["กระเบื้องหมากรุก","#e0dcd0","#f0ece0","#4a4a56"],
@@ -8075,7 +8113,7 @@ function migrate(o){
   s.coins = Math.max(0, Math.round(o.coins||0));
   const clean = arr => Array.isArray(arr) ? arr.filter(h=>h&&FURNI[h.id])
       .map(h=>({id:h.id, x:clamp(+h.x||80,10,W-10), y:+h.y||(FLOOR+6)})) : [];
-  s.place = { home: clean((o.place&&o.place.home) || o.house), garden: clean(o.place&&o.place.garden) };
+  s.place = { home: clean((o.place&&o.place.home) || o.house), yard: clean(o.place&&o.place.yard), garden: clean(o.place&&o.place.garden) };
   s.area = AREAS[o.area] ? o.area : "home";
   if(AREAS[s.area].kind==="wild") s.area="home";
   s.pet.hp = clamp(+o.pet?.hp || 0, 0, 999) || (40 + Math.min(120,(s.pet.lv||1)*3));
@@ -8103,6 +8141,7 @@ function migrate(o){
   s.wardrobe = Object.assign({hair:[],shirt:[],hat:[],glass:[],scarf:[],acc:[]}, o.wardrobe||{});
   s.visiting = (o.visiting && FORMS[o.visiting.petForm]) ? o.visiting : null;
   s.cheers = clamp(Math.round(o.cheers||0),0,999);
+  s.coinWalls = Array.isArray(o.coinWalls) ? o.coinWalls.filter(id=>/^fw_\d+$/.test(id)&&FOOTBALL_WALL[+id.slice(3)]) : [];
   s.crystal = clamp(Math.round(o.crystal||0),0,9999999);
   s.opt = Object.assign({bgm:true,rain:true}, o.opt||{});
   s.vip = Object.assign({floor:null,wall:null,house:null,fairy:null,poses:[]}, o.vip||{});
