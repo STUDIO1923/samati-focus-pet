@@ -3342,7 +3342,9 @@ function drawFriendRoom(c,t){
 function roomMembers(){ return (SamatiNet.members||[]).filter(m=>m&&m.code!==G.account.code); }
 function coFocusLayout(code){
   if(!FS.on||FS.mode!=="home"||!SamatiNet.room)return null;
-  const codes=[G.account.code,...roomMembers().filter(m=>m.focus).map(m=>m.code)].filter(Boolean).sort().slice(0,5),i=codes.indexOf(code);
+  const focusedFriends=roomMembers().filter(m=>m.focus).map(m=>m.code).filter(Boolean);
+  if(!focusedFriends.length)return null;
+  const codes=[G.account.code,...focusedFriends].filter(Boolean).sort().slice(0,5),i=codes.indexOf(code);
   if(i<0)return null;const slots=[24,66,108,150,192],dir=i%2===0?1:-1,x=slots[i];return{x,dir,pet:clamp(x+dir*14,10,W-10)};
 }
 function liveCoFocus(){return FS.on&&(SamatiNet.members||[]).some(m=>m&&m.code!==G.account.code&&m.focus);}
@@ -6238,9 +6240,12 @@ const SPOIL1923_SEAL=new Image();SPOIL1923_SEAL.src="/spoil1923-seal.png";
 function applyAdminCollectibleFinish(x,w,h){
   if(!SamatiCloud.user?.admin)return;
   x.save();const foil=x.createLinearGradient(0,0,w,h);["#ff4d6d","#ffcf4a","#66f0a8","#5dd8ff","#8b7bff","#ff72d2","#ff4d6d"].forEach((c,i,a)=>foil.addColorStop(i/(a.length-1),c));
-  x.strokeStyle=foil;x.lineWidth=6;rr(x,4,4,w-8,h-8,15);x.stroke();x.globalAlpha=.18;
-  if(SPOIL1923_SEAL.complete&&SPOIL1923_SEAL.naturalWidth)x.drawImage(SPOIL1923_SEAL,w/2-66,h/2-66,132,132);
-  x.globalAlpha=.92;x.fillStyle=foil;x.textAlign="center";x.font="700 9px 'Comfortaa',sans-serif";x.fillText("SPOIL1923 · ADMIN EXCLUSIVE",w/2,h-7);x.restore();
+  x.strokeStyle=foil;x.lineWidth=6;rr(x,4,4,w-8,h-8,15);x.stroke();
+  if(SPOIL1923_SEAL.complete&&SPOIL1923_SEAL.naturalWidth){
+    const stamp=document.createElement("canvas");stamp.width=24;stamp.height=24;const sx=stamp.getContext("2d");sx.imageSmoothingEnabled=false;sx.drawImage(SPOIL1923_SEAL,0,0,24,24);
+    x.imageSmoothingEnabled=false;x.globalCompositeOperation="multiply";x.globalAlpha=.16;x.drawImage(stamp,w-58,h-58,48,48);
+  }
+  x.restore();
 }
 const Photo = { on:false, pose:"sit", emo:"✨", count:0 };
 function openPhoto(){
@@ -7566,7 +7571,7 @@ function rewardCatalog(){
   Object.entries(VIP).forEach(([id,v])=>out.push({kind:"vip",id,cat:"",name:"ผลึกสมาธิ · "+v.n}));return out;
 }
 async function adminRewards(b){
-  b.innerHTML+='<p class="hint">สร้างโค้ดกิจกรรมได้เอง เลือกรางวัลหลายรายการและกำหนดจำนวน ผู้เล่นหนึ่งบัญชีใช้แต่ละโค้ดได้เพียงครั้งเดียว</p>';
+  b.insertAdjacentHTML("beforeend",'<p class="hint">สร้างโค้ดกิจกรรมได้เอง เลือกรางวัลหลายรายการและกำหนดจำนวน ผู้เล่นหนึ่งบัญชีใช้แต่ละโค้ดได้เพียงครั้งเดียว</p>');
   const code=document.createElement("input");code.className="field";code.maxLength=32;code.placeholder="ชื่อโค้ด เช่น SAMATI1923";code.style.textTransform="uppercase";
   const label=document.createElement("input");label.className="field";label.maxLength=80;label.placeholder="ชื่อกิจกรรม";
   const row=document.createElement("div");row.className="row";const sel=document.createElement("select");sel.className="field";sel.style.cssText="flex:1;margin:0";const catalog=rewardCatalog();catalog.forEach((r,i)=>{const o=document.createElement("option");o.value=i;o.textContent=r.name;o.dataset.search=(r.name+" "+r.id).toLowerCase();sel.appendChild(o);});
@@ -7574,7 +7579,7 @@ async function adminRewards(b){
   const draft=document.createElement("div"),saveBtn=document.createElement("button");saveBtn.className="btn";saveBtn.textContent="บันทึก Reward Code";saveBtn.style.marginTop="8px";
   const redraw=()=>{draft.innerHTML="";adminRewardDraft.forEach((r,i)=>{const x=document.createElement("div");x.className="frow";const n=document.createElement("div");n.className="fi";n.textContent=`${r.name} ×${r.amount}`;const del=document.createElement("button");del.className="chk";del.textContent="✕";del.onclick=()=>{adminRewardDraft.splice(i,1);redraw()};x.append(n,del);draft.appendChild(x);});};
   add.onclick=()=>{const base=catalog[Number(sel.value)],qty=clamp(Math.round(Number(amount.value)||1),1,1000000);adminRewardDraft.push({...base,amount:qty});redraw();};
-  saveBtn.onclick=async()=>{if(code.value.trim().length<3||!adminRewardDraft.length){toast("กรอกโค้ดและเพิ่มรางวัลก่อน");return;}try{await SamatiCloud.request("/api/admin/reward-codes",{method:"POST",body:JSON.stringify({code:code.value,label:label.value,rewards:adminRewardDraft})});adminRewardDraft=[];sfx.ok();toast("บันทึก Reward Code แล้ว");openAdmin();}catch(e){sfx.bad();toast("บันทึกโค้ดไม่สำเร็จ");}};
+  saveBtn.onclick=async()=>{if(code.value.trim().length<3||!adminRewardDraft.length){toast("กรอกโค้ดและเพิ่มรางวัลก่อน");return;}saveBtn.disabled=true;try{await SamatiCloud.request("/api/admin/reward-codes",{method:"POST",body:JSON.stringify({code:code.value,label:label.value,rewards:adminRewardDraft})});adminRewardDraft=[];sfx.ok();toast("บันทึก Reward Code แล้ว");await openAdmin();}catch(e){sfx.bad();toast("บันทึกโค้ดไม่สำเร็จ · "+(e.message||"กรุณาลองใหม่"));}finally{saveBtn.disabled=false;}};
   b.append(code,label,row,draft,saveBtn);redraw();const head=document.createElement("div");head.className="sec";head.textContent="โค้ดที่สร้างไว้";b.appendChild(head);const list=document.createElement("div");list.innerHTML='<p class="hint">กำลังโหลด…</p>';b.appendChild(list);
   try{const data=await SamatiCloud.request("/api/admin/reward-codes");list.innerHTML="";(data.codes||[]).forEach(c=>{const r=document.createElement("div");r.className="frow";const info=document.createElement("div");info.className="fi";const n=document.createElement("div");n.className="fn";n.textContent=(c.active?"🟢 ":"⚫ ")+c.code+" · "+c.label;const d=document.createElement("div");d.className="fp";d.textContent=(c.rewards||[]).map(x=>x.name+" ×"+x.amount).join(", ")+" · ใช้แล้ว "+c.redemptions+" บัญชี";info.append(n,d);const del=document.createElement("button");del.className="btn danger";del.textContent="ปิดโค้ด";del.disabled=!c.active;del.onclick=async()=>{if(!confirm("ปิด Reward Code "+c.code+" หรือไม่?"))return;await SamatiCloud.request("/api/admin/reward-codes/"+encodeURIComponent(c.code),{method:"DELETE"});openAdmin();};r.append(info,del);list.appendChild(r);});if(!data.codes?.length)list.innerHTML='<p class="hint">ยังไม่มี Reward Code</p>';}catch(e){list.innerHTML='<p class="hint warn">โหลดรายการโค้ดไม่สำเร็จ</p>';}
 }
