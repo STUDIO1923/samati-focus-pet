@@ -3956,7 +3956,7 @@ $$(".key").forEach(k=>k.addEventListener("click",()=>{
   if(a==="menu"){ openMenu(); }
   if(a==="shop"){ openShop(); }
   if(a==="house"){ toggleEdit(); }
-  if(a==="friends"){ openFriends(); }
+  if(a==="friends" && now()-friendDirectAt>500){ openFriends(); }
   if(a==="plaza"){ CentralPlaza.open(); }
   if(a==="photo"){ openPhoto(); }
   if(a==="wardrobe"){ openWardrobe(); }
@@ -3966,6 +3966,9 @@ $$(".key").forEach(k=>k.addEventListener("click",()=>{
   if(a==="community"){ openCommunity(); }
   if(a==="admin"){ openAdmin(); }
 }));
+let friendDirectAt=0;
+const friendDirectButton=$("[data-act='friends']");
+if(friendDirectButton)friendDirectButton.addEventListener("pointerup",e=>{friendDirectAt=now();e.preventDefault();sfx.tap();openFriends();});
 $("#btnLeaveCenter").addEventListener("click",()=>{ sfx.tap(); closePanels(); if(area()==="center") goArea("home"); });
 function updateMoveBar(){
   const v=$("#mvV"); if(!v) return;
@@ -6006,7 +6009,15 @@ function inviteLink(){
   return base + "?room=" + G.account.code;
 }
 function openFriends(){
+  if(!G)return;
+  const rawFriends=Array.isArray(G.friends)?G.friends:[];
+  G.friends=rawFriends.filter(f=>f&&typeof f==="object"&&f.code).map(f=>({
+    code:String(f.code).toUpperCase(),name:String(f.name||"เพื่อน"),petName:String(f.petName||"Mori"),
+    petForm:FORMS[f.petForm]?f.petForm:"seed",close:clamp(Number(f.close)||0,0,100),
+    sessions:Math.max(0,Number(f.sessions)||0),cheerDay:f.cheerDay||""
+  }));
   const b=$("#friendsBody"); b.innerHTML="";
+  openPanel("#p-friends");
   b.insertAdjacentHTML("beforeend",
     `<p class="hint">โฟกัสพร้อมกันได้สูงสุด 5 คน และต้องโฟกัส<b>ภายในบ้าน</b>เท่านั้น ยิ่งคนเยอะและยิ่งสนิท ยิ่งได้ค่าประสบการณ์และโอกาสดรอปมากขึ้น</p>
      <div class="sec">รหัสบ้านของคุณ</div>
@@ -6066,7 +6077,6 @@ function openFriends(){
   $("#inFriendName").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchFriendsByName(e.target.value);}});
   const orb=$("#btnOwnRoom"); if(orb) orb.onclick=()=>{ sfx.tap(); goOwnRoom(); };
   $("#btnInvite").onclick=()=>copyText(inviteLink(),"คัดลอกลิงก์ชวนเพื่อนแล้ว · ส่งให้เพื่อนได้เลย");
-  openPanel("#p-friends");
 }
 async function sendFriendCheer(f){
   const today=dayKey();if(f.cheerDay===today){toast("ส่งกำลังใจให้เพื่อนคนนี้แล้ววันนี้");return;}
@@ -8218,7 +8228,7 @@ function migrate(o){
     showCover();
   }
   if(G && SamatiCloud.user)SamatiNet.enter(G.account.code).catch(()=>{});
-  if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});
   requestAnimationFrame(render);
 })();
 </script>
