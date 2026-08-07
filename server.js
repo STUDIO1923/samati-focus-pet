@@ -186,8 +186,8 @@ app.post("/api/admin/reward-codes",rateLimit("admin-reward-save",20),requireAdmi
   const code=String(req.body?.code||"").trim().toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,32);
   const label=String(req.body?.label||"กิจกรรมพิเศษ").replace(/[<>\u0000-\u001f]/g,"").trim().slice(0,80),rewards=cleanRewardList(req.body?.rewards);
   if(code.length<3||!rewards.length)return res.status(400).json({error:"invalid reward code"});
-  await pool.query(`INSERT INTO reward_codes(code,label,rewards,active,created_by,created_at,updated_at) VALUES($1,$2,$3,TRUE,$4,NOW(),NOW())
-    ON CONFLICT(code) DO UPDATE SET label=EXCLUDED.label,rewards=EXCLUDED.rewards,active=TRUE,updated_at=NOW()`,[code,label,rewards,req.user.email]);
+  await pool.query(`INSERT INTO reward_codes(code,label,rewards,active,created_by,created_at,updated_at) VALUES($1,$2,$3::jsonb,TRUE,$4,NOW(),NOW())
+    ON CONFLICT(code) DO UPDATE SET label=EXCLUDED.label,rewards=EXCLUDED.rewards,active=TRUE,updated_at=NOW()`,[code,label,JSON.stringify(rewards),req.user.email]);
   res.json({ok:true,code});
 });
 app.delete("/api/admin/reward-codes/:code",rateLimit("admin-reward-delete",20),requireAdmin,async(req,res)=>{
