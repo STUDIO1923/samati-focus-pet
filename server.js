@@ -105,6 +105,10 @@ function publicUser(user) {
   const { sid: _sid, ...safe } = user;
   return { ...safe, admin: adminEmails.has(String(user.email || "").toLowerCase()) };
 }
+const collectibleAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function collectibleId() { const bytes=crypto.randomBytes(13); return Array.from(bytes,b=>collectibleAlphabet[b%collectibleAlphabet.length]).join(""); }
+function cleanPlaced(list){return Array.isArray(list)?list.slice(0,300).map(p=>({id:String(p?.id||"").slice(0,40),x:clamp(num(p?.x,108),-50,270),y:clamp(num(p?.y,100),-50,240),on:p?.on!==false})).filter(p=>p.id):[];}
+function cleanHouse(raw,state){const p=raw?.place||state?.place||{};return{code:String(state?.account?.code||"").slice(0,10).toUpperCase(),name:String(state?.player?.name||"Player").slice(0,24),player:state?.player||{},pet:state?.pet||{},place:{home:cleanPlaced(p.home),yard:cleanPlaced(p.yard),garden:cleanPlaced(p.garden)},vip:state?.vip||{}};}
 async function recordSecurityEvent(user, kind, severity, details) {
   await pool.query(`INSERT INTO security_events (google_sub, email, kind, severity, details)
     VALUES ($1,$2,$3,$4,$5)`, [user.sub, user.email, kind, severity, details || {}]);
@@ -157,6 +161,12 @@ app.post("/api/logout", async (req, res) => { const u=readSession(req);if(u?.sid
 app.get("/api/save", requireUser, async (req, res) => {
   const result = await pool.query("SELECT state, updated_at FROM game_saves WHERE google_sub = $1", [req.user.sub]);
   res.json(result.rows[0] || { state: null });
+});
+app.post("/api/collectibles/id", rateLimit("collectible-id",30), requireUser, async(req,res)=>{
+  const kind=String(req.body?.kind||"item").replace(/[^a-z0-9_-]/gi,"").slice(0,24)||"item",ref=String(req.body?.ref||crypto.randomUUID()).slice(0,120);
+  const old=await pool.query("SELECT id FROM collectible_ids WHERE google_sub=$1 AND kind=$2 AND ref=$3",[req.user.sub,kind,ref]);if(old.rows[0])return res.json({id:old.rows[0].id});
+  for(let n=0;n<8;n++)try{const proposed=String(req.body?.id||"").toUpperCase(),id=n===0&&/^[A-Z0-9]{13}$/.test(proposed)?proposed:collectibleId();await pool.query("INSERT INTO collectible_ids(id,google_sub,kind,ref) VALUES($1,$2,$3,$4)",[id,req.user.sub,kind,ref]);return res.json({id});}catch(e){if(e.code!=="23505")throw e;}
+  res.status(503).json({error:"could not issue collectible id"});
 });
 app.delete("/api/save", rateLimit("delete-save", 3), requireUser, async (req, res) => {
   await pool.query("DELETE FROM game_saves WHERE google_sub=$1", [req.user.sub]);
@@ -343,9 +353,10 @@ async function roomState(code, after = 0) {
     pool.query("SELECT id,name,message,created_at FROM room_messages WHERE room_code=$1 AND id>$2 ORDER BY id DESC LIMIT 50", [code, Math.max(0, Number(after) || 0)])
   ]);
   const s = owner.rows[0]?.state;
-  const house = s ? { code, name: s.player?.name || "ผู้เล่น", player: s.player || {}, pet: s.pet || {}, place: {
+  const liveHouse=members.rows.map(r=>r.profile).find(p=>p?.code===code)?.house;
+  const house = liveHouse || (s ? { code, name: s.player?.name || "ผู้เล่น", player: s.player || {}, pet: s.pet || {}, place: {
     home:Array.isArray(s.place?.home)?s.place.home.slice(0,300):[],yard:Array.isArray(s.place?.yard)?s.place.yard.slice(0,300):[],garden:Array.isArray(s.place?.garden)?s.place.garden.slice(0,300):[]
-  }, vip: s.vip || {} } : null;
+  }, vip: s.vip || {} } : null);
   return { members: members.rows.map(r => r.profile), house, messages: messages.rows.reverse(), capacity: 5 };
 }
 app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, async (req, res) => {
@@ -368,6 +379,7 @@ app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, asy
     await db.query("DELETE FROM room_presence WHERE seen_at < NOW()-INTERVAL '20 seconds'");
     const owner=await db.query("SELECT google_sub,state FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1",[code]);
     if(!owner.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"house not found"});}
+    if(owner.rows[0].google_sub===req.user.sub) profile.house=cleanHouse(raw.house,owner.rows[0].state);
     if(owner.rows[0].google_sub!==req.user.sub){if(owner.rows[0].state?.houseLocked){await db.query("ROLLBACK");return res.status(423).json({error:"house locked"});}const online=await db.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount||!["home","yard","garden"].includes(online.rows[0].profile?.zone)){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
     const count=await db.query("SELECT COUNT(*)::int AS n FROM room_presence WHERE room_code=$1 AND google_sub<>$2",[code,req.user.sub]);
     if(count.rows[0].n>=5){await db.query("ROLLBACK");return res.status(409).json({error:"house full"});}
@@ -564,5 +576,9 @@ await pool.query(`CREATE TABLE IF NOT EXISTS friend_cheers (
   sent_on DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (sender_sub,target_sub,sent_on)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS collectible_ids (
+  id VARCHAR(13) PRIMARY KEY, google_sub TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (google_sub,kind,ref)
 )`);
 app.listen(port, "0.0.0.0", () => console.log(`SAMATI listening on ${port}`));
