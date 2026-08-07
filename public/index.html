@@ -882,6 +882,9 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div class="kv" id="cloudAccountRow" style="display:none"><span>อีเมลที่เชื่อมต่อ</span><b id="cloudAccountEmail">-</b></div>
           <div class="row" id="cloudLogoutRow" style="display:none;margin-top:6px"><button class="btn danger" id="btnLogout">ออกจากระบบ Google</button></div>
           <p class="hint" id="cloudHint" style="margin-top:6px">บันทึกอัตโนมัติทุก 15 วินาทีลงเครื่องนี้</p>
+          <div class="sec">Reward Code</div>
+          <div class="row"><input class="field" id="rewardCodeInput" maxlength="32" placeholder="กรอกรหัสรับรางวัล" style="flex:1;margin:0;text-transform:uppercase"><button class="btn" id="btnRedeemReward" style="flex:0 0 auto">รับรางวัล</button></div>
+          <p class="hint">หนึ่งบัญชีใช้ Reward Code แต่ละรหัสได้เพียง 1 ครั้ง</p>
           <div class="sec">ส่งออก / นำเข้า</div>
           <textarea class="field" id="saveBox" spellcheck="false" placeholder="กด “ส่งออก” เพื่อสร้างรหัสเซฟ แล้วคัดลอกไปเก็บไว้"></textarea>
           <div class="row" style="margin-top:6px">
@@ -3337,6 +3340,11 @@ function drawFriendRoom(c,t){
   if(!SamatiNet.house){drawFurni(c,"shelf",42,FLOOR+8,t);drawFurni(c,"plant",168,FLOOR+10,t);drawFurni(c,"painting",96,34,t);}
 }
 function roomMembers(){ return (SamatiNet.members||[]).filter(m=>m&&m.code!==G.account.code); }
+function coFocusLayout(code){
+  if(!FS.on||FS.mode!=="home"||!SamatiNet.room)return null;
+  const codes=[G.account.code,...roomMembers().filter(m=>m.focus).map(m=>m.code)].filter(Boolean).sort().slice(0,5),i=codes.indexOf(code);
+  if(i<0)return null;const slots=[24,66,108,150,192],dir=i%2===0?1:-1,x=slots[i];return{x,dir,pet:clamp(x+dir*14,10,W-10)};
+}
 function liveCoFocus(){return FS.on&&(SamatiNet.members||[]).some(m=>m&&m.code!==G.account.code&&m.focus);}
 function drawFocusSparkles(c,x,y,t){
   c.save();c.globalCompositeOperation="lighter";
@@ -3344,12 +3352,12 @@ function drawFocusSparkles(c,x,y,t){
   c.fillStyle="rgba(255,244,176,.12)";c.beginPath();c.arc(x,y-6,18+Math.sin(t*2)*2,0,Math.PI*2);c.fill();c.restore();
 }
 function drawRoomMember(c,m,t,i){
-  const x=clamp(Number(m.x)||W-42,28,W-28), dir=Number(m.dir)||-1;
+  const layout=m.focus?coFocusLayout(m.code):null,x=layout?layout.x:clamp(Number(m.x)||W-42,28,W-28), dir=layout?layout.dir:(Number(m.dir)||-1);
   c.save(); c.translate(Math.round(x),FLOOR+8); c.scale(dir,1);
   drawPlayer(c,m.look||DEFAULT_LOOK,{t:t+i*.4,state:m.state||"idle"}); c.restore();
-  c.save(); c.translate(Math.round(clamp(x+dir*-17,18,W-18)),FLOOR+9); c.scale(-dir,1);
+  const petX=layout?layout.pet:clamp(x+dir*-17,18,W-18);c.save(); c.translate(Math.round(petX),FLOOR+9); c.scale(-dir,1);
   drawPet(c,m.pet?.form||"seed",{t:t+1.7+i*.3,state:m.focus?"focus":"idle"}); c.restore();
-  if(FS.on&&m.focus)drawFocusSparkles(c,clamp(x+dir*-17,18,W-18),FLOOR-5,t+i*.7);
+  if(FS.on&&m.focus)drawFocusSparkles(c,petX,FLOOR-5,t+i*.7);
   c.save(); c.font='bold 7px "Noto Sans Thai",sans-serif'; c.textAlign="center";
   c.fillStyle="rgba(28,24,48,.82)"; c.fillText(m.name||"เพื่อน",x,FLOOR-31); c.restore();
 }
@@ -3591,7 +3599,7 @@ function updateScene(dt,t){
     updateParts(dt); return;
   }
   /* ผู้เล่น */
-  if(FS.on){ Ply.state="focus"; Ply.x += ((kind==="home"?60:52)-Ply.x)*Math.min(1,dt*3); }
+  if(FS.on){ const fl=coFocusLayout(G.account.code);Ply.state="focus";if(fl){Ply.dir=fl.dir;Ply.x+=(fl.x-Ply.x)*Math.min(1,dt*4);}else Ply.x += ((kind==="home"?60:52)-Ply.x)*Math.min(1,dt*3); }
   else if(Place.mode!=="none"){ Ply.state = Ply.sitting?"sit":"idle"; }
   else if((Input.left || Input.right) && !Ply.sitting){
     Ply.dir = Input.right ? 1 : -1;
@@ -3622,8 +3630,8 @@ function updateScene(dt,t){
 
   /* สัตว์เลี้ยง */
   if(G && (G.pet.injured||G.pet.sick) && !FS.on){ Pet.state = G.pet.sick && !G.pet.injured ? "sleep" : "ko"; Pet.x += (Ply.x+16-Pet.x)*Math.min(1,dt*1.2); }
-  else if(FS.on){ Pet.state = FS.mode==="heal" ? "sleep" : "focus";
-    Pet.x += ((kind==="home"?128:112)-Pet.x)*Math.min(1,dt*3); }
+  else if(FS.on){ const fl=coFocusLayout(G.account.code);Pet.state = FS.mode==="heal" ? "sleep" : "focus";
+    Pet.x += ((fl?fl.pet:(kind==="home"?128:112))-Pet.x)*Math.min(1,dt*4); }
   else if(Pet.stateT>0){ Pet.stateT-=dt; if(Pet.stateT<=0) Pet.state="idle"; }
   else if(G && G.pet.hun<15){ Pet.state="sad"; }
   else if(nightNow() && G && G.pet.moo<55 && kind==="home"){ Pet.state="sleep"; }
@@ -5396,6 +5404,13 @@ $("#btnLogout").onclick=async()=>{
   showCover();
   toast("ออกจากระบบ Google แล้ว");
 };
+$("#btnRedeemReward").onclick=async()=>{
+  const input=$("#rewardCodeInput"),code=String(input.value||"").trim().toUpperCase();
+  if(!SamatiCloud.user){sfx.bad();toast("เชื่อมบัญชี Google ก่อนใช้ Reward Code");return;}
+  if(code.length<3){sfx.bad();toast("กรอก Reward Code ให้ถูกต้อง");return;}
+  try{const out=await SamatiCloud.request("/api/rewards/redeem",{method:"POST",body:JSON.stringify({code})});G=migrate(out.state);await Store.set(SAVE_KEY,JSON.stringify(G));refreshHud();sfx.ok();input.value="";toast("🎁 รับรางวัลจาก "+out.label+" สำเร็จแล้ว");openMenu();}
+  catch(e){sfx.bad();toast(e.message==="code already redeemed"?"บัญชีนี้ใช้โค้ดนี้ไปแล้ว":e.message==="code not found"?"ไม่พบ Reward Code หรือกิจกรรมสิ้นสุดแล้ว":"รับรางวัลไม่สำเร็จ");}
+};
 $("#btnExport").onclick=()=>{
   sfx.tap();
   const code = btoa(unescape(encodeURIComponent(JSON.stringify(G))));
@@ -6219,6 +6234,14 @@ function qrV1(text){
   let k=0,up=true;for(let right=20;right>=1;right-=2){if(right===6)right--;for(let z=0;z<n;z++){const y=up?20-z:z;for(let q=0;q<2;q++){const x=right-q;if(m[y][x]===null){let b=stream[k++]||0;if((x+y)%2===0)b^=1;m[y][x]=!!b;}}}up=!up;}return m;
 }
 function drawCollectMark(x,id,left,top,module=2){const q=qrV1(id),size=25*module;x.fillStyle="rgba(255,255,255,.94)";x.fillRect(left,top,size,size);x.fillStyle="#111827";q.forEach((r,y)=>r.forEach((b,xx)=>{if(b)x.fillRect(left+(xx+2)*module,top+(y+2)*module,module,module);}));x.fillStyle="#fff7d1";x.textAlign="left";x.font="700 8px monospace";x.fillText(id,left+size+5,top+12);x.font="7px 'Noto Sans Thai',sans-serif";x.fillText("รหัสสะสมเฉพาะใบ",left+size+5,top+24);}
+const SPOIL1923_SEAL=new Image();SPOIL1923_SEAL.src="/spoil1923-seal.png";
+function applyAdminCollectibleFinish(x,w,h){
+  if(!SamatiCloud.user?.admin)return;
+  x.save();const foil=x.createLinearGradient(0,0,w,h);["#ff4d6d","#ffcf4a","#66f0a8","#5dd8ff","#8b7bff","#ff72d2","#ff4d6d"].forEach((c,i,a)=>foil.addColorStop(i/(a.length-1),c));
+  x.strokeStyle=foil;x.lineWidth=6;rr(x,4,4,w-8,h-8,15);x.stroke();x.globalAlpha=.18;
+  if(SPOIL1923_SEAL.complete&&SPOIL1923_SEAL.naturalWidth)x.drawImage(SPOIL1923_SEAL,w/2-66,h/2-66,132,132);
+  x.globalAlpha=.92;x.fillStyle=foil;x.textAlign="center";x.font="700 9px 'Comfortaa',sans-serif";x.fillText("SPOIL1923 · ADMIN EXCLUSIVE",w/2,h-7);x.restore();
+}
 const Photo = { on:false, pose:"sit", emo:"✨", count:0 };
 function openPhoto(){
   const pg=$("#poseGrid"); pg.innerHTML="";
@@ -6330,6 +6353,7 @@ function takeShot(){
   const d=new Date();
   x.textAlign="right"; x.fillStyle="rgba(255,255,255,.75)"; x.font="11px 'Noto Sans Thai',sans-serif";
   x.fillText(d.toLocaleDateString("th-TH"), CW-24, CH-20);
+  applyAdminCollectibleFinish(x,CW,CH);
   $("#flash").classList.remove("go"); void $("#flash").offsetWidth; $("#flash").classList.add("go");
   saveCanvas(out, "samati-photo-"+G.pet.name+"-"+d.getTime(), "📷 บันทึกภาพขนาดการ์ดลงเครื่องแล้ว");
   setTimeout(()=>{ Photo.on=false; }, 700);
@@ -6426,6 +6450,7 @@ function makeCard(key, S){
   x.fillText("Samati", 24, CH-20);
   x.textAlign="right"; x.fillStyle="rgba(255,255,255,.75)"; x.font="11px 'Noto Sans Thai',sans-serif";
   x.fillText((G.player?G.player.name:"")+" · "+d.toLocaleDateString("th-TH")+(rec&&rec.n>1?" · ปลดล็อก "+rec.n+" ครั้ง":""), CW-24, CH-20);
+  applyAdminCollectibleFinish(x,CW,CH);
   return cvs;
 }
 function makeSpecialCard(e, S){
@@ -6483,6 +6508,7 @@ function makeSpecialCard(e, S){
   x.fillText("Samati", 24, CH-20);
   x.textAlign="right"; x.fillStyle="rgba(255,255,255,.75)"; x.font="11px 'Noto Sans Thai',sans-serif";
   x.fillText(new Date(e.at).toLocaleDateString("th-TH"), CW-24, CH-20);
+  applyAdminCollectibleFinish(x,CW,CH);
   return cvs;
 }
 /* ---------- หน้าสมุดการ์ด ---------- */
@@ -7364,7 +7390,7 @@ async function openAdmin(){
   touchRegistry();
   const b=$("#adminBody"); b.innerHTML="";
   const tabs=document.createElement("div"); tabs.className="row"; tabs.style.marginBottom="8px";
-  [["world","ภาพรวมออนไลน์"],["players","ข้อมูลในเครื่อง"],["tools","แก้ค่าทดสอบ"],["cards","การ์ดทั้งหมด"],["sec","ความปลอดภัย"]].forEach(([k,n])=>{
+  [["world","ภาพรวมออนไลน์"],["players","ข้อมูลในเครื่อง"],["tools","แก้ค่าทดสอบ"],["cards","การ์ดทั้งหมด"],["reward","Reward Code"],["sec","ความปลอดภัย"]].forEach(([k,n])=>{
     const bt=document.createElement("button"); bt.className="opt"+(adminTab===k?" on":"");
     bt.textContent=n; bt.onclick=()=>{ sfx.tap(); adminTab=k; openAdmin(); };
     tabs.appendChild(bt);
@@ -7375,6 +7401,7 @@ async function openAdmin(){
   else if(adminTab==="players") adminPlayers(b);
   else if(adminTab==="tools") adminTools(b);
   else if(adminTab==="cards") adminCards(b);
+  else if(adminTab==="reward") await adminRewards(b);
   else adminSecurity(b);
 }
 async function adminWorld(b){
@@ -7529,6 +7556,27 @@ function adminCards(b){
 function adminUnlockTemp(k){
   if(!G.album.forms[k]) G.album.forms[k]={n:0,at:now()};
   showCard(makeCard(k,3), "การ์ด "+FORMS[k].name+" (โหมดแอดมิน)", "samati-press-"+k);
+}
+let adminRewardDraft=[];
+function rewardCatalog(){
+  const out=[{kind:"coins",id:"",cat:"",name:"เหรียญ"},{kind:"crystal",id:"",cat:"",name:"ผลึกสมาธิ"}];
+  Object.entries(ITEMS).forEach(([id,v])=>out.push({kind:"bag",id,cat:"",name:"ไอเท็ม · "+v.n}));
+  Object.entries(FURNI).forEach(([id,v])=>out.push({kind:"bag",id,cat:"",name:"ของแต่ง · "+v.n}));
+  Object.entries(COSMETICS).forEach(([id,v])=>out.push({kind:v.vip?"vip":"wardrobe",id,cat:v.cat||"shirt",name:"เครื่องแต่งกาย · "+v.n}));
+  Object.entries(VIP).forEach(([id,v])=>out.push({kind:"vip",id,cat:"",name:"ผลึกสมาธิ · "+v.n}));return out;
+}
+async function adminRewards(b){
+  b.innerHTML+='<p class="hint">สร้างโค้ดกิจกรรมได้เอง เลือกรางวัลหลายรายการและกำหนดจำนวน ผู้เล่นหนึ่งบัญชีใช้แต่ละโค้ดได้เพียงครั้งเดียว</p>';
+  const code=document.createElement("input");code.className="field";code.maxLength=32;code.placeholder="ชื่อโค้ด เช่น SAMATI1923";code.style.textTransform="uppercase";
+  const label=document.createElement("input");label.className="field";label.maxLength=80;label.placeholder="ชื่อกิจกรรม";
+  const row=document.createElement("div");row.className="row";const sel=document.createElement("select");sel.className="field";sel.style.cssText="flex:1;margin:0";const catalog=rewardCatalog();catalog.forEach((r,i)=>{const o=document.createElement("option");o.value=i;o.textContent=r.name;o.dataset.search=(r.name+" "+r.id).toLowerCase();sel.appendChild(o);});
+  const amount=document.createElement("input");amount.className="field";amount.type="number";amount.min="1";amount.max="1000000";amount.value="1";amount.style.cssText="width:90px;margin:0";const add=document.createElement("button");add.className="btn";add.textContent="เพิ่มรางวัล";row.append(sel,amount,add);
+  const draft=document.createElement("div"),saveBtn=document.createElement("button");saveBtn.className="btn";saveBtn.textContent="บันทึก Reward Code";saveBtn.style.marginTop="8px";
+  const redraw=()=>{draft.innerHTML="";adminRewardDraft.forEach((r,i)=>{const x=document.createElement("div");x.className="frow";const n=document.createElement("div");n.className="fi";n.textContent=`${r.name} ×${r.amount}`;const del=document.createElement("button");del.className="chk";del.textContent="✕";del.onclick=()=>{adminRewardDraft.splice(i,1);redraw()};x.append(n,del);draft.appendChild(x);});};
+  add.onclick=()=>{const base=catalog[Number(sel.value)],qty=clamp(Math.round(Number(amount.value)||1),1,1000000);adminRewardDraft.push({...base,amount:qty});redraw();};
+  saveBtn.onclick=async()=>{if(code.value.trim().length<3||!adminRewardDraft.length){toast("กรอกโค้ดและเพิ่มรางวัลก่อน");return;}try{await SamatiCloud.request("/api/admin/reward-codes",{method:"POST",body:JSON.stringify({code:code.value,label:label.value,rewards:adminRewardDraft})});adminRewardDraft=[];sfx.ok();toast("บันทึก Reward Code แล้ว");openAdmin();}catch(e){sfx.bad();toast("บันทึกโค้ดไม่สำเร็จ");}};
+  b.append(code,label,row,draft,saveBtn);redraw();const head=document.createElement("div");head.className="sec";head.textContent="โค้ดที่สร้างไว้";b.appendChild(head);const list=document.createElement("div");list.innerHTML='<p class="hint">กำลังโหลด…</p>';b.appendChild(list);
+  try{const data=await SamatiCloud.request("/api/admin/reward-codes");list.innerHTML="";(data.codes||[]).forEach(c=>{const r=document.createElement("div");r.className="frow";const info=document.createElement("div");info.className="fi";const n=document.createElement("div");n.className="fn";n.textContent=(c.active?"🟢 ":"⚫ ")+c.code+" · "+c.label;const d=document.createElement("div");d.className="fp";d.textContent=(c.rewards||[]).map(x=>x.name+" ×"+x.amount).join(", ")+" · ใช้แล้ว "+c.redemptions+" บัญชี";info.append(n,d);const del=document.createElement("button");del.className="btn danger";del.textContent="ปิดโค้ด";del.disabled=!c.active;del.onclick=async()=>{if(!confirm("ปิด Reward Code "+c.code+" หรือไม่?"))return;await SamatiCloud.request("/api/admin/reward-codes/"+encodeURIComponent(c.code),{method:"DELETE"});openAdmin();};r.append(info,del);list.appendChild(r);});if(!data.codes?.length)list.innerHTML='<p class="hint">ยังไม่มี Reward Code</p>';}catch(e){list.innerHTML='<p class="hint warn">โหลดรายการโค้ดไม่สำเร็จ</p>';}
 }
 function adminSecurity(b){
   const audit = auditEconomy();

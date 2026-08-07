@@ -1,5 +1,5 @@
-const CACHE="samati-pwa-v21";
-const SHELL=["/","/manifest.webmanifest","/samati-icon-192.png","/samati-icon-512.png"];
+const CACHE="samati-pwa-v22";
+const SHELL=["/","/manifest.webmanifest","/samati-icon-192.png","/samati-icon-512.png","/spoil1923-seal.png"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
