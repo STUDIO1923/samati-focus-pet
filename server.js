@@ -54,7 +54,7 @@ app.use(express.static("public", { extensions: ["html"] }));
 
 const b64 = value => Buffer.from(value).toString("base64url");
 function signSession(user) {
-  const body = b64(JSON.stringify({ sub: user.sub, email: user.email, name: user.name, picture: user.picture, exp: Date.now() + 30 * 864e5 }));
+  const body = b64(JSON.stringify({ sub: user.sub, email: user.email, name: user.name, picture: user.picture, sid:user.sid, exp: Date.now() + 30 * 864e5 }));
   const sig = crypto.createHmac("sha256", secret).update(body).digest("base64url");
   return `${body}.${sig}`;
 }
@@ -75,6 +75,8 @@ async function requireUser(req, res, next) {
   if (!req.user) return res.status(401).json({ error: "unauthorized" });
   req.clientIp = getClientIp(req);
   try {
+    const active = await pool.query("SELECT session_id FROM active_sessions WHERE google_sub=$1", [req.user.sub]);
+    if (!req.user.sid || active.rows[0]?.session_id !== req.user.sid) return res.status(401).json({ error: "session replaced" });
     if (!adminEmails.has(String(req.user.email || "").toLowerCase())) {
       const blocked = await pool.query("SELECT 1 FROM ip_blocks WHERE ip=$1", [req.clientIp]);
       if (blocked.rows[0]) return res.status(403).json({ error: "ip blocked" });
@@ -86,17 +88,22 @@ async function requireUser(req, res, next) {
     next();
   } catch (error) { next(error); }
 }
-function requireAdmin(req, res, next) {
+async function requireAdmin(req, res, next) {
   req.user = readSession(req);
   if (!req.user) return res.status(401).json({ error: "unauthorized" });
-  if (!adminEmails.has(String(req.user.email || "").toLowerCase())) return res.status(403).json({ error: "admin only" });
-  next();
+  try {
+    const active=await pool.query("SELECT session_id FROM active_sessions WHERE google_sub=$1",[req.user.sub]);
+    if(!req.user.sid||active.rows[0]?.session_id!==req.user.sid)return res.status(401).json({error:"session replaced"});
+    if (!adminEmails.has(String(req.user.email || "").toLowerCase())) return res.status(403).json({ error: "admin only" });
+    next();
+  } catch(error){next(error);}
 }
 
 const num = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function publicUser(user) {
-  return { ...user, admin: adminEmails.has(String(user.email || "").toLowerCase()) };
+  const { sid: _sid, ...safe } = user;
+  return { ...safe, admin: adminEmails.has(String(user.email || "").toLowerCase()) };
 }
 async function recordSecurityEvent(user, kind, severity, details) {
   await pool.query(`INSERT INTO security_events (google_sub, email, kind, severity, details)
@@ -123,7 +130,7 @@ function normalizeEconomyState(incoming, previous, elapsedMinutes) {
 }
 
 app.get("/api/config", (_req, res) => res.json({ googleClientId: clientId }));
-app.get("/api/me", (req, res) => { const user = readSession(req); res.json({ user: user ? publicUser(user) : null }); });
+app.get("/api/me", async (req, res) => {const user=readSession(req);if(!user)return res.json({user:null});const active=await pool.query("SELECT session_id FROM active_sessions WHERE google_sub=$1",[user.sub]);if(!user.sid||active.rows[0]?.session_id!==user.sid)return res.status(401).json({error:"session replaced"});res.json({user:publicUser(user)});});
 app.post("/api/auth/google", async (req, res) => {
   if (!clientId) return res.status(503).json({ error: "Google Sign-In is not configured" });
   try {
@@ -131,7 +138,7 @@ app.post("/api/auth/google", async (req, res) => {
     const ticket = await new OAuth2Client(clientId).verifyIdToken({ idToken: req.body.credential, audience: clientId });
     const p = ticket.getPayload();
     if (!p?.sub || !p.email_verified) return res.status(401).json({ error: "invalid Google account" });
-    const user = { sub: p.sub, email: p.email, name: p.name || p.email, picture: p.picture || "" };
+    const user = { sub: p.sub, email: p.email, name: p.name || p.email, picture: p.picture || "", sid:crypto.randomUUID() };
     const ip = getClientIp(req);
     if (!adminEmails.has(String(user.email || "").toLowerCase())) {
       const blocked = await pool.query("SELECT 1 FROM ip_blocks WHERE ip=$1", [ip]);
@@ -140,11 +147,13 @@ app.post("/api/auth/google", async (req, res) => {
     await pool.query(`INSERT INTO account_activity (google_sub,email,last_ip,last_seen)
       VALUES ($1,$2,$3,NOW()) ON CONFLICT (google_sub) DO UPDATE
       SET email=EXCLUDED.email,last_ip=EXCLUDED.last_ip,last_seen=NOW()`, [user.sub, user.email, ip]);
+    await pool.query(`INSERT INTO active_sessions (google_sub,session_id,updated_at) VALUES ($1,$2,NOW())
+      ON CONFLICT (google_sub) DO UPDATE SET session_id=EXCLUDED.session_id,updated_at=NOW()`, [user.sub,user.sid]);
     res.cookie("samati_session", signSession(user), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 30 * 864e5, path: "/" });
     res.json({ user: publicUser(user) });
   } catch { res.status(401).json({ error: "invalid Google token" }); }
 });
-app.post("/api/logout", (_req, res) => { res.clearCookie("samati_session", { path: "/" }); res.json({ ok: true }); });
+app.post("/api/logout", async (req, res) => { const u=readSession(req);if(u?.sid)await pool.query("DELETE FROM active_sessions WHERE google_sub=$1 AND session_id=$2",[u.sub,u.sid]);res.clearCookie("samati_session", { path: "/" }); res.json({ ok: true }); });
 app.get("/api/save", requireUser, async (req, res) => {
   const result = await pool.query("SELECT state, updated_at FROM game_saves WHERE google_sub = $1", [req.user.sub]);
   res.json(result.rows[0] || { state: null });
@@ -324,16 +333,17 @@ app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, asy
     code: String(state.account?.code || "").slice(0,10).toUpperCase(), name: String(state.player?.name || "ผู้เล่น").slice(0,24),
     x: clamp(num(raw.x,100),0,216), dir: num(raw.dir,1)<0?-1:1,
     state: ["idle","walk","sit","focus"].includes(raw.state)?raw.state:"idle", focus:Boolean(raw.focus), look:state.player||{},
-    zone: ["home","yard","garden"].includes(raw.zone) ? raw.zone : "away",
+    zone: ["home","yard","garden"].includes(raw.zone) ? raw.zone
+      : (["home","yard","garden"].includes(state.area) ? state.area : "away"),
     pet:{name:String(state.pet?.name||"Mori").slice(0,24),form:String(state.pet?.form||"seed").slice(0,24),lv:clamp(Math.round(num(state.pet?.lv,1)),1,100)}
   };
   const db=await pool.connect();
   try {
     await db.query("BEGIN");await db.query("SELECT pg_advisory_xact_lock(hashtext($1))",[`house:${code}`]);
     await db.query("DELETE FROM room_presence WHERE seen_at < NOW()-INTERVAL '20 seconds'");
-    const owner=await db.query("SELECT google_sub FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1",[code]);
+    const owner=await db.query("SELECT google_sub,state FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1",[code]);
     if(!owner.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"house not found"});}
-    if(owner.rows[0].google_sub!==req.user.sub){const online=await db.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount||!["home","yard","garden"].includes(online.rows[0].profile?.zone)){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
+    if(owner.rows[0].google_sub!==req.user.sub){if(owner.rows[0].state?.houseLocked){await db.query("ROLLBACK");return res.status(423).json({error:"house locked"});}const online=await db.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount||!["home","yard","garden"].includes(online.rows[0].profile?.zone)){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
     const count=await db.query("SELECT COUNT(*)::int AS n FROM room_presence WHERE room_code=$1 AND google_sub<>$2",[code,req.user.sub]);
     if(count.rows[0].n>=5){await db.query("ROLLBACK");return res.status(409).json({error:"house full"});}
     await db.query("DELETE FROM room_presence WHERE google_sub=$1",[req.user.sub]);
@@ -517,5 +527,10 @@ await pool.query(`CREATE TABLE IF NOT EXISTS ip_blocks (
   reason TEXT NOT NULL,
   created_by TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS active_sessions (
+  google_sub TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`);
 app.listen(port, "0.0.0.0", () => console.log(`SAMATI listening on ${port}`));
