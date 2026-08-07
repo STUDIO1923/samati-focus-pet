@@ -3295,7 +3295,7 @@ async function visitFriend(code){
   if(!owner){ sfx.bad(); toast("🏠 เพื่อนไม่อยู่บ้าน หรือออฟไลน์อยู่"); return; }
   G.visiting = { code:owner.code, name:owner.name, petName:owner.pet?.name||"Mori", petForm:owner.pet?.form||"seed" };
   SamatiNet.friendZone=["home","yard","garden"].includes(owner.zone)?owner.zone:"home";
-  try{await SamatiNet.enter(code);}catch(e){G.visiting=null;sfx.bad();toast(e.message==="house full"?"🏠 บ้านเพื่อนเต็มแล้ว (สูงสุด 5 คน)":e.message==="house locked"?"🔒 เพื่อนล็อกบ้านไว้":e.message==="friend is not home"?"🏠 เพื่อนไม่ได้อยู่ในบริเวณบ้าน":"เข้าบ้านเพื่อนไม่สำเร็จ");return;}
+  try{await SamatiNet.enter(code);}catch(e){G.visiting=null;sfx.bad();toast(e.message==="house full"?"🏠 บ้านเพื่อนเต็มแล้ว (สูงสุด 5 คน)":e.message==="house locked"?"🔒 เพื่อนล็อกบ้านไว้":e.message==="warp disabled"?"🔒 เพื่อนปิดการวาร์ปเข้าบ้าน":e.message==="friend is not home"?"🏠 เพื่อนไม่ได้อยู่ในบริเวณบ้าน":"เข้าบ้านเพื่อนไม่สำเร็จ");return;}
   closePanels(); goArea("friend"); save();
   setTimeout(()=>toast("🚪 มาถึงบริเวณบ้านของ "+owner.name+" แล้ว"), 900);
 }
@@ -5219,7 +5219,7 @@ scr.addEventListener("pointerdown", e=>{
   if(cleanPoopAt(p.x,p.y)) return;
   if(area()==="friend" && p.y>FLOOR-42){
     const hit=roomMembers().slice().reverse().find(m=>Math.abs((Number(m.x)||W-42)-p.x)<17);
-    if(hit){sfx.tap();addFriend(hit.code,hit);return;}
+    if(hit){sfx.tap();friendMeetCheer(hit.code);return;}
   }
   {                                        /* แตะโคมไฟเพื่อเปิด/ปิด */
     const list=placedList();
@@ -5639,7 +5639,7 @@ window.CentralPlaza = {
     [10,43,197,230].forEach((x,i)=>{rect(c,x,45,4,35,"#3b3426");ell(c,x+2,43,15,15,i%2?"#314d31":"#29442d");ell(c,x-5,47,9,11,"#3c5d39");});
     $$("#plazaPlayers canvas.sprite").forEach(cv=>{const m=this.members.find(v=>v.code===cv.dataset.code);if(!m)return;const x=cv.getContext("2d");x.imageSmoothingEnabled=false;x.clearRect(0,0,72,64);x.save();x.translate(24,48);x.scale(1.15,1.15);if((m.dir||1)<0)x.scale(-1,1);drawPlayer(x,m.look||DEFAULT_LOOK,{t,state:"idle"});x.restore();x.save();x.translate(53,49);x.scale(.82,.82);drawPet(x,m.pet?.form||"seed",{t:t+.7,state:"idle"});x.restore();});
   },
-  showProfile(m){const p=$("#plazaProfile");p.innerHTML="";const h=document.createElement("h3");h.textContent=m.name||"ผู้เล่น";const d=document.createElement("p");d.textContent=`${m.pet?.name||"Mori"} · Lv.${m.pet?.lv||1} · ${m.code}`;const add=document.createElement("button");add.textContent=G.friends.some(f=>f.code===m.code)?"เป็นเพื่อนแล้ว":"➕ เพิ่มเพื่อน";add.disabled=G.friends.some(f=>f.code===m.code);add.onclick=async()=>{await addFriend(m.code,m);p.classList.remove("on");};const close=document.createElement("button");close.textContent="ปิด";close.onclick=()=>p.classList.remove("on");p.append(h,d,add,close);p.classList.add("on");},
+  showProfile(m){const p=$("#plazaProfile");p.innerHTML="";const h=document.createElement("h3");h.textContent=m.name||"ผู้เล่น";const d=document.createElement("p");d.textContent=`${m.pet?.name||"Mori"} · Lv.${m.pet?.lv||1} · ${m.code}`;const note=document.createElement("p");note.className="hint";note.textContent="เพิ่มเพื่อนได้จากเมนูเพื่อน โดยค้นหาจากชื่อผู้เล่น";const close=document.createElement("button");close.textContent="ปิด";close.onclick=()=>p.classList.remove("on");p.append(h,d,note,close);p.classList.add("on");},
   async send(message){message=String(message||"").trim();if(!message||!this.channel)return;try{await SamatiCloud.request(`/api/plaza/${this.channel}/chat`,{method:"POST",body:JSON.stringify({message})});$("#plazaChatInput").value="";await this.ping();}catch(e){sfx.bad();toast(e.message==="too many requests"?"ส่งข้อความเร็วเกินไป":"ส่งข้อความไม่สำเร็จ");}},
   async leave(close=true){clearInterval(this.timer);this.timer=null;clearInterval(this.anim);this.anim=null;if(this.channel)await SamatiCloud.request(`/api/plaza/${this.channel}/presence`,{method:"DELETE",body:"{}"}).catch(()=>{});this.channel=0;this.members=[];if(close){$("#plaza").classList.remove("on");$("#plazaProfile").classList.remove("on");if(G&&SamatiCloud.user)SamatiNet.host().catch(()=>{});}},
   move(e){if(!this.channel)return;const r=$("#plazaWorld").getBoundingClientRect();this.x=clamp((e.clientX-r.left)/r.width*100,4,96);this.y=clamp((e.clientY-r.top)/r.height*100,28,86);this.ping();}
@@ -6142,6 +6142,39 @@ async function addFriend(code,profile=null,verifiedSearch=false){
   G.friends.push(f); sfx.ok(); toast("เพิ่มเพื่อน "+f.name+" แล้ว");
   save(); openFriends();
 }
+
+/* Friend System v2 — server-authoritative and mobile-safe. */
+const FriendSystem={data:null,busy:false,
+  async load(){if(!SamatiCloud.user)throw new Error("login required");this.data=await SamatiCloud.request("/api/friend-system");
+    const old=new Map((G.friends||[]).map(f=>[String(f.code).toUpperCase(),f]));
+    G.friends=this.data.friends.map(f=>({...old.get(f.code),...f,close:old.get(f.code)?.close||0,sessions:old.get(f.code)?.sessions||0}));return this.data;},
+  async open(){openPanel("#p-friends");const b=$("#friendsBody");b.innerHTML='<p class="hint">กำลังโหลดรายชื่อเพื่อนจากระบบออนไลน์…</p>';
+    if(!SamatiCloud.user){b.innerHTML='<p class="hint warn">เชื่อมต่อบัญชี Google ก่อนใช้ระบบเพื่อนออนไลน์</p>';return;}
+    try{await this.load();this.render();}catch(e){b.innerHTML='<p class="hint warn">โหลดระบบเพื่อนไม่สำเร็จ กรุณาลองอีกครั้ง</p><button class="btn" data-fs="retry">ลองใหม่</button>';b.onclick=e=>{if(e.target.closest('[data-fs="retry"]'))this.open()};}},
+  render(){const d=this.data,b=$("#friendsBody");b.innerHTML="";
+    const title=document.createElement("div");title.className="sec";title.textContent=`รายชื่อเพื่อน (${d.friends.length})`;b.appendChild(title);
+    const list=document.createElement("div");list.id="friendListV2";b.appendChild(list);
+    if(!d.friends.length)list.innerHTML='<p class="hint">ยังไม่มีเพื่อน เมื่ออีกฝ่ายยอมรับคำขอแล้ว รายชื่อจะปรากฏที่นี่ทั้งสองฝ่าย</p>';
+    d.friends.forEach(f=>{const row=document.createElement("div");row.className="frow";const info=document.createElement("div");info.className="fi";
+      const n=document.createElement("div");n.className="fn";n.textContent=(f.online?"🟢 ":"⚫ ")+f.name;const p=document.createElement("div");p.className="fp";p.textContent=`${f.petName} · Lv.${f.petLv} · ${f.online?"ออนไลน์":"ออฟไลน์"}`;info.append(n,p);
+      const home=document.createElement("button");home.className="chk";home.textContent="🏠";home.title="วาร์ปไปบ้าน";home.disabled=!f.online||!f.warpEnabled;home.onclick=()=>visitFriend(f.code);
+      const cheer=document.createElement("button");cheer.className="chk"+(f.cheeredToday?" on":"");cheer.textContent=f.cheeredToday?"💖":"💌";cheer.title="ส่งกำลังใจให้กันคนละ 1 หน่วย";cheer.disabled=f.cheeredToday;cheer.onclick=()=>this.cheer(f);
+      row.append(info,home,cheer);list.appendChild(row);});
+    if(d.incoming.length){const h=document.createElement("div");h.className="sec";h.textContent=`คำขอเป็นเพื่อนในกล่องแชท (${d.incoming.length})`;b.appendChild(h);d.incoming.forEach(r=>{const row=document.createElement("div");row.className="frow";const info=document.createElement("div");info.className="fi";info.textContent=`💬 ${r.name} · ${r.petName}`;const yes=document.createElement("button");yes.className="chk on";yes.textContent="✓";yes.title="ยอมรับ";yes.onclick=()=>this.respond(r.id,true);const no=document.createElement("button");no.className="chk";no.textContent="✕";no.title="ปฏิเสธ";no.onclick=()=>this.respond(r.id,false);row.append(info,yes,no);b.appendChild(row);});}
+    if(d.outgoing.length){const h=document.createElement("div");h.className="sec";h.textContent="คำขอที่ส่งแล้ว";b.appendChild(h);d.outgoing.forEach(r=>{const p=document.createElement("p");p.className="hint";p.textContent=`⏳ รอ ${r.name} ยอมรับคำขอ`;b.appendChild(p);});}
+    const privacy=document.createElement("div");privacy.innerHTML='<div class="sec">ความเป็นส่วนตัว</div>';
+    const findLabel=document.createElement("label");findLabel.className="row";findLabel.innerHTML='<span style="flex:1">อนุญาตให้ค้นหาด้วยชื่อ</span>';const find=document.createElement("input");find.type="checkbox";find.checked=d.settings.searchable!==false;find.onchange=()=>this.settings(find.checked,warp.checked);findLabel.appendChild(find);
+    const warpLabel=document.createElement("label");warpLabel.className="row";warpLabel.innerHTML='<span style="flex:1">อนุญาตให้เพื่อนวาร์ปมาบ้าน</span>';const warp=document.createElement("input");warp.type="checkbox";warp.checked=d.settings.warp_enabled!==false&&d.settings.warpEnabled!==false;warp.onchange=()=>this.settings(find.checked,warp.checked);warpLabel.appendChild(warp);privacy.append(findLabel,warpLabel);b.appendChild(privacy);
+    const search=document.createElement("div");search.innerHTML='<div class="sec">เพิ่มเพื่อนด้วยชื่อ</div><div class="row"><input class="field" id="friendNameV2" style="flex:1;margin:0" maxlength="24" placeholder="กรอกชื่อผู้เล่นให้ตรงกัน"><button class="btn" id="friendSearchV2" style="flex:0 0 auto">ค้นหา</button></div><div id="friendResultsV2"></div><p class="hint">ระบบจะแสดงเฉพาะผู้เล่นออนไลน์ที่เปิดการค้นหา คำขอต้องได้รับการยอมรับก่อนจึงจะเป็นเพื่อนกัน</p>';b.appendChild(search);$("#friendSearchV2").onclick=()=>this.search($("#friendNameV2").value);$("#friendNameV2").onkeydown=e=>{if(e.key==="Enter")this.search(e.target.value)};},
+  async settings(searchable,warpEnabled){try{await SamatiCloud.request("/api/friend-system/settings",{method:"PUT",body:JSON.stringify({searchable,warpEnabled})});this.data.settings={searchable,warpEnabled};toast("บันทึกความเป็นส่วนตัวแล้ว");}catch(e){sfx.bad();toast("บันทึกไม่สำเร็จ");this.open();}},
+  async search(name){const box=$("#friendResultsV2");name=String(name||"").trim();if(name.length<2){box.innerHTML='<p class="hint warn">กรอกชื่ออย่างน้อย 2 ตัวอักษร</p>';return;}box.innerHTML='<p class="hint">กำลังค้นหา…</p>';
+    try{const data=await SamatiCloud.request("/api/friend-system/search?name="+encodeURIComponent(name));box.innerHTML="";if(!data.results.length){box.innerHTML='<p class="hint">ไม่พบชื่อที่ออนไลน์ หรือผู้เล่นปิดการค้นหาไว้</p>';return;}data.results.forEach(f=>{const row=document.createElement("div");row.className="frow";const info=document.createElement("div");info.className="fi";info.textContent=`🟢 ${f.name} · ${f.petName}`;const add=document.createElement("button");add.className="btn";add.textContent=f.alreadyFriend?"เป็นเพื่อนแล้ว":f.requested?"ส่งแล้ว":"เพิ่มเพื่อน";add.disabled=f.alreadyFriend||f.requested;add.onclick=()=>this.request(f.code);row.append(info,add);box.appendChild(row);});}catch(e){box.innerHTML='<p class="hint warn">ค้นหาไม่สำเร็จ กรุณาลองใหม่</p>'; }},
+  async request(code){try{await SamatiCloud.request("/api/friend-system/requests/"+encodeURIComponent(code),{method:"POST",body:"{}"});sfx.ok();toast("ส่งคำขอไปยังกล่องแชทของเพื่อนแล้ว");await this.open();}catch(e){sfx.bad();toast(e.message==="player offline"?"ผู้เล่นออฟไลน์อยู่":"ส่งคำขอไม่สำเร็จ");}},
+  async respond(id,accept){try{await SamatiCloud.request(`/api/friend-system/requests/${id}/respond`,{method:"POST",body:JSON.stringify({accept})});sfx.ok();toast(accept?"เป็นเพื่อนกันแล้ว":"ปฏิเสธคำขอแล้ว");await this.open();}catch(e){sfx.bad();toast("จัดการคำขอไม่สำเร็จ");}},
+  async cheer(f){try{await SamatiCloud.request("/api/friend-system/friends/"+encodeURIComponent(f.code)+"/cheer",{method:"POST",body:"{}"});G.cheers=clamp((Number(G.cheers)||0)+1,0,999999);sfx.ok();toast("💖 คุณและ "+f.name+" ได้รับกำลังใจคนละ 1 หน่วย");await this.open();}catch(e){sfx.bad();toast(e.message==="already cheered today"?"ส่งกำลังใจให้เพื่อนคนนี้แล้ววันนี้":"ส่งกำลังใจไม่สำเร็จ");}}
+};
+function openFriends(){return FriendSystem.open();}
+async function friendMeetCheer(code){if(!G.friends.some(f=>f.code===code)){toast("เพิ่มเพื่อนด้วยชื่อจากเมนูเพื่อนก่อนนะ");return;}try{await SamatiCloud.request("/api/friend-system/meet/"+encodeURIComponent(code),{method:"POST",body:"{}"});G.cheers=clamp((Number(G.cheers)||0)+1,0,999999);sfx.ok();toast("✨ พบเพื่อนแล้ว ทั้งคู่ได้รับกำลังใจคนละ 1 หน่วย");save();}catch(e){toast(e.message==="already met today"?"รับกำลังใจจากการพบกันแล้ววันนี้":"ต้องอยู่บ้านเดียวกันและออนไลน์พร้อมกัน");}}
 async function copyText(txt,msg){
   try{ await navigator.clipboard.writeText(txt); }
   catch(e){ const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta);
