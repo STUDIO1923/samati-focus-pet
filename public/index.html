@@ -5005,7 +5005,7 @@ window.CentralPlaza = {
 $("#plazaWorld").addEventListener("pointerdown",e=>{if(e.target.closest(".plazaAvatar,#plazaProfile"))return;CentralPlaza.move(e);});
 $("#plazaExit").onclick=()=>CentralPlaza.leave();$("#plazaRefresh").onclick=()=>{CentralPlaza.loadChannels();CentralPlaza.ping();};
 $("#plazaChatForm").addEventListener("submit",e=>{e.preventDefault();CentralPlaza.send($("#plazaChatInput").value);});
-window.addEventListener("pagehide",()=>{if(SamatiNet.room&&SamatiCloud.user)fetch("/api/rooms/"+SamatiNet.room+"/presence",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}",keepalive:true}).catch(()=>{});});
+window.addEventListener("pagehide",()=>{if(SamatiNet.room&&SamatiCloud.user)fetch("/api/rooms/"+SamatiNet.room+"/presence",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}",keepalive:true}).catch(()=>{});if(CentralPlaza.channel&&SamatiCloud.user)fetch("/api/plaza/"+CentralPlaza.channel+"/presence",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}",keepalive:true}).catch(()=>{});});
 
 /* =====================================================================
    7. CHARACTER CREATOR
