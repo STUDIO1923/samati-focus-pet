@@ -239,6 +239,80 @@ app.delete("/api/rooms/:code/presence", requireUser, async (req, res) => {
   await pool.query("DELETE FROM room_presence WHERE room_code=$1 AND google_sub=$2", [String(req.params.code || "").toUpperCase(), req.user.sub]);
   res.json({ ok: true });
 });
+
+const cleanText = (value, max) => String(value || "").replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, max);
+const cleanPlazaProfile = raw => ({
+  code: cleanText(raw?.code, 10).toUpperCase(),
+  name: cleanText(raw?.name, 24) || "ผู้เล่น",
+  x: clamp(Math.round(num(raw?.x, 50)), 4, 96),
+  y: clamp(Math.round(num(raw?.y, 68)), 24, 86),
+  dir: num(raw?.dir, 1) < 0 ? -1 : 1,
+  look: raw?.look && typeof raw.look === "object" ? raw.look : {},
+  pet: { name: cleanText(raw?.pet?.name, 24) || "Mori", form: cleanText(raw?.pet?.form, 24) || "seed", lv: clamp(Math.round(num(raw?.pet?.lv, 1)), 1, 100) }
+});
+async function plazaState(channel, after = 0) {
+  await pool.query("DELETE FROM plaza_presence WHERE seen_at < NOW() - INTERVAL '18 seconds'");
+  const [members, messages] = await Promise.all([
+    pool.query("SELECT profile FROM plaza_presence WHERE channel=$1 ORDER BY seen_at DESC LIMIT 30", [channel]),
+    pool.query(`SELECT id,name,message,created_at FROM plaza_messages
+      WHERE channel=$1 AND id>$2 ORDER BY id DESC LIMIT 50`, [channel, Math.max(0, Number(after) || 0)])
+  ]);
+  return { channel, members: members.rows.map(r => r.profile), messages: messages.rows.reverse() };
+}
+app.get("/api/plaza/channels", requireUser, async (_req, res) => {
+  await pool.query("DELETE FROM plaza_presence WHERE seen_at < NOW() - INTERVAL '18 seconds'");
+  const counts = await pool.query("SELECT channel,COUNT(*)::int AS players FROM plaza_presence GROUP BY channel ORDER BY channel");
+  const map = new Map(counts.rows.map(r => [Number(r.channel), r.players]));
+  const last = Math.max(3, ...map.keys());
+  res.json({ channels: Array.from({ length: last }, (_, i) => ({ channel: i + 1, players: map.get(i + 1) || 0, capacity: 30 })) });
+});
+app.post("/api/plaza/join", rateLimit("plaza-join", 12), requireUser, async (req, res) => {
+  const profile = cleanPlazaProfile(req.body?.profile);
+  const requested = clamp(Math.round(num(req.body?.channel, 0)), 0, 99);
+  const db = await pool.connect();
+  try {
+    await db.query("BEGIN");
+    await db.query("DELETE FROM plaza_presence WHERE seen_at < NOW() - INTERVAL '18 seconds'");
+    let channel = requested;
+    if (!channel) {
+      const counts = await db.query("SELECT channel,COUNT(*)::int AS n FROM plaza_presence GROUP BY channel ORDER BY channel");
+      const map = new Map(counts.rows.map(r => [Number(r.channel), r.n]));
+      channel = 1; while ((map.get(channel) || 0) >= 30 && channel < 99) channel += 1;
+    }
+    await db.query("SELECT pg_advisory_xact_lock($1)", [900000 + channel]);
+    const count = await db.query("SELECT COUNT(*)::int AS n FROM plaza_presence WHERE channel=$1 AND google_sub<>$2", [channel, req.user.sub]);
+    if (count.rows[0].n >= 30) { await db.query("ROLLBACK"); return res.status(409).json({ error: "channel full" }); }
+    await db.query("DELETE FROM plaza_presence WHERE google_sub=$1", [req.user.sub]);
+    await db.query("INSERT INTO plaza_presence (channel,google_sub,profile,seen_at) VALUES ($1,$2,$3,NOW())", [channel, req.user.sub, profile]);
+    await db.query("COMMIT");
+    res.json(await plazaState(channel));
+  } catch (error) { await db.query("ROLLBACK").catch(() => {}); throw error; } finally { db.release(); }
+});
+app.put("/api/plaza/:channel/presence", rateLimit("plaza-presence", 45), requireUser, async (req, res) => {
+  const channel = clamp(Math.round(num(req.params.channel, 0)), 1, 99);
+  const profile = cleanPlazaProfile(req.body?.profile);
+  const updated = await pool.query(`UPDATE plaza_presence SET profile=$3,seen_at=NOW()
+    WHERE channel=$1 AND google_sub=$2 RETURNING google_sub`, [channel, req.user.sub, profile]);
+  if (!updated.rowCount) return res.status(409).json({ error: "join plaza first" });
+  res.json(await plazaState(channel, req.body?.after));
+});
+app.get("/api/plaza/:channel/state", requireUser, async (req, res) => {
+  const channel = clamp(Math.round(num(req.params.channel, 0)), 1, 99);
+  res.json(await plazaState(channel, req.query.after));
+});
+app.post("/api/plaza/:channel/chat", rateLimit("plaza-chat", 6, 10_000), requireUser, async (req, res) => {
+  const channel = clamp(Math.round(num(req.params.channel, 0)), 1, 99);
+  const member = await pool.query("SELECT profile FROM plaza_presence WHERE channel=$1 AND google_sub=$2 AND seen_at>NOW()-INTERVAL '18 seconds'", [channel, req.user.sub]);
+  if (!member.rows[0]) return res.status(403).json({ error: "not in channel" });
+  let message = cleanText(req.body?.message, 140).replace(/(ควย|เหี้ย|เย็ด|fuck|shit)/gi, "***");
+  if (!message) return res.status(400).json({ error: "empty message" });
+  await pool.query("INSERT INTO plaza_messages (channel,google_sub,name,message) VALUES ($1,$2,$3,$4)", [channel, req.user.sub, member.rows[0].profile.name, message]);
+  res.json({ ok: true });
+});
+app.delete("/api/plaza/:channel/presence", requireUser, async (req, res) => {
+  await pool.query("DELETE FROM plaza_presence WHERE google_sub=$1", [req.user.sub]);
+  res.json({ ok: true });
+});
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 await pool.query(`CREATE TABLE IF NOT EXISTS game_saves (
@@ -276,6 +350,23 @@ await pool.query(`CREATE TABLE IF NOT EXISTS focus_sessions (
   coins_awarded INTEGER
 )`);
 await pool.query("CREATE INDEX IF NOT EXISTS focus_sessions_user_time ON focus_sessions (google_sub, started_at DESC)");
+await pool.query(`CREATE TABLE IF NOT EXISTS plaza_presence (
+  channel INTEGER NOT NULL,
+  google_sub TEXT NOT NULL UNIQUE,
+  profile JSONB NOT NULL,
+  seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (channel, google_sub)
+)`);
+await pool.query("CREATE INDEX IF NOT EXISTS plaza_presence_channel_time ON plaza_presence (channel, seen_at DESC)");
+await pool.query(`CREATE TABLE IF NOT EXISTS plaza_messages (
+  id BIGSERIAL PRIMARY KEY,
+  channel INTEGER NOT NULL,
+  google_sub TEXT NOT NULL,
+  name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query("CREATE INDEX IF NOT EXISTS plaza_messages_channel_id ON plaza_messages (channel, id DESC)");
 await pool.query(`CREATE TABLE IF NOT EXISTS economy_events (
   id BIGSERIAL PRIMARY KEY,
   google_sub TEXT NOT NULL,
