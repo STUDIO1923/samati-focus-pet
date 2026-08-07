@@ -7770,45 +7770,36 @@ const GEO=[["กรุงเทพฯ, ไทย",13.75,100.5],["เชียง
 function simIP(code){ const h=codeHash(code); return (h%223+1)+"."+((h>>3)%255)+"."+((h>>7)%255)+"."+((h>>11)%254+1); }
 function simGeo(code){ return GEO[codeHash(code)%GEO.length]; }
 /* ---------- แผงควบคุมโลก ---------- */
-function adminAction(kind, code, val){
+async function adminAction(kind, code, val){
   if(!isAdmin()) return "denied";
-  if(kind==="ban"){
-    Registry.bans[code]={reason:val||"ไม่ระบุเหตุผล", at:now(), by:G.account.email};
-    saveRegistry(); return "banned";
-  }
-  if(kind==="unban"){ delete Registry.bans[code]; saveRegistry(); return "unbanned"; }
-  if(kind==="coins" && code===G.account.code){ G.coins=clamp(G.coins+(+val||0),0,9999999); noteAdminGrant(); save(); refreshHud(); return "ok"; }
-  if(kind==="crystal" && code===G.account.code){ G.crystal=clamp((G.crystal||0)+(+val||0),0,9999999); noteAdminGrant(); save(); refreshHud(); return "ok"; }
-  if(kind==="item" && code===G.account.code){ addItem(val,1); noteAdminGrant(); save(); return "ok"; }
-  if(kind==="coins"||kind==="crystal"||kind==="item"){
-    const p=Registry.players.find(x=>x.code===code);
-    if(p){ if(kind==="coins") p.coins=(p.coins||0)+(+val||0); saveRegistry(); return "queued"; }
-  }
-  return "noop";
+  if(kind==="coins"||kind==="crystal") return SamatiCloud.request("/api/admin/players/"+encodeURIComponent(code)+"/grant",{method:"POST",body:JSON.stringify({field:kind,amount:+val||0})});
+  if(kind==="delete") return SamatiCloud.request("/api/admin/players/"+encodeURIComponent(code),{method:"DELETE"});
+  if(kind==="blockip") return SamatiCloud.request("/api/admin/ip-blocks",{method:"POST",body:JSON.stringify({ip:code,reason:val||"บล็อกโดยผู้ดูแล"})});
+  if(kind==="unblockip") return SamatiCloud.request("/api/admin/ip-blocks/"+encodeURIComponent(code),{method:"DELETE"});
+  return {ok:false};
 }
-function worldData(){
-  touchRegistry();
-  return Registry.players.map(p=>{
-    const g=simGeo(p.code), me=(G&&p.code===G.account.code);
+async function worldData(){
+  const out=await SamatiCloud.request("/api/admin/players");
+  return (out.players||[]).map(p=>{
+    const s=p.state||{}, me=SamatiCloud.user&&p.email===SamatiCloud.user.email;
     return {
-      code:p.code, name:p.name, email:p.email, online:isOnline(p),
-      seen:p.seen, ip:simIP(p.code), place:g[0], lat:g[1], lng:g[2],
-      pet:p.pet, form:p.form, formName:(FORMS[p.form]||{}).name||p.form, lv:p.lv,
-      coins:p.coins||0, crystal:me?(G.crystal||0):0, focusMin:p.focusMin||0,
-      banned: Registry.bans[p.code]||null, flags:(Registry.flags||{})[p.code]||null,
-      items: me ? Object.keys(G.bag).map(k=>({k, n:G.bag[k], name:(itemDef(k)||{}).n||k})) : [],
-      wear: me ? { hair:cosOf("hair",G.player.hair).shape, shirt:cosOf("shirt",G.player.shirtStyle||"plain").shape,
-                   hat:cosOf("hat",G.player.hat).shape, glass:cosOf("glass",G.player.glass).shape,
-                   scarf:cosOf("scarf",G.player.scarf).shape, acc:cosOf("acc",G.player.acc).shape } : null,
-      stats: me ? petStats() : null
+      sub:p.sub, code:s.account?.code||"-", name:s.player?.name||p.email, email:p.email, online:!!p.online,
+      seen:p.lastSeen, ip:p.ip||"ไม่ทราบ", place:"ตำแหน่งไม่ได้จำลอง", lat:"-", lng:"-", ipBlocked:!!p.ipBlocked,
+      pet:s.pet?.name||"Mori", form:s.pet?.form||"seed", formName:(FORMS[s.pet?.form]||{}).name||s.pet?.form||"seed", lv:s.pet?.lv||1,
+      coins:Number(s.coins)||0, crystal:Number(s.crystal)||0, focusMin:Number(s.stats?.focusMin)||0,
+      banned:null, flags:null,
+      items:Object.keys(s.bag||{}).map(k=>({k,n:s.bag[k],name:(itemDef(k)||{}).n||k})),
+      wear:s.player ? {hair:s.player.hair,shirt:s.player.shirtStyle,hat:s.player.hat,glass:s.player.glass,scarf:s.player.scarf,acc:s.player.acc}:null,
+      stats:s.pet?.st||null, owner:me
     };
   });
 }
-function openWorldPanel(){
+async function openWorldPanel(){
   if(!isAdmin()){ sfx.bad(); toast("⛔ เฉพาะผู้ดูแลระบบ"); return; }
   const wnd=window.open("", "samati_world", "width=1180,height=820");
   if(!wnd){ toast("เบราว์เซอร์บล็อกป๊อบอัพ · อนุญาตแล้วลองใหม่"); return; }
-  const data=worldData();
+  let data=[];
+  try{ data=await worldData(); }catch(e){ wnd.close(); toast("โหลดข้อมูลผู้เล่นจากเซิร์ฟเวอร์ไม่สำเร็จ"); return; }
   const totalFocus=data.reduce((a,p)=>a+p.focusMin,0);
   const onlineN=data.filter(p=>p.online).length;
   const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
@@ -7850,7 +7841,7 @@ canvas{width:100%;height:150px;display:block}
   <div class="card"><b>${data.length}</b><span>บัญชีทั้งหมด</span></div>
   <div class="card"><b style="color:#4ade80">${onlineN}</b><span>กำลังออนไลน์</span></div>
   <div class="card"><b>${data.length-onlineN}</b><span>ออฟไลน์</span></div>
-  <div class="card"><b style="color:#ff9aa8">${Object.keys(Registry.bans).length}</b><span>ถูกระงับ</span></div>
+  <div class="card"><b style="color:#ff9aa8">${data.filter(p=>p.ipBlocked).length}</b><span>IP ถูกบล็อก</span></div>
   <div class="card"><b style="color:#ffd68a">${Object.keys(Registry.flags||{}).length}</b><span>ถูกตั้งค่าสงสัย</span></div>
   <div class="card"><b>${Math.round(totalFocus).toLocaleString()}</b><span>นาทีโฟกัสรวม</span></div>
 </div>
@@ -7863,36 +7854,42 @@ canvas{width:100%;height:150px;display:block}
 <tbody>${data.map(p=>`
 <tr><td><span class="dot ${p.online?"on":"off"}"></span>${p.online?"ออนไลน์":"ออฟไลน์"}<div class="det">${new Date(p.seen).toLocaleTimeString("th-TH")}</div></td>
 <td><b>${p.name}</b><div class="det">${p.code} · ${p.email}</div></td>
-<td>${p.ip}<div class="det">${p.place} (${p.lat}, ${p.lng})</div></td>
+<td>${p.ip}<div class="det">${p.place}</div></td>
 <td>${p.pet} · Lv.${p.lv}<div class="det">${p.formName}</div>
   ${p.stats?`<div class="det">STR ${p.stats.str} VIT ${p.stats.vit} AGI ${p.stats.agi} INT ${p.stats.int} LUK ${p.stats.luk}</div>`:""}
   ${p.wear?`<div class="det">สวมใส่: ${Object.values(p.wear).filter(v=>v&&v!=="none"&&v!=="plain").join(", ")||"ชุดพื้นฐาน"}</div>`:""}</td>
 <td>🪙 ${p.coins.toLocaleString()}<div class="det">💠 ${p.crystal} · โฟกัส ${p.focusMin} นาที</div>
   ${p.items.length?`<div class="det">ไอเท็ม ${p.items.length} ชนิด: ${p.items.slice(0,6).map(i=>i.name+"×"+i.n).join(", ")}${p.items.length>6?" …":""}</div>`:""}</td>
-<td>${p.banned?`<span class="tag bad">ระงับ</span><div class="det">${p.banned.reason}</div>`
+<td>${p.ipBlocked?`<span class="tag bad">บล็อก IP</span>`
    : p.flags?`<span class="tag warn">สงสัย ${p.flags.n}</span><div class="det">${p.flags.last}</div>`
    : `<span class="tag">ปกติ</span>`}</td>
 <td>
- ${p.banned?`<button class="ok" onclick="act('unban','${p.code}')">ปลดระงับ</button>`
-           :`<button class="dan" onclick="ban('${p.code}')">ระงับบัญชี</button>`}
- <button onclick="act('coins','${p.code}',1000)">+1000🪙</button>
- <button onclick="act('crystal','${p.code}',100)">+100💠</button>
+ ${p.ipBlocked?`<button class="ok" onclick="act('unblockip',${JSON.stringify(p.ip)})">ปลดบล็อก IP</button>`
+           :`<button class="dan" onclick="blockip(${JSON.stringify(p.ip)})">บล็อก IP</button>`}
+ <button class="dan" onclick="delacc(${JSON.stringify(p.sub)},${JSON.stringify(p.email)})" ${p.owner?'disabled title="ไม่สามารถลบบัญชีแอดมิน"':''}>ลบบัญชี</button>
+ <button onclick="act('coins',${JSON.stringify(p.sub)},1000)">+1000🪙</button>
+ <button onclick="act('crystal',${JSON.stringify(p.sub)},100)">+100💠</button>
 </td></tr>`).join("")}</tbody></table></div></div>
 <div class="foot">
- ⚠️ หมายเหตุความโปร่งใส: เกมเวอร์ชันเบต้ายังทำงานบนเครื่องผู้เล่น ยังไม่มีเซิร์ฟเวอร์กลาง
- ดังนั้น <b>เลข IP และพิกัดในตารางนี้เป็นค่าจำลอง</b> ที่สร้างจากรหัสผู้เล่นเพื่อทดสอบหน้าตาแผงควบคุม
- การเก็บ IP/พิกัดจริงต้องทำฝั่งเซิร์ฟเวอร์และต้องแจ้งผู้ใช้ตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
- ส่วนการเพิ่มเหรียญ/ผลึก/ไอเท็ม จะมีผลทันทีกับบัญชีที่กำลังเล่นอยู่บนเครื่องนี้ บัญชีอื่นจะถูกคิวไว้จนกว่าจะเชื่อมเซิร์ฟเวอร์
+ ⚠️ IP แสดงจากการเชื่อมต่อที่เซิร์ฟเวอร์ Render ตรวจพบจริง ไม่ใช้ IP หรือพิกัดจำลอง ตำแหน่งเมืองถูกปิดไว้เพราะ IP ไม่สามารถยืนยันพิกัดจริงได้อย่างแม่นยำ
+ การลบบัญชี บล็อก IP และเพิ่มทรัพย์สินทำงานกับฐานข้อมูลกลางทันที
 </div>
 <script>
-function act(kind,code,val){
-  const r=window.opener && window.opener.adminAction ? window.opener.adminAction(kind,code,val) : "no-opener";
-  if(r==="denied") alert("ไม่มีสิทธิ์");
-  else location.reload();
+async function act(kind,code,val){
+  if(!window.opener||!window.opener.adminAction){ alert("กรุณาเปิดห้องควบคุมจากในเกมอีกครั้ง"); return; }
+  try{
+    const r=await window.opener.adminAction(kind,code,val);
+    if(r==="denied") alert("ไม่มีสิทธิ์");
+    else await window.opener.openWorldPanel();
+  }catch(e){ alert("คำสั่งไม่สำเร็จ: "+(e.message||e)); }
 }
-function ban(code){
-  const r=prompt("เหตุผลในการระงับบัญชี "+code);
-  if(!r) return; act('ban',code,r);
+function blockip(ip){
+  const r=prompt("เหตุผลในการบล็อก IP "+ip,"ตรวจพบการใช้งานผิดปกติ");
+  if(!r) return; act('blockip',ip,r);
+}
+function delacc(sub,email){
+  if(!confirm("ลบบัญชี "+email+" และเซฟเกมอย่างถาวรหรือไม่?")) return;
+  act('delete',sub);
 }
 const on=${JSON.stringify(Array.from({length:24},(_,i)=>Math.max(0,Math.round(onlineN*(0.4+0.6*Math.sin(i/3.2))+((i*7)%3)))))};
 (function(){
