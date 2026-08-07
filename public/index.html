@@ -682,7 +682,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <input type="file" id="fileIn" accept=".json,.txt" style="display:none">
           <div class="sec">เพื่อน</div>
           <div class="row"><button class="btn ghost" id="btnOpenFriends">เปิดหน้าเพื่อน</button></div>
-          <p class="hint">ชวนเพื่อนด้วยลิงก์หรือรหัส 6 ตัว แล้วโฟกัสพร้อมกันได้สูงสุด 5 คน (เฉพาะในบ้าน) · ตอนนี้รายชื่อและความสนิทเก็บไว้ในเครื่อง เชื่อมเซิร์ฟเวอร์ผ่าน SamatiNet เพื่อซิงก์เรียลไทม์ได้ภายหลัง</p>
+          <p class="hint">ไปห้องเพื่อนด้วยรหัส 6 ตัวแบบเรียลไทม์ได้เมื่อทั้งสองฝ่ายออนไลน์ · แตะตัวผู้เล่นในห้องเพื่อเพิ่มเพื่อน และโฟกัสพร้อมกันได้สูงสุด 5 คน</p>
           <div class="sec">สมุดการ์ด</div>
           <div class="row"><button class="btn ghost" id="btnOpenAlbum">เปิดสมุดสะสมการ์ด</button></div>
           <div class="sec">อื่นๆ</div>
@@ -1896,6 +1896,7 @@ function applyArea(key){
   Place.mode="none"; Place.id=null; Place.sel=-1;
   const el=$("#envA"); if(el) el.textContent = (key==="friend"&&G.visiting) ? ("ห้องของ "+G.visiting.name) : AREAS[key].n;
   updateMoveBar();
+  if(SamatiCloud.user){if(key==="home")SamatiNet.enter(G.account.code).catch(()=>{});else if(key!=="friend")SamatiNet.leave().catch(()=>{});}
   save();
 }
 
@@ -2328,20 +2329,23 @@ function cleanPoopAt(px_,py_){
 }
 
 /* ---------- ห้องเพื่อน ---------- */
-function visitFriend(code){
+async function visitFriend(code){
   code=String(code||"").trim().toUpperCase();
   if(!code){ sfx.bad(); toast("ใส่รหัสห้องเพื่อนก่อน"); return; }
   if(code===G.account.code){ sfx.bad(); toast("นั่นคือรหัสห้องของคุณเอง"); return; }
   if(FS.on){ toast("จบรอบโฟกัสก่อนค่อยไปเยี่ยมเพื่อน"); return; }
-  let f=G.friends.find(x=>x.code===code);
-  if(!f){ f=friendFromCode(code); G.friends.push(f); toast("เพิ่ม "+f.name+" เป็นเพื่อนอัตโนมัติ"); }
-  G.visiting = { code:f.code, name:f.name, petName:f.petName, petForm:f.petForm };
-  if(!party.includes(f.code) && party.length<4) party.push(f.code);
+  if(!SamatiCloud.user){ sfx.bad(); toast("ต้องเข้าสู่ระบบ Google เพื่อไปห้องเพื่อนแบบเรียลไทม์"); return; }
+  let members=[]; try{members=await SamatiNet.peek(code)}catch(e){}
+  const owner=members.find(m=>m&&m.code===code);
+  if(!owner){ sfx.bad(); toast("🏠 เพื่อนไม่อยู่บ้าน หรือออฟไลน์อยู่"); return; }
+  G.visiting = { code:owner.code, name:owner.name, petName:owner.pet?.name||"Mori", petForm:owner.pet?.form||"seed" };
+  await SamatiNet.enter(code);
   closePanels(); goArea("friend"); save();
-  setTimeout(()=>toast("🚪 วาร์ปมาที่ห้องของ "+f.name+" แล้ว"), 900);
+  setTimeout(()=>toast("🚪 มาถึงห้องของ "+owner.name+" แล้ว · แตะตัวเพื่อนเพื่อเพิ่มเพื่อน"), 900);
 }
-function goOwnRoom(){
+async function goOwnRoom(){
   G.visiting=null; closePanels(); goArea("home"); save();
+  if(SamatiCloud.user) await SamatiNet.enter(G.account.code).catch(()=>{});
   setTimeout(()=>toast("🏠 กลับมาที่ห้องของคุณแล้ว"), 900);
 }
 function drawFriendRoom(c,t){
@@ -2375,13 +2379,15 @@ function drawFriendRoom(c,t){
   drawFurni(c,"plant",168,FLOOR+10,t);
   drawFurni(c,"painting",96,34,t);
 }
-function drawFriendPet(c,t){
-  if(!G.visiting) return;
-  const f=G.visiting;
-  const x=W-42;
-  c.save(); c.translate(x, FLOOR+9); c.scale(-1,1);
-  drawPet(c, f.petForm, {t:t+1.7, state: FS.on?"focus":"idle"});
-  c.restore();
+function roomMembers(){ return (SamatiNet.members||[]).filter(m=>m&&m.code!==G.account.code); }
+function drawRoomMember(c,m,t,i){
+  const x=clamp(Number(m.x)||W-42,28,W-28), dir=Number(m.dir)||-1;
+  c.save(); c.translate(Math.round(x),FLOOR+8); c.scale(dir,1);
+  drawPlayer(c,m.look||DEFAULT_LOOK,{t:t+i*.4,state:m.state||"idle"}); c.restore();
+  c.save(); c.translate(Math.round(clamp(x+dir*-17,18,W-18)),FLOOR+9); c.scale(-dir,1);
+  drawPet(c,m.pet?.form||"seed",{t:t+1.7+i*.3,state:m.focus?"focus":"idle"}); c.restore();
+  c.save(); c.font='bold 7px "Noto Sans Thai",sans-serif'; c.textAlign="center";
+  c.fillStyle="rgba(28,24,48,.82)"; c.fillText(m.name||"เพื่อน",x,FLOOR-31); c.restore();
 }
 
 function drawAreaScene(c,t){
@@ -2781,7 +2787,7 @@ function render(){
   layer.push({y:FLOOR+9, f:()=>{ g.save(); g.translate(Math.round(Pet.x),FLOOR+9); g.scale(Pet.dir,1);
     drawPet(g, G?G.pet.form:"seed", {t,state:Pet.state}); g.restore(); }});
   mobs.forEach(m=>layer.push({y:FLOOR+7, f:()=>drawMob(g,m,t)}));
-  if(area()==="friend" && G && G.visiting) layer.push({y:FLOOR+9.5, f:()=>drawFriendPet(g,t)});
+  if(G && SamatiNet.room){ roomMembers().forEach((m,i)=>layer.push({y:FLOOR+8.5+i*.01,f:()=>drawRoomMember(g,m,t,i)})); }
   if(Doc.on) layer.push({y:FLOOR+8.5, f:()=>drawDoctor(g,t)});
   layer.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
 
@@ -3356,7 +3362,6 @@ function startFocus(){
   FS.xpAcc=0; FS.xpTick=10; FS.encCd=rnd(18,34);
   FS.party = (mode==="home") ? party.slice(0,4) : [];
   FS.partyDrop = FS.party.length ? partyDropBonus() : 0;
-  if(mode==="home"&&SamatiCloud.user){const room=[G.account.code,...FS.party].sort()[0];SamatiNet.join(room).catch(()=>{});}
   $("#focusHud").style.display="flex";
   $("#fhHome").style.display = mode==="wild" ? "inline-block" : "none";
   $("#ring").classList.add("on");
@@ -3376,7 +3381,6 @@ function updateFocusHud(){
 setInterval(updateFocusHud, 500);
 function endFocus(reason){
   if(!FS.on) return;
-  SamatiNet.leave().catch(()=>{});
   const ko = reason==="ko" || reason==="sick", early = reason==="early";
   const done = clamp(1-(FS.endAt-now())/(FS.total*1000),0,1);
   const mode = FS.mode;
@@ -3714,6 +3718,10 @@ scr.addEventListener("pointerdown", e=>{
     return;
   }
   if(cleanPoopAt(p.x,p.y)) return;
+  if(area()==="friend" && p.y>FLOOR-42){
+    const hit=roomMembers().slice().reverse().find(m=>Math.abs((Number(m.x)||W-42)-p.x)<17);
+    if(hit){sfx.tap();addFriend(hit.code,hit);return;}
+  }
   {                                        /* แตะโคมไฟเพื่อเปิด/ปิด */
     const list=placedList();
     for(let i=list.length-1;i>=0;i--){
@@ -3889,6 +3897,7 @@ $("#btnSound").onclick=e=>{ sndOn=!sndOn; e.target.textContent="เสียง:
 $("#btnReset").onclick=async()=>{
   if(!confirm("ลบไฟล์เซฟของผู้เล่นและสัตว์เลี้ยงทั้งหมด แล้วกลับไปหน้าเข้าสู่ระบบเพื่อสร้างตัวละครใหม่?\n\nแนะนำให้กด “ส่งออก” เก็บรหัสเซฟไว้ก่อน")) return;
   await Store.del(SAVE_KEY);
+  await SamatiNet.leave().catch(()=>{});
   clearTimeout(saveTimer); dirty=false;
   G = null; party = []; Doc.on=false; mobs=[]; clouds=[]; drops=[];
   FS.on=false; $("#focusHud").style.display="none"; $("#ring").classList.remove("on");
@@ -3908,19 +3917,30 @@ window.SamatiCloud = {
   async signIn(credential){try{const out=await this.request("/api/auth/google",{method:"POST",body:JSON.stringify({credential})});this.user=out.user;const remote=await this.pull();
       if(!G){ if(remote){G=migrate(remote);G.account={...G.account,type:"google",email:this.user.email,linked:true};await Store.set(SAVE_KEY,JSON.stringify(G));hideCover();tickDecay();refreshHud();closePanels();checkInviteLink();} else startNewGame({type:"google",email:this.user.email,code:makeCode(),linked:true}); }
       else{ G.account={...G.account,type:"google",email:this.user.email,linked:true}; if(remote&&Number(remote.lastTick||0)>Number(G.lastTick||0)){G=migrate(remote);refreshHud();} await this.push(G);await Store.set(SAVE_KEY,JSON.stringify(G));closePanels();toast("เชื่อม Google และซิงก์เซฟแล้ว"); }
+      if(G)SamatiNet.enter(G.account.code).catch(()=>{});
     }catch(e){sfx.bad();toast("เข้าสู่ระบบ Google ไม่สำเร็จ");}},
-  async signOut(){await this.request("/api/logout",{method:"POST",body:"{}"}).catch(()=>{});this.user=null;if(G)G.account={...G.account,type:"guest",email:"",linked:false}},
+  async signOut(){await SamatiNet.leave().catch(()=>{});await this.request("/api/logout",{method:"POST",body:"{}"}).catch(()=>{});this.user=null;if(G)G.account={...G.account,type:"guest",email:"",linked:false}},
   async push(state){if(!this.user)return;await this.request("/api/save",{method:"PUT",body:JSON.stringify({state})})},
   async pull(){if(!this.user)return null;return (await this.request("/api/save")).state||null}
 };
 window.SamatiNet = {
-  room:null,members:[],heartbeat:null,
+  room:null,members:[],heartbeat:null,misses:0,
   async lookup(code){try{return(await SamatiCloud.request("/api/friends/"+encodeURIComponent(code))).friend}catch(e){return null}},
-  async join(code){if(!SamatiCloud.user||!G)return[];this.room=String(code).toUpperCase();const ping=async()=>{const out=await SamatiCloud.request("/api/rooms/"+this.room+"/presence",{method:"PUT",body:JSON.stringify({profile:this.serialize()})});this.members=out.members||[];return this.members;};clearInterval(this.heartbeat);await ping();this.heartbeat=setInterval(()=>ping().catch(()=>{}),15000);return this.members;},
-  async host(){return this.join(G.account.code)},
+  async peek(code){if(!SamatiCloud.user)return[];return (await SamatiCloud.request("/api/rooms/"+encodeURIComponent(String(code).toUpperCase())+"/presence")).members||[]},
+  async enter(code){
+    if(!SamatiCloud.user||!G)return[]; code=String(code).toUpperCase();
+    if(this.room&&this.room!==code)await this.leave(); this.room=code; clearInterval(this.heartbeat);
+    const ping=async()=>{if(!this.room)return[];const room=this.room;const out=await SamatiCloud.request("/api/rooms/"+room+"/presence",{method:"PUT",body:JSON.stringify({profile:this.serialize()})});if(room!==this.room)return[];this.members=out.members||[];
+      if(G.area==="friend"&&G.visiting){const owner=this.members.find(m=>m&&m.code===G.visiting.code);if(owner){this.misses=0;G.visiting={code:owner.code,name:owner.name,petName:owner.pet?.name||"Mori",petForm:owner.pet?.form||"seed"};}else if(++this.misses>=2){this.misses=0;toast("🏠 เพื่อนไม่อยู่บ้านแล้ว");setTimeout(()=>goOwnRoom(),700);}}
+      return this.members;};
+    await ping();this.heartbeat=setInterval(()=>ping().catch(()=>{}),2500);return this.members;
+  },
+  async join(code){return this.enter(code)},
+  async host(){return this.enter(G.account.code)},
   async leave(){if(this.heartbeat)clearInterval(this.heartbeat);if(this.room&&SamatiCloud.user)await SamatiCloud.request("/api/rooms/"+this.room+"/presence",{method:"DELETE",body:"{}"}).catch(()=>{});this.room=null;this.members=[];},
-  serialize(){ return { name:G.player.name, pet:{name:G.pet.name, form:G.pet.form, lv:G.pet.lv} }; }
+  serialize(){ return { code:G.account.code,name:G.player.name,look:G.player,pet:{name:G.pet.name,form:G.pet.form,lv:G.pet.lv},x:Math.round(Ply.x),dir:Ply.dir,state:Ply.state,focus:!!FS.on,at:now() }; }
 };
+window.addEventListener("pagehide",()=>{if(SamatiNet.room&&SamatiCloud.user)fetch("/api/rooms/"+SamatiNet.room+"/presence",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}",keepalive:true}).catch(()=>{});});
 
 /* =====================================================================
    7. CHARACTER CREATOR
@@ -4009,6 +4029,7 @@ $("#btnStart").onclick=()=>{
   G.pet.name = $("#inPet").value.trim().slice(0,12);
   albumUnlock("seed");
   closePanels(); refreshHud(); save();
+  if(SamatiCloud.user)SamatiNet.enter(G.account.code).catch(()=>{});
   say("สวัสดี "+G.player.name+"!",3200);
   toast("ยินดีต้อนรับสู่ Samati");
 };
@@ -4287,12 +4308,11 @@ function openFriends(){
      <div class="sec">ไปห้องเพื่อน</div>
      <div class="row"><input class="field" id="inRoom" style="flex:1;margin:0" maxlength="8" placeholder="รหัสห้องเพื่อน">
        <button class="btn" id="btnGoRoom" style="flex:0 0 auto">ไปห้องเพื่อน</button></div>
-     ${G.visiting ? `<p class="hint">ตอนนี้อยู่ที่ห้องของ <b>${G.visiting.name}</b></p>
+     ${G.visiting ? `<p class="hint">🟢 ตอนนี้อยู่ที่ห้องของ <b>${G.visiting.name}</b> · แตะตัวผู้เล่นในห้องเพื่อเพิ่มเพื่อน</p>
         <button class="btn ghost" id="btnOwnRoom" style="margin-top:6px">🏠 กลับห้องตัวเอง</button>` :
-        `<p class="hint">ใส่รหัสห้องแล้วกดไปห้องเพื่อน จะวาร์ปไปโฟกัสที่ห้องของเขาได้ทันที (กลับห้องตัวเองได้ตลอดเวลา)</p>`}
-     <div class="sec">เพิ่มเพื่อน</div>
-     <div class="row"><input class="field" id="inFriend" style="flex:1;margin:0" maxlength="8" placeholder="กรอกรหัสเพื่อน 6 ตัว">
-       <button class="btn" id="btnAddFriend" style="flex:0 0 auto">เพิ่ม</button></div>
+        `<p class="hint">ใส่รหัสห้องเพื่อไปเยี่ยมแบบเรียลไทม์ หากเจ้าของห้องออฟไลน์ ระบบจะแจ้งว่า “เพื่อนไม่อยู่บ้าน”</p>`}
+     <div class="sec">วิธีเพิ่มเพื่อน</div>
+     <p class="hint">ต้องพบกันในห้องขณะที่ออนไลน์ แล้วแตะที่ตัวผู้เล่นเพื่อเพิ่มเพื่อนเท่านั้น</p>
      <div class="sec">รายชื่อเพื่อน (${G.friends.length})</div>`);
   const list=document.createElement("div");
   if(!G.friends.length){
@@ -4330,17 +4350,14 @@ function openFriends(){
   $("#btnGoRoom").onclick=()=>visitFriend($("#inRoom").value);
   const orb=$("#btnOwnRoom"); if(orb) orb.onclick=()=>{ sfx.tap(); goOwnRoom(); };
   $("#btnInvite").onclick=()=>copyText(inviteLink(),"คัดลอกลิงก์ชวนเพื่อนแล้ว · ส่งให้เพื่อนได้เลย");
-  $("#btnAddFriend").onclick=()=>{
-    const code=$("#inFriend").value.trim().toUpperCase();
-    if(code.length<4){ sfx.bad(); toast("รหัสไม่ถูกต้อง"); return; }
-    addFriend(code);
-  };
   openPanel("#p-friends");
 }
-async function addFriend(code){
+async function addFriend(code,profile=null){
   if(code===G.account.code){ sfx.bad(); toast("นั่นคือรหัสของคุณเอง"); return; }
   if(G.friends.some(f=>f.code===code)){ toast("มีเพื่อนคนนี้อยู่แล้ว"); return; }
-  const f=(await SamatiNet.lookup(code))||friendFromCode(code);
+  if(G.area!=="friend"||!SamatiNet.members.some(m=>m&&m.code===code)){sfx.bad();toast("ต้องไปพบและแตะตัวเพื่อนขณะที่ออนไลน์ก่อน");return;}
+  const m=profile||SamatiNet.members.find(x=>x&&x.code===code);
+  const f={code:m.code,name:m.name||"เพื่อน",petName:m.pet?.name||"Mori",petForm:m.pet?.form||"seed",close:0,sessions:0};
   G.friends.push(f); sfx.ok(); toast("เพิ่มเพื่อน "+f.name+" แล้ว");
   save(); openFriends();
 }
@@ -4355,11 +4372,7 @@ function checkInviteLink(){
   if(!m || !G) return;
   const code=m[1].toUpperCase();
   if(code===G.account.code) return;
-  if(!G.friends.some(f=>f.code===code)) G.friends.push(friendFromCode(code));
-  const f=G.friends.find(x=>x.code===code);
-  if(!party.includes(code) && party.length<4) party.push(code);
-  save();
-  setTimeout(()=>{ toast("🎉 "+f.name+" ชวนคุณโฟกัสด้วยกัน · เลือกไว้ในปาร์ตี้แล้ว"); },1200);
+  setTimeout(()=>visitFriend(code),900);
 }
 
 /* =====================================================================
@@ -4854,6 +4867,7 @@ function migrate(o){
   if(remote&&(!G||Number(remote.lastTick||0)>Number(G.lastTick||0)))G=migrate(remote);
   if(G&&SamatiCloud.user){G.account={...G.account,type:"google",email:SamatiCloud.user.email,linked:true};await Store.set(SAVE_KEY,JSON.stringify(G));}
   if(G){
+    G.area="home"; G.visiting=null;
     tickDecay(); refreshHud(); closePanels();
     $("#envA").textContent = (G.area==="friend"&&G.visiting) ? ("ห้องของ "+G.visiting.name) : AREAS[area()].n;
     updateMoveBar();
@@ -4861,6 +4875,7 @@ function migrate(o){
     if(G.pet.injured) setTimeout(()=>toast("🤕 "+G.pet.name+" ยังบาดเจ็บ · ต้องโฟกัสฟื้นฟูให้หายก่อน"),1400);
     setTimeout(()=>say(pick(["กลับมาแล้ว!","คิดถึงนะ","พร้อมโฟกัสหรือยัง"]),3000),700);
     checkInviteLink();
+    if(SamatiCloud.user)SamatiNet.enter(G.account.code).catch(()=>{});
   }else{
     showCover();
     if(SamatiCloud.clientId)SamatiCloud.renderButton();
