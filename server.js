@@ -324,6 +324,7 @@ app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, asy
     code: String(state.account?.code || "").slice(0,10).toUpperCase(), name: String(state.player?.name || "ผู้เล่น").slice(0,24),
     x: clamp(num(raw.x,100),0,216), dir: num(raw.dir,1)<0?-1:1,
     state: ["idle","walk","sit","focus"].includes(raw.state)?raw.state:"idle", focus:Boolean(raw.focus), look:state.player||{},
+    zone: ["home","yard","garden"].includes(raw.zone) ? raw.zone : "away",
     pet:{name:String(state.pet?.name||"Mori").slice(0,24),form:String(state.pet?.form||"seed").slice(0,24),lv:clamp(Math.round(num(state.pet?.lv,1)),1,100)}
   };
   const db=await pool.connect();
@@ -332,7 +333,7 @@ app.put("/api/rooms/:code/presence", rateLimit("presence", 40), requireUser, asy
     await db.query("DELETE FROM room_presence WHERE seen_at < NOW()-INTERVAL '20 seconds'");
     const owner=await db.query("SELECT google_sub FROM game_saves WHERE UPPER(state->'account'->>'code')=$1 LIMIT 1",[code]);
     if(!owner.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"house not found"});}
-    if(owner.rows[0].google_sub!==req.user.sub){const online=await db.query("SELECT 1 FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
+    if(owner.rows[0].google_sub!==req.user.sub){const online=await db.query("SELECT profile FROM room_presence WHERE room_code=$1 AND google_sub=$2",[code,owner.rows[0].google_sub]);if(!online.rowCount||!["home","yard","garden"].includes(online.rows[0].profile?.zone)){await db.query("ROLLBACK");return res.status(409).json({error:"friend is not home"});}}
     const count=await db.query("SELECT COUNT(*)::int AS n FROM room_presence WHERE room_code=$1 AND google_sub<>$2",[code,req.user.sub]);
     if(count.rows[0].n>=5){await db.query("ROLLBACK");return res.status(409).json({error:"house full"});}
     await db.query("DELETE FROM room_presence WHERE google_sub=$1",[req.user.sub]);
