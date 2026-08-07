@@ -168,6 +168,44 @@ app.post("/api/collectibles/id", rateLimit("collectible-id",30), requireUser, as
   for(let n=0;n<8;n++)try{const proposed=String(req.body?.id||"").toUpperCase(),id=n===0&&/^[A-Z0-9]{13}$/.test(proposed)?proposed:collectibleId();await pool.query("INSERT INTO collectible_ids(id,google_sub,kind,ref) VALUES($1,$2,$3,$4)",[id,req.user.sub,kind,ref]);return res.json({id});}catch(e){if(e.code!=="23505")throw e;}
   res.status(503).json({error:"could not issue collectible id"});
 });
+function cleanRewardList(raw){
+  return (Array.isArray(raw)?raw:[]).slice(0,30).map(r=>({
+    kind:["coins","crystal","bag","wardrobe","vip"].includes(r?.kind)?r.kind:"",
+    id:String(r?.id||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,64),
+    cat:String(r?.cat||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,24),
+    name:String(r?.name||"รางวัล").replace(/[<>\u0000-\u001f]/g,"").slice(0,80),
+    amount:clamp(Math.round(num(r?.amount,1)),1,1_000_000)
+  })).filter(r=>r.kind&&(["coins","crystal"].includes(r.kind)||r.id));
+}
+app.get("/api/admin/reward-codes",rateLimit("admin-reward-list",30),requireAdmin,async(_req,res)=>{
+  const rows=await pool.query(`SELECT code,label,rewards,active,created_at,
+    (SELECT COUNT(*)::int FROM reward_redemptions x WHERE x.code=r.code) AS redemptions
+    FROM reward_codes r ORDER BY created_at DESC LIMIT 200`);res.json({codes:rows.rows});
+});
+app.post("/api/admin/reward-codes",rateLimit("admin-reward-save",20),requireAdmin,async(req,res)=>{
+  const code=String(req.body?.code||"").trim().toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,32);
+  const label=String(req.body?.label||"กิจกรรมพิเศษ").replace(/[<>\u0000-\u001f]/g,"").trim().slice(0,80),rewards=cleanRewardList(req.body?.rewards);
+  if(code.length<3||!rewards.length)return res.status(400).json({error:"invalid reward code"});
+  await pool.query(`INSERT INTO reward_codes(code,label,rewards,active,created_by,created_at,updated_at) VALUES($1,$2,$3,TRUE,$4,NOW(),NOW())
+    ON CONFLICT(code) DO UPDATE SET label=EXCLUDED.label,rewards=EXCLUDED.rewards,active=TRUE,updated_at=NOW()`,[code,label,rewards,req.user.email]);
+  res.json({ok:true,code});
+});
+app.delete("/api/admin/reward-codes/:code",rateLimit("admin-reward-delete",20),requireAdmin,async(req,res)=>{
+  await pool.query("UPDATE reward_codes SET active=FALSE,updated_at=NOW() WHERE code=$1",[String(req.params.code||"").toUpperCase()]);res.json({ok:true});
+});
+app.post("/api/rewards/redeem",rateLimit("reward-redeem",10,60_000),requireUser,async(req,res)=>{
+  const code=String(req.body?.code||"").trim().toUpperCase(),db=await pool.connect();
+  try{await db.query("BEGIN");const offer=await db.query("SELECT label,rewards FROM reward_codes WHERE code=$1 AND active=TRUE FOR UPDATE",[code]);
+    if(!offer.rows[0]){await db.query("ROLLBACK");return res.status(404).json({error:"code not found"});}
+    const used=await db.query("INSERT INTO reward_redemptions(code,google_sub) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING code",[code,req.user.sub]);
+    if(!used.rowCount){await db.query("ROLLBACK");return res.status(409).json({error:"code already redeemed"});}
+    const save=await db.query("SELECT state FROM game_saves WHERE google_sub=$1 FOR UPDATE",[req.user.sub]);if(!save.rows[0]){await db.query("ROLLBACK");return res.status(409).json({error:"save must exist"});}
+    const state=save.rows[0].state,rewards=cleanRewardList(offer.rows[0].rewards);state.bag=state.bag||{};state.wardrobe=state.wardrobe||{};state.vip=state.vip||{};state.vip.owned=Array.isArray(state.vip.owned)?state.vip.owned:[];
+    for(const r of rewards){if(r.kind==="coins")state.coins=clamp(Math.round(num(state.coins))+r.amount,0,9_999_999);else if(r.kind==="crystal")state.crystal=clamp(Math.round(num(state.crystal))+r.amount,0,9_999_999);else if(r.kind==="bag")state.bag[r.id]=clamp(Math.round(num(state.bag[r.id]))+r.amount,0,9999);else if(r.kind==="wardrobe"){const cat=r.cat||"shirt";state.wardrobe[cat]=Array.isArray(state.wardrobe[cat])?state.wardrobe[cat]:[];if(!state.wardrobe[cat].includes(r.id))state.wardrobe[cat].push(r.id);}else if(r.kind==="vip"){if(!state.vip.owned.includes(r.id))state.vip.owned.push(r.id);if(r.cat){state.wardrobe[r.cat]=Array.isArray(state.wardrobe[r.cat])?state.wardrobe[r.cat]:[];if(!state.wardrobe[r.cat].includes(r.id))state.wardrobe[r.cat].push(r.id);}}}
+    await db.query("UPDATE game_saves SET state=$2,updated_at=NOW() WHERE google_sub=$1",[req.user.sub,state]);await db.query(`INSERT INTO economy_events(google_sub,kind,amount,reference,details) VALUES($1,'reward_code',0,$2,$3)`,[req.user.sub,code,{label:offer.rows[0].label,rewards}]);
+    await db.query("COMMIT");res.json({ok:true,label:offer.rows[0].label,rewards,state});
+  }catch(error){await db.query("ROLLBACK").catch(()=>{});throw error;}finally{db.release();}
+});
 app.delete("/api/save", rateLimit("delete-save", 3), requireUser, async (req, res) => {
   await pool.query("DELETE FROM game_saves WHERE google_sub=$1", [req.user.sub]);
   await pool.query("DELETE FROM room_presence WHERE google_sub=$1", [req.user.sub]).catch(()=>{});
@@ -717,5 +755,13 @@ await pool.query(`CREATE TABLE IF NOT EXISTS friend_meet_cheers (
 await pool.query(`CREATE TABLE IF NOT EXISTS collectible_ids (
   id VARCHAR(13) PRIMARY KEY, google_sub TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (google_sub,kind,ref)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS reward_codes (
+  code VARCHAR(32) PRIMARY KEY,label VARCHAR(80) NOT NULL,rewards JSONB NOT NULL DEFAULT '[]'::jsonb,
+  active BOOLEAN NOT NULL DEFAULT TRUE,created_by TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS reward_redemptions (
+  code VARCHAR(32) NOT NULL REFERENCES reward_codes(code),google_sub TEXT NOT NULL,
+  redeemed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(code,google_sub)
 )`);
 app.listen(port, "0.0.0.0", () => console.log(`SAMATI listening on ${port}`));
