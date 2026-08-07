@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "SAMATI — Focus Pet",
+  "short_name": "SAMATI",
+  "description": "เกมเลี้ยงสัตว์และฝึกสมาธิ พร้อม Google Login และ Cloud Save",
+  "lang": "th",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#191534",
+  "theme_color": "#191534",
+  "categories": ["games", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/samati-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "เข้าเกม SAMATI",
+      "short_name": "เข้าเกม",
+      "url": "/?source=shortcut",
+      "icons": [{"src": "/samati-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    }
+  ]
+}

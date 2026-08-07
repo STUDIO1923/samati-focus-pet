@@ -4,7 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#191534">
+<meta name="application-name" content="SAMATI">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SAMATI">
 <title>SAMATI — Focus Pet</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/samati-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/samati-icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Comfortaa:wght@500;700&display=swap" rel="stylesheet">
@@ -687,6 +695,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
           <div class="row"><button class="btn ghost" id="btnOpenAlbum">เปิดสมุดสะสมการ์ด</button></div>
           <div class="sec">อื่นๆ</div>
           <div class="row">
+            <button class="btn" id="btnInstallApp">📲 ติดตั้งเว็บแอป</button>
             <button class="btn ghost" id="btnSound">เสียง: เปิด</button>
             <button class="btn ghost" id="btnReset">เริ่มใหม่ทั้งหมด</button>
           </div>
@@ -3822,6 +3831,7 @@ $("#evoOk").onclick=()=>{ sfx.tap(); $("#evo").classList.remove("on"); refreshHu
 function openMenu(){
   const s=G.stats;
   $("#btnCloud").textContent = G.account.type==="google" ? "บัญชีที่เชื่อมไว้" : "เชื่อมบัญชี Google";
+  $("#btnInstallApp").textContent = window.matchMedia("(display-mode: standalone)").matches ? "✓ ติดตั้งเป็นแอปแล้ว" : "📲 ติดตั้งเว็บแอป";
   $("#statList").innerHTML = `
     <div class="kv"><span>ผู้เล่น</span><b>${G.player.name}</b></div>
     <div class="kv"><span>บัญชี</span><b>${G.account.type==="google" ? "Google · "+G.account.email : "Guest"}</b></div>
@@ -3894,6 +3904,16 @@ $("#fileIn").onchange=e=>{
 $("#btnOpenFriends").onclick=()=>{ sfx.tap(); openFriends(); };
 $("#btnOpenAlbum").onclick=()=>{ sfx.tap(); albumTab="forms"; openAlbum(); };
 $("#btnSound").onclick=e=>{ sndOn=!sndOn; e.target.textContent="เสียง: "+(sndOn?"เปิด":"ปิด"); if(sndOn) sfx.tap(); };
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;});
+window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;toast("ติดตั้ง SAMATI สำเร็จแล้ว");});
+$("#btnInstallApp").onclick=async()=>{
+  sfx.tap();
+  if(window.matchMedia("(display-mode: standalone)").matches){toast("กำลังใช้งาน SAMATI แบบเว็บแอปอยู่แล้ว");return;}
+  if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;return;}
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  toast(ios?"บน iPhone/iPad: แตะปุ่มแชร์ แล้วเลือก ‘เพิ่มไปยังหน้าจอโฮม’":"เปิดเมนูเบราว์เซอร์ แล้วเลือก ‘ติดตั้งแอป’ หรือ ‘เพิ่มไปยังหน้าจอหลัก’",5200);
+};
 $("#btnReset").onclick=async()=>{
   if(!confirm("ลบไฟล์เซฟของผู้เล่นและสัตว์เลี้ยงทั้งหมด แล้วกลับไปหน้าเข้าสู่ระบบเพื่อสร้างตัวละครใหม่?\n\nแนะนำให้กด “ส่งออก” เก็บรหัสเซฟไว้ก่อน")) return;
   await Store.del(SAVE_KEY);
@@ -4858,6 +4878,7 @@ function migrate(o){
   return s;
 }
 (async function boot(){
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
   await SamatiCloud.init();
   let raw = await Store.get(SAVE_KEY); if(!raw) raw=await Store.get("samati:save:v1");
   if(raw){
