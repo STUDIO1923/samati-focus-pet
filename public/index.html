@@ -262,6 +262,8 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
 .cell:active{border-color:var(--brass)}
 .cell .e{font-size:20px;line-height:1.1}
 .cell .n{font-size:9.5px;line-height:1.25;margin-top:2px;opacity:.9}
+.cell .foodStats{font-family:var(--mono);font-size:8px;line-height:1.35;margin-top:4px;color:#f4dda0;
+  background:rgba(11,16,9,.42);border-radius:5px;padding:3px 2px}
 .cell .q{position:absolute;right:3px;top:2px;font-family:var(--mono);font-size:10px;color:var(--brass-l)}
 .cell.empty{opacity:.35;cursor:default}
 .dexrow{margin-bottom:12px}
@@ -954,10 +956,10 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
       <button id="statSwap">⇄ สเตตัสต่อสู้</button>
       <div id="mainBars">
         <div class="bar"><span class="ic">❤️</span><div class="track"><div class="fill f-hp" id="bHp"></div></div><span class="num" id="hpTxt">0/0</span></div>
-        <div class="bar"><span class="ic">🍚</span><div class="track"><div class="fill f-hun" id="bHun"></div></div></div>
-        <div class="bar"><span class="ic">🙂</span><div class="track"><div class="fill f-moo" id="bMoo"></div></div></div>
-        <div class="bar"><span class="ic">💞</span><div class="track"><div class="fill f-bon" id="bBon"></div></div></div>
-        <div class="bar"><span class="ic">✦</span><div class="track"><div class="fill f-xp" id="bXp"></div></div></div>
+        <div class="bar"><span class="ic">🍚</span><div class="track"><div class="fill f-hun" id="bHun"></div></div><span class="num" id="hunTxt">0/100</span></div>
+        <div class="bar"><span class="ic">🙂</span><div class="track"><div class="fill f-moo" id="bMoo"></div></div><span class="num" id="mooTxt">0/100</span></div>
+        <div class="bar"><span class="ic">💞</span><div class="track"><div class="fill f-bon" id="bBon"></div></div><span class="num" id="bonTxt">0/100</span></div>
+        <div class="bar"><span class="ic">✦</span><div class="track"><div class="fill f-xp" id="bXp"></div></div><span class="num" id="xpTxt">0/0</span></div>
       </div>
       <div id="battleBars" style="display:none"></div>
     </div>
@@ -1008,7 +1010,7 @@ textarea.field{font-family:var(--mono);font-size:10px;height:88px;resize:none}
     <button class="key" data-act="album"><span class="g">📔</span><span class="t">สมุดการ์ด</span></button>
     <button class="key" data-act="center"><span class="g">🏥</span><span class="t">Samati Center</span></button>
     <button class="key spoil" data-act="event"><span class="g">▶</span><span class="t">SPOIL1923</span></button>
-    <button class="key fbgroup" data-act="community"><span class="g">f</span><span class="t">PlaySmati</span></button>
+    <button class="key fbgroup" data-act="community"><span class="g">f</span><span class="t">PlaySamati</span></button>
     <button class="key adminKey" data-act="admin" style="display:none"><span class="g">🛡️</span><span class="t">ห้องควบคุม</span></button>
     <button class="key" data-act="menu"><span class="g">⚙️</span><span class="t">เมนู</span></button>
   </div>
@@ -3929,6 +3931,10 @@ function refreshHud(){
   $("#bMoo").style.width = clamp(G.pet.moo,0,100)+"%";
   $("#bBon").style.width = clamp(G.pet.bon,0,100)+"%";
   $("#bXp").style.width  = (G.pet.xp/xpNeed(G.pet.lv)*100)+"%";
+  $("#hunTxt").textContent = Math.round(clamp(G.pet.hun,0,100))+"/100";
+  $("#mooTxt").textContent = Math.round(clamp(G.pet.moo,0,100))+"/100";
+  $("#bonTxt").textContent = Math.round(clamp(G.pet.bon,0,100))+"/100";
+  $("#xpTxt").textContent = Math.floor(G.pet.xp)+"/"+xpNeed(G.pet.lv);
   const hpPct = clamp(G.pet.hp/maxHp()*100,0,100);
   $("#bHp").style.width = hpPct+"%";
   $("#bHp").classList.toggle("low", hpPct<30);
@@ -4048,6 +4054,8 @@ function feed(k){
   const it=ITEMS[k];
   if(!G.bag[k]) return;
   if(G.pet.hun>=98){ toast(G.pet.name+" อิ่มมากแล้ว"); return; }
+  const gainedHun=Math.max(0,Math.min(Number(it.hun)||0,100-G.pet.hun));
+  const gainedMoo=Math.max(0,Math.min(Number(it.moo)||0,100-G.pet.moo));
   G.bag[k]--; if(!G.bag[k]) delete G.bag[k];
   G.pet.hun = clamp(G.pet.hun+it.hun,0,100);
   G.pet.moo = clamp(G.pet.moo+it.moo,0,100);
@@ -4058,6 +4066,7 @@ function feed(k){
   Pet.state="eat"; Pet.stateT=2.2;
   for(let i=0;i<6;i++) spawnParticle(Pet.x+rnd(-4,4), FLOOR-6, "#f0d68a");
   sfx.eat(); say(pick(["อร่อย!","ขอบใจนะ","นั่นแหละที่รอ"]),2000);
+  toast(it.n+" · ความหิว +"+Math.round(gainedHun)+" · อารมณ์ +"+Math.round(gainedMoo)+" · ความสนิท +0.6 · EXP +2");
   closePanels(); refreshHud(); save();
 }
 
@@ -4094,7 +4103,10 @@ function renderBag(){
     const it=itemDef(k);
     const c=document.createElement("button");
     c.className="cell";
-    c.innerHTML = `<span class="q">×${G.bag[k]}</span><div class="e">${it.e}</div><div class="n">${it.n}</div>`;
+    const foodStats=it.type==="food"
+      ? `<div class="foodStats">🍚 +${Number(it.hun)||0} · 🙂 +${Number(it.moo)||0}<br>💞 +0.6 · ✦ EXP +2</div>`
+      : "";
+    c.innerHTML = `<span class="q">×${G.bag[k]}</span><div class="e">${it.e}</div><div class="n">${it.n}</div>${foodStats}`;
     if(it.type==="food") c.onclick=()=>{ sfx.tap(); feed(k); };
     else if(it.type==="seed") c.onclick=()=>{ sfx.tap();
       if(area()==="yard"){ closePanels(); toast("แตะแปลงว่างในสวนหน้าบ้านเพื่อปลูก"); }
@@ -7231,7 +7243,7 @@ function openLink(url){
 }
 function openCommunity(){
   openLink(COMMUNITY_URL);
-  toast("เปิดกลุ่ม PlaySmati บน Facebook · พูดคุยแลกเปลี่ยนข้อมูลกับผู้เล่นคนอื่นได้เลย");
+  toast("เปิดกลุ่ม PlaySamati บน Facebook · พูดคุยแลกเปลี่ยนข้อมูลกับผู้เล่นคนอื่นได้เลย");
 }
 function openEvent(){
   const b=$("#eventBody"); b.innerHTML="";
